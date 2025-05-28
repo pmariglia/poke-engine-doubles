@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use super::abilities::Abilities;
 use super::damage_calc::type_effectiveness_modifier;
 use super::generate_instructions::{get_boost_instruction, immune_to_status};
@@ -12,12 +11,10 @@ use crate::instruction::{
 };
 use crate::pokemon::PokemonName;
 use crate::state::{
-    Pokemon, PokemonBoostableStat, PokemonStatus, PokemonType, Side, SideReference, State,
+    Pokemon, PokemonBoostableStat, PokemonIndex, PokemonStatus, PokemonType, Side, SideReference,
+    SlotReference, State,
 };
 use std::cmp;
-
-#[cfg(feature = "gen4")]
-use super::state::PokemonVolatileStatus;
 
 define_enum_with_from_str! {
     #[repr(u8)]
@@ -47,6 +44,7 @@ define_enum_with_from_str! {
         CHOPLEBERRY,
         COBABERRY,
         COLBURBERRY,
+        COVERTCLOAK,
         CUSTAPBERRY,
         DRAGONFANG,
         DRAGONSCALE,
@@ -88,6 +86,7 @@ define_enum_with_from_str! {
         SHARPBEAK,
         SPELLTAG,
         MIRACLESEED,
+        SAFETYGOGGLES,
         SHELLBELL,
         SHUCABERRY,
         SILKSCARF,
@@ -130,6 +129,7 @@ define_enum_with_from_str! {
         DRACOPLATE,
         PIXIEPLATE,
         LIGHTBALL,
+        LIGHTCLAY,
         FOCUSSASH,
         CHESTOBERRY,
         LUMBERRY,
@@ -185,6 +185,7 @@ define_enum_with_from_str! {
 
 pub fn get_choice_move_disable_instructions(
     pkmn: &Pokemon,
+    pkmn_index: PokemonIndex,
     side_ref: &SideReference,
     move_name: &Choices,
 ) -> Vec<Instruction> {
@@ -194,6 +195,7 @@ pub fn get_choice_move_disable_instructions(
         if &p.id != move_name && p.disabled == false {
             moves_to_disable.push(Instruction::DisableMove(DisableMoveInstruction {
                 side_ref: *side_ref,
+                pokemon_index: pkmn_index,
                 move_index: iter.pokemon_move_index,
             }));
         }
@@ -203,7 +205,8 @@ pub fn get_choice_move_disable_instructions(
 
 fn damage_reduction_berry(
     defending_pkmn: &mut Pokemon,
-    attacking_side_ref: &SideReference,
+    target_side_ref: &SideReference,
+    target_active_index: PokemonIndex,
     choice: &mut Choice,
     berry: Items,
     pkmn_type: &PokemonType,
@@ -215,7 +218,8 @@ fn damage_reduction_berry(
         instructions
             .instruction_list
             .push(Instruction::ChangeItem(ChangeItemInstruction {
-                side_ref: attacking_side_ref.get_other_side(),
+                side_ref: *target_side_ref,
+                pokemon_index: target_active_index,
                 current_item: berry,
                 new_item: Items::NONE,
             }));
@@ -230,24 +234,18 @@ NormalGem, FlyingGem, etc.
 fn power_up_gem(
     attacking_side_ref: &SideReference,
     attacking_pkmn: &mut Pokemon,
+    active_index: PokemonIndex,
     choice: &mut Choice,
     gem_type: PokemonType,
     instructions: &mut StateInstructions,
 ) {
     if &choice.move_type == &gem_type {
-        #[cfg(feature = "gen5")]
-        {
-            choice.base_power *= 1.5;
-        }
-        #[cfg(not(feature = "gen5"))]
-        {
-            choice.base_power *= 1.3;
-        }
-
+        choice.base_power *= 1.3;
         instructions
             .instruction_list
             .push(Instruction::ChangeItem(ChangeItemInstruction {
                 side_ref: *attacking_side_ref,
+                pokemon_index: active_index,
                 current_item: attacking_pkmn.item,
                 new_item: Items::NONE,
             }));
@@ -263,12 +261,11 @@ Regarding berries:
     removed after this is triggered so only one will take effect
 */
 fn lum_berry(
+    active_pkmn: &mut Pokemon,
+    active_index: PokemonIndex,
     side_ref: &SideReference,
-    attacking_side: &mut Side,
     instructions: &mut StateInstructions,
 ) {
-    let active_index = attacking_side.active_index;
-    let active_pkmn = attacking_side.get_active();
     instructions
         .instruction_list
         .push(Instruction::ChangeStatus(ChangeStatusInstruction {
@@ -282,6 +279,7 @@ fn lum_berry(
         .instruction_list
         .push(Instruction::ChangeItem(ChangeItemInstruction {
             side_ref: *side_ref,
+            pokemon_index: active_index,
             current_item: Items::LUMBERRY,
             new_item: Items::NONE,
         }));
@@ -289,16 +287,17 @@ fn lum_berry(
 }
 
 fn sitrus_berry(
+    active_pkmn: &mut Pokemon,
+    active_index: PokemonIndex,
     side_ref: &SideReference,
-    attacking_side: &mut Side,
     instructions: &mut StateInstructions,
 ) {
-    let active_pkmn = attacking_side.get_active();
     let heal_amount = cmp::min(active_pkmn.maxhp / 4, active_pkmn.maxhp - active_pkmn.hp);
     instructions
         .instruction_list
         .push(Instruction::Heal(HealInstruction {
             side_ref: *side_ref,
+            pokemon_index: active_index,
             heal_amount: heal_amount,
         }));
     active_pkmn.hp += heal_amount;
@@ -306,6 +305,7 @@ fn sitrus_berry(
         .instruction_list
         .push(Instruction::ChangeItem(ChangeItemInstruction {
             side_ref: *side_ref,
+            pokemon_index: active_index,
             current_item: Items::SITRUSBERRY,
             new_item: Items::NONE,
         }));
@@ -313,79 +313,188 @@ fn sitrus_berry(
 }
 
 fn chesto_berry(
-    side_ref: &SideReference,
     attacking_side: &mut Side,
+    active_index: PokemonIndex,
+    side_ref: &SideReference,
     instructions: &mut StateInstructions,
 ) {
-    let active_index = attacking_side.active_index;
-    let active_pkmn = attacking_side.get_active();
     instructions
         .instruction_list
         .push(Instruction::ChangeItem(ChangeItemInstruction {
             side_ref: *side_ref,
+            pokemon_index: active_index,
             current_item: Items::CHESTOBERRY,
             new_item: Items::NONE,
         }));
-    active_pkmn.item = Items::NONE;
+    attacking_side.pokemon[&active_index].item = Items::NONE;
     add_remove_status_instructions(instructions, active_index, *side_ref, attacking_side);
 }
 
 fn boost_berry(
-    side_ref: &SideReference,
     state: &mut State,
+    side_ref: &SideReference,
+    slot_ref: &SlotReference,
     stat: PokemonBoostableStat,
     instructions: &mut StateInstructions,
 ) {
     if let Some(ins) = get_boost_instruction(
-        &state.get_side_immutable(side_ref),
+        state.get_side_immutable(side_ref),
         &stat,
         &1,
         side_ref,
         side_ref,
+        slot_ref,
     ) {
         state.apply_one_instruction(&ins);
         instructions.instruction_list.push(ins);
     }
-    let attacker = state.get_side(side_ref).get_active();
+    let attacking_side = state.get_side(side_ref);
+    let attacking_index = attacking_side.get_slot_immutable(slot_ref).active_index;
+    let attacker = attacking_side.get_active(slot_ref);
     instructions
         .instruction_list
         .push(Instruction::ChangeItem(ChangeItemInstruction {
             side_ref: *side_ref,
+            pokemon_index: attacking_index,
             current_item: attacker.item,
             new_item: Items::NONE,
         }));
     attacker.item = Items::NONE;
 }
 
+pub fn item_change_type(
+    state: &State,
+    attacking_choice: &mut Choice,
+    attacking_side_ref: &SideReference,
+    attacking_slot_ref: &SlotReference,
+) {
+    let attacking_side = state.get_side_immutable(attacking_side_ref);
+    let attacking_pkmn = attacking_side.get_active_immutable(attacking_slot_ref);
+    match attacking_pkmn.item {
+        Items::FISTPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::FIGHTING;
+            }
+        }
+        Items::SKYPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::FLYING;
+            }
+        }
+        Items::TOXICPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::POISON;
+            }
+        }
+        Items::EARTHPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::GROUND;
+            }
+        }
+        Items::STONEPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::ROCK;
+            }
+        }
+        Items::INSECTPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::BUG;
+            }
+        }
+        Items::SPOOKYPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::GHOST;
+            }
+        }
+        Items::IRONPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::STEEL;
+            }
+        }
+        Items::FLAMEPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::FIRE;
+            }
+        }
+        Items::SPLASHPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::WATER;
+            }
+        }
+        Items::MEADOWPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::GRASS;
+            }
+        }
+        Items::ZAPPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::ELECTRIC;
+            }
+        }
+        Items::MINDPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::PSYCHIC;
+            }
+        }
+        Items::ICICLEPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::ICE;
+            }
+        }
+        Items::DRACOPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::DRAGON;
+            }
+        }
+        Items::DREADPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::DARK;
+            }
+        }
+        Items::PIXIEPLATE => {
+            if attacking_choice.move_id == Choices::JUDGMENT {
+                attacking_choice.move_type = PokemonType::FAIRY;
+            }
+        }
+        _ => {}
+    }
+}
+
 pub fn item_before_move(
     state: &mut State,
     choice: &mut Choice,
-    side_ref: &SideReference,
+    attacking_side_ref: &SideReference,
+    attacking_slot_ref: &SlotReference,
+    target_side_ref: &SideReference,
+    target_slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) {
-    let (attacking_side, defending_side) = state.get_both_sides(side_ref);
-    let active_pkmn = attacking_side.get_active();
-    let defending_pkmn = defending_side.get_active();
-    match defending_pkmn.item {
+    let target_side = state.get_side(target_side_ref);
+    let target_active_index = target_side.get_slot_immutable(target_slot_ref).active_index;
+    let target_pkmn = target_side.get_active(target_slot_ref);
+    match target_pkmn.item {
         Items::CHOPLEBERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            target_side_ref,
+            target_active_index,
             choice,
             Items::CHOPLEBERRY,
             &PokemonType::FIGHTING,
             instructions,
         ),
         Items::BABIRIBERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::BABIRIBERRY,
             &PokemonType::STEEL,
             instructions,
         ),
         Items::CHARTIBERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::CHARTIBERRY,
             &PokemonType::ROCK,
@@ -396,122 +505,137 @@ pub fn item_before_move(
             if &choice.move_type == &PokemonType::NORMAL {
                 instructions.instruction_list.push(Instruction::ChangeItem(
                     ChangeItemInstruction {
-                        side_ref: side_ref.get_other_side(),
+                        side_ref: *target_side_ref,
+                        pokemon_index: target_active_index,
                         current_item: Items::CHILANBERRY,
                         new_item: Items::NONE,
                     },
                 ));
-                defending_pkmn.item = Items::NONE;
+                target_pkmn.item = Items::NONE;
                 choice.base_power /= 2.0;
             }
         }
         Items::COBABERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::COBABERRY,
             &PokemonType::FLYING,
             instructions,
         ),
         Items::COLBURBERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::COLBURBERRY,
             &PokemonType::DARK,
             instructions,
         ),
         Items::HABANBERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::HABANBERRY,
             &PokemonType::DRAGON,
             instructions,
         ),
         Items::KASIBBERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::KASIBBERRY,
             &PokemonType::GHOST,
             instructions,
         ),
         Items::KEBIABERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::KEBIABERRY,
             &PokemonType::POISON,
             instructions,
         ),
         Items::OCCABERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::OCCABERRY,
             &PokemonType::FIRE,
             instructions,
         ),
         Items::PASSHOBERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::PASSHOBERRY,
             &PokemonType::WATER,
             instructions,
         ),
         Items::PAYAPABERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::PAYAPABERRY,
             &PokemonType::PSYCHIC,
             instructions,
         ),
         Items::RINDOBERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::RINDOBERRY,
             &PokemonType::GRASS,
             instructions,
         ),
         Items::ROSELIBERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::ROSELIBERRY,
             &PokemonType::FAIRY,
             instructions,
         ),
         Items::SHUCABERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::SHUCABERRY,
             &PokemonType::GROUND,
             instructions,
         ),
         Items::TANGABERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::TANGABERRY,
             &PokemonType::BUG,
             instructions,
         ),
         Items::WACANBERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::WACANBERRY,
             &PokemonType::ELECTRIC,
             instructions,
         ),
         Items::YACHEBERRY => damage_reduction_berry(
-            defending_pkmn,
-            side_ref,
+            target_pkmn,
+            attacking_side_ref,
+            target_active_index,
             choice,
             Items::YACHEBERRY,
             &PokemonType::ICE,
@@ -519,162 +643,203 @@ pub fn item_before_move(
         ),
         _ => {}
     }
+
+    let attacking_side = state.get_side(attacking_side_ref);
+    let active_index = attacking_side
+        .get_slot_immutable(attacking_slot_ref)
+        .active_index;
+    let active_pkmn = attacking_side.get_active(attacking_slot_ref);
     match active_pkmn.item {
         Items::NORMALGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::NORMAL,
             instructions,
         ),
         Items::BUGGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::BUG,
             instructions,
         ),
         Items::ELECTRICGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::ELECTRIC,
             instructions,
         ),
         Items::FIGHTINGGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::FIGHTING,
             instructions,
         ),
         Items::GHOSTGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::GHOST,
             instructions,
         ),
         Items::PSYCHICGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::PSYCHIC,
             instructions,
         ),
         Items::FLYINGGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::FLYING,
             instructions,
         ),
         Items::STEELGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::STEEL,
             instructions,
         ),
         Items::ICEGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::ICE,
             instructions,
         ),
         Items::POISONGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::POISON,
             instructions,
         ),
         Items::FIREGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::FIRE,
             instructions,
         ),
         Items::DRAGONGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::DRAGON,
             instructions,
         ),
         Items::GROUNDGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::GROUND,
             instructions,
         ),
         Items::WATERGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::WATER,
             instructions,
         ),
         Items::DARKGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::DARK,
             instructions,
         ),
         Items::ROCKGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::ROCK,
             instructions,
         ),
         Items::GRASSGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::GRASS,
             instructions,
         ),
         Items::FAIRYGEM => power_up_gem(
-            side_ref,
+            attacking_side_ref,
             active_pkmn,
+            active_index,
             choice,
             PokemonType::FAIRY,
             instructions,
         ),
         Items::LUMBERRY if active_pkmn.status != PokemonStatus::NONE => {
-            lum_berry(side_ref, attacking_side, instructions)
+            lum_berry(active_pkmn, active_index, attacking_side_ref, instructions)
         }
         Items::SITRUSBERRY
             if active_pkmn.ability == Abilities::GLUTTONY
                 && active_pkmn.hp <= active_pkmn.maxhp / 2 =>
         {
-            sitrus_berry(side_ref, attacking_side, instructions)
+            sitrus_berry(active_pkmn, active_index, attacking_side_ref, instructions)
         }
         Items::SITRUSBERRY if active_pkmn.hp <= active_pkmn.maxhp / 4 => {
-            sitrus_berry(side_ref, attacking_side, instructions)
+            sitrus_berry(active_pkmn, active_index, attacking_side_ref, instructions)
         }
-        Items::CHESTOBERRY if active_pkmn.status == PokemonStatus::SLEEP => {
-            chesto_berry(side_ref, attacking_side, instructions)
-        }
+        Items::CHESTOBERRY if active_pkmn.status == PokemonStatus::SLEEP => chesto_berry(
+            attacking_side,
+            active_index,
+            attacking_side_ref,
+            instructions,
+        ),
         Items::PETAYABERRY if active_pkmn.hp <= active_pkmn.maxhp / 4 => boost_berry(
-            side_ref,
             state,
+            attacking_side_ref,
+            attacking_slot_ref,
             PokemonBoostableStat::SpecialAttack,
             instructions,
         ),
-        Items::LIECHIBERRY if active_pkmn.hp <= active_pkmn.maxhp / 4 => {
-            boost_berry(side_ref, state, PokemonBoostableStat::Attack, instructions)
-        }
-        Items::SALACBERRY if active_pkmn.hp <= active_pkmn.maxhp / 4 => {
-            boost_berry(side_ref, state, PokemonBoostableStat::Speed, instructions)
-        }
+        Items::LIECHIBERRY if active_pkmn.hp <= active_pkmn.maxhp / 4 => boost_berry(
+            state,
+            attacking_side_ref,
+            attacking_slot_ref,
+            PokemonBoostableStat::Attack,
+            instructions,
+        ),
+        Items::SALACBERRY if active_pkmn.hp <= active_pkmn.maxhp / 4 => boost_berry(
+            state,
+            attacking_side_ref,
+            attacking_slot_ref,
+            PokemonBoostableStat::Speed,
+            instructions,
+        ),
         Items::CHOICESPECS | Items::CHOICEBAND | Items::CHOICESCARF => {
-            let ins = get_choice_move_disable_instructions(active_pkmn, side_ref, &choice.move_id);
+            let ins = get_choice_move_disable_instructions(
+                active_pkmn,
+                active_index,
+                attacking_side_ref,
+                &choice.move_id,
+            );
             for i in ins {
                 state.apply_one_instruction(&i);
                 instructions.instruction_list.push(i);
@@ -690,10 +855,12 @@ pub fn item_before_move(
 pub fn item_on_switch_in(
     state: &mut State,
     side_ref: &SideReference,
+    slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) {
     let switching_in_side = state.get_side_immutable(side_ref);
-    let switching_in_pkmn = switching_in_side.get_active_immutable();
+    let switching_in_index = switching_in_side.get_slot_immutable(slot_ref).active_index;
+    let switching_in_pkmn = switching_in_side.get_active_immutable(&slot_ref);
     match switching_in_pkmn.item {
         Items::ELECTRICSEED => {
             if state.terrain_is_active(&Terrain::ELECTRICTERRAIN) {
@@ -703,13 +870,15 @@ pub fn item_on_switch_in(
                     &1,
                     side_ref,
                     side_ref,
+                    slot_ref,
                 ) {
                     state.apply_one_instruction(&boost_instruction);
                     instructions.instruction_list.push(boost_instruction);
-                    state.get_side(side_ref).get_active().item = Items::NONE;
+                    state.get_side(side_ref).get_active(slot_ref).item = Items::NONE;
                     instructions.instruction_list.push(Instruction::ChangeItem(
                         ChangeItemInstruction {
                             side_ref: side_ref.clone(),
+                            pokemon_index: switching_in_index,
                             current_item: Items::ELECTRICSEED,
                             new_item: Items::NONE,
                         },
@@ -725,13 +894,15 @@ pub fn item_on_switch_in(
                     &1,
                     side_ref,
                     side_ref,
+                    slot_ref,
                 ) {
                     state.apply_one_instruction(&boost_instruction);
                     instructions.instruction_list.push(boost_instruction);
-                    state.get_side(side_ref).get_active().item = Items::NONE;
+                    state.get_side(side_ref).get_active(slot_ref).item = Items::NONE;
                     instructions.instruction_list.push(Instruction::ChangeItem(
                         ChangeItemInstruction {
                             side_ref: side_ref.clone(),
+                            pokemon_index: switching_in_index,
                             current_item: Items::GRASSYSEED,
                             new_item: Items::NONE,
                         },
@@ -747,13 +918,15 @@ pub fn item_on_switch_in(
                     &1,
                     side_ref,
                     side_ref,
+                    slot_ref,
                 ) {
                     state.apply_one_instruction(&boost_instruction);
                     instructions.instruction_list.push(boost_instruction);
-                    state.get_side(side_ref).get_active().item = Items::NONE;
+                    state.get_side(side_ref).get_active(slot_ref).item = Items::NONE;
                     instructions.instruction_list.push(Instruction::ChangeItem(
                         ChangeItemInstruction {
                             side_ref: side_ref.clone(),
+                            pokemon_index: switching_in_index,
                             current_item: Items::MISTYSEED,
                             new_item: Items::NONE,
                         },
@@ -769,13 +942,15 @@ pub fn item_on_switch_in(
                     &1,
                     side_ref,
                     side_ref,
+                    slot_ref,
                 ) {
                     state.apply_one_instruction(&boost_instruction);
                     instructions.instruction_list.push(boost_instruction);
-                    state.get_side(side_ref).get_active().item = Items::NONE;
+                    state.get_side(side_ref).get_active(slot_ref).item = Items::NONE;
                     instructions.instruction_list.push(Instruction::ChangeItem(
                         ChangeItemInstruction {
                             side_ref: side_ref.clone(),
+                            pokemon_index: switching_in_index,
                             current_item: Items::PSYCHICSEED,
                             new_item: Items::NONE,
                         },
@@ -790,19 +965,21 @@ pub fn item_on_switch_in(
 pub fn item_end_of_turn(
     state: &mut State,
     side_ref: &SideReference,
+    slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) {
     let attacking_side = state.get_side(side_ref);
-    let active_pkmn = attacking_side.get_active();
+    let active_pkmn_index = attacking_side.get_slot_immutable(slot_ref).active_index;
+    let active_pkmn = attacking_side.get_active(slot_ref);
     match active_pkmn.item {
         Items::LUMBERRY if active_pkmn.status != PokemonStatus::NONE => {
-            lum_berry(side_ref, attacking_side, instructions)
+            lum_berry(active_pkmn, active_pkmn_index, side_ref, instructions)
         }
         Items::SITRUSBERRY if active_pkmn.hp <= active_pkmn.maxhp / 2 => {
-            sitrus_berry(side_ref, attacking_side, instructions)
+            sitrus_berry(active_pkmn, active_pkmn_index, side_ref, instructions)
         }
         Items::CHESTOBERRY if active_pkmn.status == PokemonStatus::SLEEP => {
-            chesto_berry(side_ref, attacking_side, instructions)
+            chesto_berry(attacking_side, active_pkmn_index, side_ref, instructions)
         }
         Items::BLACKSLUDGE => {
             if active_pkmn.has_type(&PokemonType::POISON) {
@@ -811,7 +988,8 @@ pub fn item_end_of_turn(
                         cmp::min(active_pkmn.maxhp / 16, active_pkmn.maxhp - active_pkmn.hp);
                     let ins = Instruction::Heal(HealInstruction {
                         side_ref: side_ref.clone(),
-                        heal_amount: heal_amount,
+                        pokemon_index: active_pkmn_index,
+                        heal_amount,
                     });
                     active_pkmn.hp += heal_amount;
                     instructions.instruction_list.push(ins);
@@ -821,47 +999,63 @@ pub fn item_end_of_turn(
                     cmp::min(active_pkmn.maxhp / 16, active_pkmn.maxhp - active_pkmn.hp);
                 let ins = Instruction::Damage(DamageInstruction {
                     side_ref: side_ref.clone(),
-                    damage_amount: damage_amount,
+                    pokemon_index: active_pkmn_index,
+                    damage_amount,
                 });
                 active_pkmn.hp -= damage_amount;
                 instructions.instruction_list.push(ins);
             }
         }
         Items::FLAMEORB => {
-            if !immune_to_status(state, &MoveTarget::User, side_ref, &PokemonStatus::BURN) {
+            if !immune_to_status(
+                state,
+                &MoveTarget::User,
+                side_ref,
+                side_ref,
+                slot_ref,
+                &PokemonStatus::BURN,
+            ) {
                 let side = state.get_side(side_ref);
                 let ins = Instruction::ChangeStatus(ChangeStatusInstruction {
                     side_ref: side_ref.clone(),
-                    pokemon_index: side.active_index,
+                    pokemon_index: active_pkmn_index,
                     new_status: PokemonStatus::BURN,
                     old_status: PokemonStatus::NONE,
                 });
-                side.get_active().status = PokemonStatus::BURN;
+                side.get_active(slot_ref).status = PokemonStatus::BURN;
                 instructions.instruction_list.push(ins);
             }
         }
         Items::LEFTOVERS => {
-            let attacker = state.get_side(side_ref).get_active();
+            let attacker = state.get_side(side_ref).get_active(slot_ref);
             if attacker.hp < attacker.maxhp {
                 let heal_amount = cmp::min(attacker.maxhp / 16, attacker.maxhp - attacker.hp);
                 let ins = Instruction::Heal(HealInstruction {
                     side_ref: side_ref.clone(),
-                    heal_amount: heal_amount,
+                    pokemon_index: active_pkmn_index,
+                    heal_amount,
                 });
                 attacker.hp += heal_amount;
                 instructions.instruction_list.push(ins);
             }
         }
         Items::TOXICORB => {
-            if !immune_to_status(state, &MoveTarget::User, side_ref, &PokemonStatus::TOXIC) {
+            if !immune_to_status(
+                state,
+                &MoveTarget::User,
+                side_ref,
+                side_ref,
+                slot_ref,
+                &PokemonStatus::TOXIC,
+            ) {
                 let side = state.get_side(side_ref);
                 let ins = Instruction::ChangeStatus(ChangeStatusInstruction {
                     side_ref: side_ref.clone(),
-                    pokemon_index: side.active_index,
+                    pokemon_index: active_pkmn_index,
                     new_status: PokemonStatus::TOXIC,
                     old_status: PokemonStatus::NONE,
                 });
-                side.get_active().status = PokemonStatus::TOXIC;
+                side.get_active(slot_ref).status = PokemonStatus::TOXIC;
                 instructions.instruction_list.push(ins);
             }
         }
@@ -872,10 +1066,11 @@ pub fn item_end_of_turn(
 pub fn item_modify_attack_against(
     state: &State,
     attacking_choice: &mut Choice,
-    attacking_side_ref: &SideReference,
+    target_side_ref: &SideReference,
+    target_slot_ref: &SlotReference,
 ) {
-    let (attacking_side, defending_side) = state.get_both_sides_immutable(attacking_side_ref);
-    match defending_side.get_active_immutable().item {
+    let target_side = state.get_side_immutable(target_side_ref);
+    match target_side.get_active_immutable(target_slot_ref).item {
         Items::ABSORBBULB => {
             if attacking_choice.move_type == PokemonType::WATER {
                 attacking_choice.add_or_create_secondaries(Secondary {
@@ -888,12 +1083,12 @@ pub fn item_modify_attack_against(
                         speed: 0,
                         accuracy: 0,
                     }),
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                 });
                 attacking_choice.add_or_create_secondaries(Secondary {
                     chance: 100.0,
                     effect: Effect::RemoveItem,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                 });
             }
         }
@@ -902,13 +1097,13 @@ pub fn item_modify_attack_against(
                 && attacking_choice.move_id != Choices::THOUSANDARROWS
             {
                 attacking_choice.base_power = 0.0;
-            } else if attacking_choice.target == MoveTarget::Opponent
+            } else if attacking_choice.target == MoveTarget::Target
                 && attacking_choice.category != MoveCategory::Status
             {
                 attacking_choice.add_or_create_secondaries(Secondary {
                     chance: 100.0,
                     effect: Effect::RemoveItem,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                 });
             }
         }
@@ -917,7 +1112,9 @@ pub fn item_modify_attack_against(
                 attacking_choice.base_power /= 1.5;
             }
         }
-        Items::METALPOWDER if attacking_side.get_active_immutable().id == PokemonName::DITTO => {
+        Items::METALPOWDER
+            if target_side.get_active_immutable(target_slot_ref).id == PokemonName::DITTO =>
+        {
             attacking_choice.base_power /= 1.5;
         }
         Items::CELLBATTERY => {
@@ -932,12 +1129,12 @@ pub fn item_modify_attack_against(
                         speed: 0,
                         accuracy: 0,
                     }),
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                 });
                 attacking_choice.add_or_create_secondaries(Secondary {
                     chance: 100.0,
                     effect: Effect::RemoveItem,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                 });
             }
         }
@@ -957,7 +1154,7 @@ pub fn item_modify_attack_against(
             if attacking_choice.category != MoveCategory::Status
                 && type_effectiveness_modifier(
                     &attacking_choice.move_type,
-                    &defending_side.get_active_immutable(),
+                    &target_side.get_active_immutable(target_slot_ref),
                 ) > 1.0
             {
                 attacking_choice.add_or_create_secondaries(Secondary {
@@ -970,23 +1167,13 @@ pub fn item_modify_attack_against(
                         speed: 0,
                         accuracy: 0,
                     }),
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                 });
                 attacking_choice.add_or_create_secondaries(Secondary {
                     chance: 100.0,
                     effect: Effect::RemoveItem,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                 });
-            }
-        }
-        Items::SOULDEW => {
-            if defending_side.get_active_immutable().id == PokemonName::LATIOS
-                || defending_side.get_active_immutable().id == PokemonName::LATIAS
-            {
-                #[cfg(any(feature = "gen3", feature = "gen4", feature = "gen5", feature = "gen6"))]
-                if attacking_choice.category == MoveCategory::Special {
-                    attacking_choice.base_power /= 1.5;
-                }
             }
         }
         _ => {}
@@ -997,79 +1184,46 @@ pub fn item_modify_attack_being_used(
     state: &State,
     attacking_choice: &mut Choice,
     attacking_side_ref: &SideReference,
+    attacking_slot_ref: &SlotReference,
+    _target_side_ref: &SideReference,
+    target_slot_ref: &SlotReference,
+    final_run_move: bool,
 ) {
-    let (attacking_side, defending_side) = state.get_both_sides_immutable(attacking_side_ref);
-    match attacking_side.get_active_immutable().item {
-        Items::WELLSPRINGMASK => match attacking_side.get_active_immutable().id {
+    let attacking_side = state.get_side_immutable(attacking_side_ref);
+    let defending_side = state.get_side_immutable(attacking_side_ref);
+    match attacking_side.get_active_immutable(attacking_slot_ref).item {
+        Items::WELLSPRINGMASK => match attacking_side.get_active_immutable(attacking_slot_ref).id {
             PokemonName::OGERPONWELLSPRING | PokemonName::OGERPONWELLSPRINGTERA => {
                 attacking_choice.base_power *= 1.2;
             }
             _ => {}
         },
-        Items::HEARTHFLAMEMASK => match attacking_side.get_active_immutable().id {
-            PokemonName::OGERPONHEARTHFLAME | PokemonName::OGERPONHEARTHFLAMETERA => {
-                attacking_choice.base_power *= 1.2;
-            }
-            _ => {}
-        },
-        Items::CORNERSTONEMASK => match attacking_side.get_active_immutable().id {
-            PokemonName::OGERPONCORNERSTONE | PokemonName::OGERPONCORNERSTONETERA => {
-                attacking_choice.base_power *= 1.2;
-            }
-            _ => {}
-        },
-        #[cfg(feature = "gen3")]
-        Items::BLACKBELT => {
-            if attacking_choice.move_type == PokemonType::FIGHTING {
-                attacking_choice.base_power *= 1.1;
+        Items::HEARTHFLAMEMASK => {
+            match attacking_side.get_active_immutable(attacking_slot_ref).id {
+                PokemonName::OGERPONHEARTHFLAME | PokemonName::OGERPONHEARTHFLAMETERA => {
+                    attacking_choice.base_power *= 1.2;
+                }
+                _ => {}
             }
         }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
+        Items::CORNERSTONEMASK => {
+            match attacking_side.get_active_immutable(attacking_slot_ref).id {
+                PokemonName::OGERPONCORNERSTONE | PokemonName::OGERPONCORNERSTONETERA => {
+                    attacking_choice.base_power *= 1.2;
+                }
+                _ => {}
+            }
+        }
         Items::BLACKBELT => {
             if attacking_choice.move_type == PokemonType::FIGHTING {
                 attacking_choice.base_power *= 1.2;
             }
         }
-        #[cfg(feature = "gen3")]
-        Items::BLACKGLASSES => {
-            if attacking_choice.move_type == PokemonType::DARK {
-                attacking_choice.base_power *= 1.1;
-            }
-        }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
         Items::BLACKGLASSES => {
             if attacking_choice.move_type == PokemonType::DARK {
                 attacking_choice.base_power *= 1.2;
             }
         }
-        #[cfg(feature = "gen3")]
-        Items::CHARCOAL => {
-            if attacking_choice.move_type == PokemonType::FIRE {
-                attacking_choice.base_power *= 1.1;
-            }
-        }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
         Items::CHARCOAL => {
             if attacking_choice.move_type == PokemonType::FIRE {
                 attacking_choice.base_power *= 1.2;
@@ -1085,20 +1239,6 @@ pub fn item_modify_attack_being_used(
                 attacking_choice.base_power *= 1.5;
             }
         }
-        #[cfg(feature = "gen3")]
-        Items::DRAGONFANG | Items::DRAGONSCALE => {
-            if attacking_choice.move_type == PokemonType::DRAGON {
-                attacking_choice.base_power *= 1.1;
-            }
-        }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
         Items::DRAGONFANG | Items::DRAGONSCALE => {
             if attacking_choice.move_type == PokemonType::DRAGON {
                 attacking_choice.base_power *= 1.2;
@@ -1107,7 +1247,7 @@ pub fn item_modify_attack_being_used(
         Items::EXPERTBELT => {
             if type_effectiveness_modifier(
                 &attacking_choice.move_type,
-                &defending_side.get_active_immutable(),
+                &defending_side.get_active_immutable(target_slot_ref),
             ) > 1.0
             {
                 attacking_choice.base_power *= 1.2;
@@ -1122,11 +1262,11 @@ pub fn item_modify_attack_being_used(
             if attacking_choice.category != MoveCategory::Status {
                 attacking_choice.base_power *= 1.3;
 
-                #[cfg(feature = "gen4")]
-                if !defending_side
-                    .volatile_statuses
-                    .contains(&PokemonVolatileStatus::SUBSTITUTE)
-                    && attacking_side.get_active_immutable().ability != Abilities::MAGICGUARD
+                if attacking_side
+                    .get_active_immutable(attacking_slot_ref)
+                    .ability
+                    != Abilities::MAGICGUARD
+                    && final_run_move
                 {
                     attacking_choice.add_or_create_secondaries(Secondary {
                         chance: 100.0,
@@ -1134,31 +1274,8 @@ pub fn item_modify_attack_being_used(
                         target: MoveTarget::User,
                     });
                 }
-
-                #[cfg(not(feature = "gen4"))]
-                if attacking_side.get_active_immutable().ability != Abilities::MAGICGUARD {
-                    attacking_choice.add_or_create_secondaries(Secondary {
-                        chance: 100.0,
-                        effect: Effect::Heal(-0.1),
-                        target: MoveTarget::User,
-                    });
-                }
             }
         }
-        #[cfg(feature = "gen3")]
-        Items::METALCOAT => {
-            if attacking_choice.move_type == PokemonType::STEEL {
-                attacking_choice.base_power *= 1.1;
-            }
-        }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
         Items::METALCOAT => {
             if attacking_choice.move_type == PokemonType::STEEL {
                 attacking_choice.base_power *= 1.2;
@@ -1169,39 +1286,11 @@ pub fn item_modify_attack_being_used(
                 attacking_choice.base_power *= 1.1;
             }
         }
-        #[cfg(feature = "gen3")]
-        Items::MYSTICWATER => {
-            if attacking_choice.move_type == PokemonType::WATER {
-                attacking_choice.base_power *= 1.1;
-            }
-        }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
         Items::MYSTICWATER => {
             if attacking_choice.move_type == PokemonType::WATER {
                 attacking_choice.base_power *= 1.2;
             }
         }
-        #[cfg(feature = "gen3")]
-        Items::NEVERMELTICE => {
-            if attacking_choice.move_type == PokemonType::ICE {
-                attacking_choice.base_power *= 1.1;
-            }
-        }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
         Items::NEVERMELTICE => {
             if attacking_choice.move_type == PokemonType::ICE {
                 attacking_choice.base_power *= 1.2;
@@ -1217,20 +1306,6 @@ pub fn item_modify_attack_being_used(
                 attacking_choice.base_power *= 1.2;
             }
         }
-        #[cfg(feature = "gen3")]
-        Items::POISONBARB => {
-            if attacking_choice.move_type == PokemonType::POISON {
-                attacking_choice.base_power *= 1.1;
-            }
-        }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
         Items::POISONBARB => {
             if attacking_choice.move_type == PokemonType::POISON {
                 attacking_choice.base_power *= 1.2;
@@ -1247,20 +1322,6 @@ pub fn item_modify_attack_being_used(
                 attacking_choice.base_power *= 1.2;
             }
         }
-        #[cfg(feature = "gen3")]
-        Items::SHARPBEAK => {
-            if attacking_choice.move_type == PokemonType::FLYING {
-                attacking_choice.base_power *= 1.1;
-            }
-        }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
         Items::SHARPBEAK => {
             if attacking_choice.move_type == PokemonType::FLYING {
                 attacking_choice.base_power *= 1.2;
@@ -1274,97 +1335,30 @@ pub fn item_modify_attack_being_used(
                 attacking_choice.base_power *= 1.2;
             }
         }
-        #[cfg(feature = "gen3")]
-        Items::SILVERPOWDER => {
-            if attacking_choice.move_type == PokemonType::BUG {
-                attacking_choice.base_power *= 1.1;
-            }
-        }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
         Items::SILVERPOWDER => {
             if attacking_choice.move_type == PokemonType::BUG {
                 attacking_choice.base_power *= 1.2;
             }
         }
-        #[cfg(feature = "gen3")]
-        Items::SOFTSAND => {
-            if attacking_choice.move_type == PokemonType::GROUND {
-                attacking_choice.base_power *= 1.1;
-            }
-        }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
         Items::SOFTSAND => {
             if attacking_choice.move_type == PokemonType::GROUND {
                 attacking_choice.base_power *= 1.2;
             }
         }
-        #[cfg(feature = "gen3")]
-        Items::SPELLTAG => {
-            if attacking_choice.move_type == PokemonType::GHOST {
-                attacking_choice.base_power *= 1.1;
-            }
-        }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
         Items::SPELLTAG => {
             if attacking_choice.move_type == PokemonType::GHOST {
                 attacking_choice.base_power *= 1.2;
             }
         }
-        #[cfg(feature = "gen3")]
-        Items::MIRACLESEED => {
-            if attacking_choice.move_type == PokemonType::GRASS {
-                attacking_choice.base_power *= 1.1;
-            }
-        }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
         Items::MIRACLESEED => {
             if attacking_choice.move_type == PokemonType::GRASS {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::SOULDEW => {
-            if attacking_side.get_active_immutable().id == PokemonName::LATIOS
-                || attacking_side.get_active_immutable().id == PokemonName::LATIAS
+            if attacking_side.get_active_immutable(attacking_slot_ref).id == PokemonName::LATIOS
+                || attacking_side.get_active_immutable(attacking_slot_ref).id == PokemonName::LATIAS
             {
-                #[cfg(any(feature = "gen3", feature = "gen4", feature = "gen5", feature = "gen6"))]
-                if attacking_choice.category == MoveCategory::Special {
-                    attacking_choice.base_power *= 1.5;
-                }
-
-                #[cfg(not(any(
-                    feature = "gen3",
-                    feature = "gen4",
-                    feature = "gen5",
-                    feature = "gen6"
-                )))]
                 if attacking_choice.move_type == PokemonType::DRAGON
                     || attacking_choice.move_type == PokemonType::PSYCHIC
                 {
@@ -1374,7 +1368,7 @@ pub fn item_modify_attack_being_used(
         }
         Items::GRISEOUSORB | Items::GRISEOUSCORE => {
             if [PokemonName::GIRATINAORIGIN, PokemonName::GIRATINA]
-                .contains(&attacking_side.get_active_immutable().id)
+                .contains(&attacking_side.get_active_immutable(attacking_slot_ref).id)
             {
                 if attacking_choice.move_type == PokemonType::DRAGON
                     || attacking_choice.move_type == PokemonType::GHOST
@@ -1385,7 +1379,7 @@ pub fn item_modify_attack_being_used(
         }
         Items::LUSTROUSORB | Items::LUSTROUSGLOBE => {
             if [PokemonName::PALKIAORIGIN, PokemonName::PALKIA]
-                .contains(&attacking_side.get_active_immutable().id)
+                .contains(&attacking_side.get_active_immutable(attacking_slot_ref).id)
             {
                 if attacking_choice.move_type == PokemonType::DRAGON
                     || attacking_choice.move_type == PokemonType::WATER
@@ -1396,7 +1390,7 @@ pub fn item_modify_attack_being_used(
         }
         Items::ADAMANTORB | Items::ADAMANTCRYSTAL => {
             if [PokemonName::DIALGAORIGIN, PokemonName::DIALGA]
-                .contains(&attacking_side.get_active_immutable().id)
+                .contains(&attacking_side.get_active_immutable(attacking_slot_ref).id)
             {
                 if attacking_choice.move_type == PokemonType::DRAGON
                     || attacking_choice.move_type == PokemonType::STEEL
@@ -1426,7 +1420,7 @@ pub fn item_modify_attack_being_used(
                 });
             }
         }
-        Items::THICKCLUB => match attacking_side.get_active_immutable().id {
+        Items::THICKCLUB => match attacking_side.get_active_immutable(attacking_slot_ref).id {
             PokemonName::CUBONE
             | PokemonName::MAROWAK
             | PokemonName::MAROWAKALOLA
@@ -1435,39 +1429,11 @@ pub fn item_modify_attack_being_used(
             }
             _ => {}
         },
-        #[cfg(feature = "gen3")]
-        Items::TWISTEDSPOON => {
-            if attacking_choice.move_type == PokemonType::PSYCHIC {
-                attacking_choice.base_power *= 1.1;
-            }
-        }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
         Items::TWISTEDSPOON => {
             if attacking_choice.move_type == PokemonType::PSYCHIC {
                 attacking_choice.base_power *= 1.2;
             }
         }
-        #[cfg(feature = "gen3")]
-        Items::HARDSTONE => {
-            if attacking_choice.move_type == PokemonType::ROCK {
-                attacking_choice.base_power *= 1.1;
-            }
-        }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
         Items::HARDSTONE => {
             if attacking_choice.move_type == PokemonType::ROCK {
                 attacking_choice.base_power *= 1.2;
@@ -1478,20 +1444,6 @@ pub fn item_modify_attack_being_used(
                 attacking_choice.base_power *= 1.2;
             }
         }
-        #[cfg(feature = "gen3")]
-        Items::MAGNET => {
-            if attacking_choice.move_type == PokemonType::ELECTRIC {
-                attacking_choice.base_power *= 1.1;
-            }
-        }
-        #[cfg(any(
-            feature = "gen4",
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
         Items::MAGNET => {
             if attacking_choice.move_type == PokemonType::ELECTRIC {
                 attacking_choice.base_power *= 1.2;
@@ -1503,144 +1455,93 @@ pub fn item_modify_attack_being_used(
             }
         }
         Items::FISTPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::FIGHTING;
-            }
             if attacking_choice.move_type == PokemonType::FIGHTING {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::SKYPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::FLYING;
-            }
             if attacking_choice.move_type == PokemonType::FLYING {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::TOXICPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::POISON;
-            }
             if attacking_choice.move_type == PokemonType::POISON {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::EARTHPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::GROUND;
-            }
             if attacking_choice.move_type == PokemonType::GROUND {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::STONEPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::ROCK;
-            }
             if attacking_choice.move_type == PokemonType::ROCK {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::INSECTPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::BUG;
-            }
             if attacking_choice.move_type == PokemonType::BUG {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::SPOOKYPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::GHOST;
-            }
             if attacking_choice.move_type == PokemonType::GHOST {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::IRONPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::STEEL;
-            }
             if attacking_choice.move_type == PokemonType::STEEL {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::FLAMEPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::FIRE;
-            }
             if attacking_choice.move_type == PokemonType::FIRE {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::SPLASHPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::WATER;
-            }
             if attacking_choice.move_type == PokemonType::WATER {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::MEADOWPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::GRASS;
-            }
             if attacking_choice.move_type == PokemonType::GRASS {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::ZAPPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::ELECTRIC;
-            }
             if attacking_choice.move_type == PokemonType::ELECTRIC {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::MINDPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::PSYCHIC;
-            }
             if attacking_choice.move_type == PokemonType::PSYCHIC {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::ICICLEPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::ICE;
-            }
             if attacking_choice.move_type == PokemonType::ICE {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::DRACOPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::DRAGON;
-            }
             if attacking_choice.move_type == PokemonType::DRAGON {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::DREADPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::DARK;
-            }
             if attacking_choice.move_type == PokemonType::DARK {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::PIXIEPLATE => {
-            if attacking_choice.move_id == Choices::JUDGMENT {
-                attacking_choice.move_type = PokemonType::FAIRY;
-            }
             if attacking_choice.move_type == PokemonType::FAIRY {
                 attacking_choice.base_power *= 1.2;
             }
         }
         Items::LIGHTBALL => {
             if attacking_side
-                .get_active_immutable()
+                .get_active_immutable(attacking_slot_ref)
                 .id
                 .is_pikachu_variant()
             {

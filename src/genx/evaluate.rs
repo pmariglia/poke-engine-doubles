@@ -2,11 +2,13 @@ use super::abilities::Abilities;
 use super::items::Items;
 use super::state::PokemonVolatileStatus;
 use crate::choices::MoveCategory;
-use crate::state::{Pokemon, PokemonStatus, Side, State};
+use crate::state::{
+    Pokemon, PokemonBoostableStat, PokemonStatus, Side, SideSlot, SlotReference, State,
+};
 
 const POKEMON_ALIVE: f32 = 30.0;
 const POKEMON_HP: f32 = 100.0;
-const USED_TERA: f32 = -75.0;
+const USED_TERA: f32 = -50.0;
 
 const POKEMON_ATTACK_BOOST: f32 = 30.0;
 const POKEMON_DEFENSE_BOOST: f32 = 15.0;
@@ -43,13 +45,15 @@ const REFLECT: f32 = 20.0;
 const LIGHT_SCREEN: f32 = 20.0;
 const AURORA_VEIL: f32 = 40.0;
 const SAFE_GUARD: f32 = 5.0;
-const TAILWIND: f32 = 7.0;
+const TAILWIND: f32 = 15.0;
 const HEALING_WISH: f32 = 30.0;
 
 const STEALTH_ROCK: f32 = -10.0;
 const SPIKES: f32 = -7.0;
 const TOXIC_SPIKES: f32 = -7.0;
 const STICKY_WEB: f32 = -25.0;
+
+const FASTER_THAN_OPPONENT: f32 = 20.0;
 
 fn evaluate_poison(pokemon: &Pokemon, base_score: f32) -> f32 {
     match pokemon.ability {
@@ -156,37 +160,43 @@ fn evaluate_pokemon(pokemon: &Pokemon) -> f32 {
     score
 }
 
+fn evaluate_slot(slot: &SideSlot) -> f32 {
+    let mut score = 0.0;
+    for vs in slot.volatile_statuses.iter() {
+        match vs {
+            PokemonVolatileStatus::LEECHSEED => score += LEECH_SEED,
+            PokemonVolatileStatus::SUBSTITUTE => score += SUBSTITUTE,
+            PokemonVolatileStatus::CONFUSION => score += CONFUSION,
+            _ => {}
+        }
+    }
+
+    score += get_boost_multiplier(slot.attack_boost) * POKEMON_ATTACK_BOOST;
+    score += get_boost_multiplier(slot.defense_boost) * POKEMON_DEFENSE_BOOST;
+    score += get_boost_multiplier(slot.special_attack_boost) * POKEMON_SPECIAL_ATTACK_BOOST;
+    score += get_boost_multiplier(slot.special_defense_boost) * POKEMON_SPECIAL_DEFENSE_BOOST;
+    score += get_boost_multiplier(slot.speed_boost) * POKEMON_SPEED_BOOST;
+    score
+}
+
 pub fn evaluate(state: &State) -> f32 {
     let mut score = 0.0;
-
     let mut iter = state.side_one.pokemon.into_iter();
     let mut s1_used_tera = false;
     while let Some(pkmn) = iter.next() {
         if pkmn.hp > 0 {
             score += evaluate_pokemon(pkmn);
             score += evaluate_hazards(pkmn, &state.side_one);
-            if iter.pokemon_index == state.side_one.active_index {
-                for vs in state.side_one.volatile_statuses.iter() {
-                    match vs {
-                        PokemonVolatileStatus::LEECHSEED => score += LEECH_SEED,
-                        PokemonVolatileStatus::SUBSTITUTE => score += SUBSTITUTE,
-                        PokemonVolatileStatus::CONFUSION => score += CONFUSION,
-                        _ => {}
-                    }
-                }
-
-                score += get_boost_multiplier(state.side_one.attack_boost) * POKEMON_ATTACK_BOOST;
-                score += get_boost_multiplier(state.side_one.defense_boost) * POKEMON_DEFENSE_BOOST;
-                score += get_boost_multiplier(state.side_one.special_attack_boost)
-                    * POKEMON_SPECIAL_ATTACK_BOOST;
-                score += get_boost_multiplier(state.side_one.special_defense_boost)
-                    * POKEMON_SPECIAL_DEFENSE_BOOST;
-                score += get_boost_multiplier(state.side_one.speed_boost) * POKEMON_SPEED_BOOST;
-            }
         }
         if pkmn.terastallized {
             s1_used_tera = true;
         }
+    }
+    if state.side_one.pokemon[state.side_one.slot_a.active_index].hp > 0 {
+        score += evaluate_slot(&state.side_one.slot_a);
+    }
+    if state.side_one.pokemon[state.side_one.slot_b.active_index].hp > 0 {
+        score += evaluate_slot(&state.side_one.slot_b);
     }
     if s1_used_tera {
         score += USED_TERA;
@@ -197,32 +207,122 @@ pub fn evaluate(state: &State) -> f32 {
         if pkmn.hp > 0 {
             score -= evaluate_pokemon(pkmn);
             score -= evaluate_hazards(pkmn, &state.side_two);
-
-            if iter.pokemon_index == state.side_two.active_index {
-                for vs in state.side_two.volatile_statuses.iter() {
-                    match vs {
-                        PokemonVolatileStatus::LEECHSEED => score -= LEECH_SEED,
-                        PokemonVolatileStatus::SUBSTITUTE => score -= SUBSTITUTE,
-                        PokemonVolatileStatus::CONFUSION => score -= CONFUSION,
-                        _ => {}
-                    }
-                }
-
-                score -= get_boost_multiplier(state.side_two.attack_boost) * POKEMON_ATTACK_BOOST;
-                score -= get_boost_multiplier(state.side_two.defense_boost) * POKEMON_DEFENSE_BOOST;
-                score -= get_boost_multiplier(state.side_two.special_attack_boost)
-                    * POKEMON_SPECIAL_ATTACK_BOOST;
-                score -= get_boost_multiplier(state.side_two.special_defense_boost)
-                    * POKEMON_SPECIAL_DEFENSE_BOOST;
-                score -= get_boost_multiplier(state.side_two.speed_boost) * POKEMON_SPEED_BOOST;
-            }
         }
         if pkmn.terastallized {
             s2_used_tera = true;
         }
     }
+    if state.side_two.pokemon[state.side_two.slot_a.active_index].hp > 0 {
+        score -= evaluate_slot(&state.side_two.slot_a);
+    }
+    if state.side_two.pokemon[state.side_two.slot_b.active_index].hp > 0 {
+        score -= evaluate_slot(&state.side_two.slot_b);
+    }
     if s2_used_tera {
         score -= USED_TERA;
+    }
+
+    // trickroom active - it is better to be slower
+    if state.trick_room.active {
+        // s1a slower than s2a
+        if state
+            .side_one
+            .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
+            < state
+                .side_two
+                .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
+        {
+            score += FASTER_THAN_OPPONENT;
+        } else {
+            score -= FASTER_THAN_OPPONENT;
+        }
+        // s1a slower than s2b
+        if state
+            .side_one
+            .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
+            < state
+                .side_two
+                .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
+        {
+            score += FASTER_THAN_OPPONENT;
+        } else {
+            score -= FASTER_THAN_OPPONENT;
+        }
+        // s1b slower than s2a
+        if state
+            .side_one
+            .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
+            < state
+                .side_two
+                .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
+        {
+            score += FASTER_THAN_OPPONENT;
+        } else {
+            score -= FASTER_THAN_OPPONENT;
+        }
+        // s1b slower than s2b
+        if state
+            .side_one
+            .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
+            < state
+                .side_two
+                .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
+        {
+            score += FASTER_THAN_OPPONENT;
+        } else {
+            score -= FASTER_THAN_OPPONENT;
+        }
+
+    // trickroom not active - it is better to be faster
+    } else {
+        // s1a faster than s2a
+        if state
+            .side_one
+            .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
+            > state
+                .side_two
+                .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
+        {
+            score += FASTER_THAN_OPPONENT;
+        } else {
+            score -= FASTER_THAN_OPPONENT;
+        }
+        // s1a slower than s2b
+        if state
+            .side_one
+            .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
+            > state
+                .side_two
+                .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
+        {
+            score += FASTER_THAN_OPPONENT;
+        } else {
+            score -= FASTER_THAN_OPPONENT;
+        }
+        // s1b slower than s2a
+        if state
+            .side_one
+            .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
+            > state
+                .side_two
+                .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
+        {
+            score += FASTER_THAN_OPPONENT;
+        } else {
+            score -= FASTER_THAN_OPPONENT;
+        }
+        // s1b slower than s2b
+        if state
+            .side_one
+            .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
+            > state
+                .side_two
+                .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
+        {
+            score += FASTER_THAN_OPPONENT;
+        } else {
+            score -= FASTER_THAN_OPPONENT;
+        }
     }
 
     score += state.side_one.side_conditions.reflect as f32 * REFLECT;

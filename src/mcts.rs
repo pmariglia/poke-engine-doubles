@@ -9,14 +9,18 @@ use rand::thread_rng;
 use std::collections::HashMap;
 use std::time::Duration;
 
+const PRUNE_ITERVAL: i64 = 100_000_000; // How many iterations before pruning the tree
+const PRUNE_THRESHOLD: f32 = 0.33; // Threshold for pruning based on visit counts
+
 fn sigmoid(x: f32) -> f32 {
-    // Tuned so that ~200 points is very close to 1.0
-    1.0 / (1.0 + (-0.0125 * x).exp())
+    // Tuned so that ~400 points is very close to 1.0
+    1.0 / (1.0 + (-0.0062 * x).exp())
 }
 
 #[derive(Debug)]
 pub struct Node {
     pub root: bool,
+    pub depth: usize,
     pub parent: *mut Node,
     pub children: HashMap<(usize, usize), Vec<Node>>,
     pub times_visited: i64,
@@ -33,7 +37,11 @@ pub struct Node {
 }
 
 impl Node {
-    fn new(s1_options: Vec<MoveChoice>, s2_options: Vec<MoveChoice>) -> Node {
+    fn new(
+        depth: usize,
+        s1_options: Vec<(MoveChoice, MoveChoice)>,
+        s2_options: Vec<(MoveChoice, MoveChoice)>,
+    ) -> Node {
         let s1_options_vec = s1_options
             .iter()
             .map(|x| MoveNode {
@@ -53,6 +61,7 @@ impl Node {
 
         Node {
             root: false,
+            depth,
             parent: std::ptr::null_mut(),
             instructions: StateInstructions::default(),
             times_visited: 0,
@@ -62,6 +71,18 @@ impl Node {
             s1_options: s1_options_vec,
             s2_options: s2_options_vec,
         }
+    }
+
+    unsafe fn should_branch_on_damage(&self) -> bool {
+        if self.root {
+            return true;
+        }
+
+        // if there aren't many options left, branch on damage if we're one node below the root
+        if (*self.parent).root && (self.s1_options.len() < 20 || self.s2_options.len() < 20) {
+            return true;
+        }
+        false
     }
 
     pub fn maximize_ucb_for_side(&self, side_map: &[MoveNode]) -> usize {
@@ -78,6 +99,10 @@ impl Node {
     }
 
     pub unsafe fn selection(&mut self, state: &mut State) -> (*mut Node, usize, usize) {
+        if self.times_visited > 0 && self.times_visited % PRUNE_ITERVAL == 0 {
+            prune_tree(self);
+        }
+
         let return_node = self as *mut Node;
 
         let s1_mc_index = self.maximize_ucb_for_side(&self.s1_options);
@@ -112,24 +137,40 @@ impl Node {
         s1_move_index: usize,
         s2_move_index: usize,
     ) -> *mut Node {
+        if self.depth >= 4 {
+            return self as *mut Node;
+        }
         let s1_move = &self.s1_options[s1_move_index].move_choice;
         let s2_move = &self.s2_options[s2_move_index].move_choice;
         // if the battle is over or both moves are none there is no need to expand
         if (state.battle_is_over() != 0.0 && !self.root)
-            || (s1_move == &MoveChoice::None && s2_move == &MoveChoice::None)
+            || (s1_move == &(MoveChoice::None, MoveChoice::None)
+                && s2_move == &(MoveChoice::None, MoveChoice::None))
         {
             return self as *mut Node;
         }
-        let should_branch_on_damage = self.root || (*self.parent).root;
-        let mut new_instructions =
-            generate_instructions_from_move_pair(state, s1_move, s2_move, should_branch_on_damage);
+        let should_branch_on_damage = self.should_branch_on_damage();
+        let mut new_instructions = generate_instructions_from_move_pair(
+            state,
+            &s1_move.0,
+            &s1_move.1,
+            &s2_move.0,
+            &s2_move.1,
+            should_branch_on_damage,
+        );
         let mut this_pair_vec = Vec::with_capacity(new_instructions.len());
         for state_instructions in new_instructions.drain(..) {
             state.apply_instructions(&state_instructions.instruction_list);
             let (s1_options, s2_options) = state.get_all_options();
             state.reverse_instructions(&state_instructions.instruction_list);
 
-            let mut new_node = Node::new(s1_options, s2_options);
+            let new_depth = if state_instructions.end_of_turn_triggered {
+                self.depth + 1
+            } else {
+                self.depth
+            };
+
+            let mut new_node = Node::new(new_depth, s1_options, s2_options);
             new_node.parent = self;
             new_node.instructions = state_instructions;
             new_node.s1_choice = s1_move_index;
@@ -182,7 +223,7 @@ impl Node {
 
 #[derive(Debug)]
 pub struct MoveNode {
-    pub move_choice: MoveChoice,
+    pub move_choice: (MoveChoice, MoveChoice),
     pub total_score: f32,
     pub visits: i64,
 }
@@ -204,7 +245,7 @@ impl MoveNode {
 
 #[derive(Clone)]
 pub struct MctsSideResult {
-    pub move_choice: MoveChoice,
+    pub move_choice: (MoveChoice, MoveChoice),
     pub total_score: f32,
     pub visits: i64,
 }
@@ -225,6 +266,90 @@ pub struct MctsResult {
     pub iteration_count: i64,
 }
 
+fn prune_tree(root_node: &mut Node) {
+    if root_node.s1_options.len() < 15 || root_node.s2_options.len() < 15 {
+        return;
+    }
+
+    let mut s1_with_indices: Vec<(usize, i64)> = root_node
+        .s1_options
+        .iter()
+        .enumerate()
+        .map(|(idx, move_node)| (idx, move_node.visits))
+        .collect();
+    s1_with_indices.sort_by_key(|&(_, visits)| visits);
+
+    let s1_prune_count = (s1_with_indices.len() as f32 * PRUNE_THRESHOLD).ceil() as usize;
+    let mut s1_removed_set: std::collections::HashSet<usize> = std::collections::HashSet::new();
+    let mut s1_indices_to_remove: Vec<usize> = s1_with_indices
+        .iter()
+        .take(s1_prune_count)
+        .map(|&(idx, _)| {
+            s1_removed_set.insert(idx);
+            idx
+        })
+        .collect();
+
+    s1_indices_to_remove.sort();
+    for idx in s1_indices_to_remove.iter().rev() {
+        root_node.s1_options.remove(*idx);
+    }
+
+    let mut s2_with_indices: Vec<(usize, i64)> = root_node
+        .s2_options
+        .iter()
+        .enumerate()
+        .map(|(idx, move_node)| (idx, move_node.visits))
+        .collect();
+    s2_with_indices.sort_by_key(|&(_, visits)| visits);
+
+    let s2_prune_count = (s2_with_indices.len() as f32 * PRUNE_THRESHOLD).ceil() as usize;
+    let mut s2_removed_set: std::collections::HashSet<usize> = std::collections::HashSet::new();
+    let mut s2_indices_to_remove: Vec<usize> = s2_with_indices
+        .iter()
+        .take(s2_prune_count)
+        .map(|&(idx, _)| {
+            s2_removed_set.insert(idx);
+            idx
+        })
+        .collect();
+    s2_indices_to_remove.sort();
+    for idx in s2_indices_to_remove.iter().rev() {
+        root_node.s2_options.remove(*idx);
+    }
+
+    // Remove children from HashMap where either s1 or s2 index was pruned, and remap remaining keys
+    let old_children = std::mem::take(&mut root_node.children);
+    for ((old_s1_idx, old_s2_idx), mut children) in old_children {
+        // Skip if either index was removed
+        if s1_removed_set.contains(&old_s1_idx) || s2_removed_set.contains(&old_s2_idx) {
+            continue;
+        }
+
+        // Calculate new indices by counting how many lower indices were removed
+        let new_s1_idx = old_s1_idx
+            - s1_removed_set
+                .iter()
+                .filter(|&&removed| removed < old_s1_idx)
+                .count();
+        let new_s2_idx = old_s2_idx
+            - s2_removed_set
+                .iter()
+                .filter(|&&removed| removed < old_s2_idx)
+                .count();
+
+        // Update child node references
+        for child in &mut children {
+            child.s1_choice = new_s1_idx;
+            child.s2_choice = new_s2_idx;
+        }
+
+        root_node
+            .children
+            .insert((new_s1_idx, new_s2_idx), children);
+    }
+}
+
 fn do_mcts(root_node: &mut Node, state: &mut State, root_eval: &f32) {
     let (mut new_node, s1_move, s2_move) = unsafe { root_node.selection(state) };
     new_node = unsafe { (*new_node).expand(state, s1_move, s2_move) };
@@ -234,11 +359,11 @@ fn do_mcts(root_node: &mut Node, state: &mut State, root_eval: &f32) {
 
 pub fn perform_mcts(
     state: &mut State,
-    side_one_options: Vec<MoveChoice>,
-    side_two_options: Vec<MoveChoice>,
+    side_one_options: Vec<(MoveChoice, MoveChoice)>,
+    side_two_options: Vec<(MoveChoice, MoveChoice)>,
     max_time: Duration,
 ) -> MctsResult {
-    let mut root_node = Node::new(side_one_options, side_two_options);
+    let mut root_node = Node::new(0, side_one_options, side_two_options);
     root_node.root = true;
 
     let root_eval = evaluate(state);

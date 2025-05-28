@@ -50,14 +50,6 @@ pytest:
 test: pytest
 	cargo test --no-default-features --features "terastallization"
 	cargo test --no-default-features --features "gen9"
-	cargo test --no-default-features --features "gen8"
-	cargo test --no-default-features --features "gen7"
-	cargo test --no-default-features --features "gen6"
-	cargo test --no-default-features --features "gen5"
-	cargo test --no-default-features --features "gen4"
-	cargo test --no-default-features --features "gen3"
-	cargo test --no-default-features --features "gen2"
-	cargo test --no-default-features --features "gen1"
 
 install_ci:
 	pip install -r poke-engine-py/requirements.txt

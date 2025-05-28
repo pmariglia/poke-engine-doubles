@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from ._poke_engine import (
     State as _State,
     Side as _Side,
+    SideSlot as _SideSlot,
     SideConditions as _SideConditions,
     VolatileStatusDurations as _VolatileStatusDurations,
     Pokemon as _Pokemon,
@@ -250,6 +251,8 @@ class VolatileStatusDurations:
     :type confusion: int
     :param lockedmove:
     :type lockedmove: int
+    :param protect:
+    :type protect: int
     :param encore:
     :type encore: int
     :param slowstart:
@@ -262,6 +265,7 @@ class VolatileStatusDurations:
 
     confusion: int = 0
     lockedmove: int = 0
+    protect: int = 0
     encore: int = 0
     slowstart: int = 0
     taunt: int = 0
@@ -271,6 +275,7 @@ class VolatileStatusDurations:
         return _VolatileStatusDurations(
             confusion=self.confusion,
             lockedmove=self.lockedmove,
+            protect=self.protect,
             encore=self.encore,
             slowstart=self.slowstart,
             taunt=self.taunt,
@@ -279,9 +284,9 @@ class VolatileStatusDurations:
 
 
 @dataclass
-class Side:
+class SideSlot:
     """
-    One of the sides of a pokemon battle
+    A slot on a side of the battle
 
     :param active_index: The index of the active Pokemon
     :type active_index: str
@@ -291,10 +296,6 @@ class Side:
     :param shed_tailing: Set to `true` if the next move this side is making is a switch due to having used shed tail.
             `force_switch` will always be `true` if this is `true`
     :type shed_tailing: bool
-    :param pokemon: The Pokemon on this side
-    :type pokemon: list[Pokemon]
-    :param side_conditions: The SideConditions on this side
-    :type side_conditions: SideConditions
     :param wish: Tuple representing the wish status. Format is (turns_remaining, health)
     :type wish: (int, int)
     :param future_sight: Tuple representing the future_sight status. Format is (turns_remaining, PokemonIndex)
@@ -336,8 +337,6 @@ class Side:
     active_index: str = "0"
     baton_passing: bool = False
     shed_tailing: bool = False
-    pokemon: list[Pokemon] = field(default_factory=list)
-    side_conditions: SideConditions = field(default_factory=SideConditions)
     volatile_status_durations: VolatileStatusDurations = field(
         default_factory=VolatileStatusDurations
     )
@@ -359,12 +358,10 @@ class Side:
     switch_out_move_second_saved_move: str = "none"
 
     def _into_rust_obj(self):
-        return _Side(
+        return _SideSlot(
             active_index=self.active_index,
             baton_passing=self.baton_passing,
             shed_tailing=self.shed_tailing,
-            pokemon=[p._into_rust_obj() for p in self.pokemon],
-            side_conditions=self.side_conditions._into_rust_obj(),
             volatile_status_durations=self.volatile_status_durations._into_rust_obj(),
             wish=self.wish,
             future_sight=self.future_sight,
@@ -382,6 +379,36 @@ class Side:
             evasion_boost=self.evasion_boost,
             last_used_move=self.last_used_move,
             switch_out_move_second_saved_move=self.switch_out_move_second_saved_move,
+        )
+
+
+@dataclass
+class Side:
+    """
+    One of the sides of a pokemon battle
+
+    :param pokemon: The Pokemon on this side
+    :type pokemon: list[Pokemon]
+    :param slot_a: The first slot on this side
+    :type slot_a: SideSlot
+    :param slot_b: The first slot on this side
+    :type slot_b: SideSlot
+    :param side_conditions: The SideConditions on this side
+    :type side_conditions: SideConditions
+
+    """
+
+    pokemon: list[Pokemon] = field(default_factory=list)
+    slot_a: SideSlot = field(default_factory=SideSlot)
+    slot_b: SideSlot = field(default_factory=SideSlot)
+    side_conditions: SideConditions = field(default_factory=SideConditions)
+
+    def _into_rust_obj(self):
+        return _Side(
+            pokemon=[p._into_rust_obj() for p in self.pokemon],
+            slot_a=self.slot_a._into_rust_obj(),
+            slot_b=self.slot_b._into_rust_obj(),
+            side_conditions=self.side_conditions._into_rust_obj(),
         )
 
 

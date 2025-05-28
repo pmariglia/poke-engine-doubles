@@ -1,12 +1,19 @@
 from poke_engine import (
     State,
     Side,
+    SideSlot,
     Move,
     Pokemon,
 )
 
 state = State(
     side_one=Side(
+        slot_a=SideSlot(
+            active_index="0",
+        ),
+        slot_b=SideSlot(
+            active_index="1",
+        ),
         pokemon=[
             Pokemon(
                 id="charmander",
@@ -62,9 +69,15 @@ state = State(
                     Move(id="quickattack", pp=32),
                 ],
             ),
-        ]
+        ],
     ),
     side_two=Side(
+        slot_a=SideSlot(
+            active_index="0",
+        ),
+        slot_b=SideSlot(
+            active_index="1",
+        ),
         pokemon=[
             Pokemon(
                 id="charmander",
@@ -120,6 +133,6 @@ state = State(
                     Move(id="quickattack", pp=32),
                 ],
             ),
-        ]
+        ],
     ),
 )

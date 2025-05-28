@@ -1,15 +1,16 @@
-use crate::choices::{Choices, MoveCategory};
+use crate::choices::MoveCategory;
 use crate::engine::items::Items;
-use crate::engine::state::{PokemonVolatileStatus, Terrain, Weather};
+use crate::engine::state::{MoveChoice, PokemonVolatileStatus, Terrain, Weather};
 use crate::state::{
     LastUsedMove, PokemonBoostableStat, PokemonIndex, PokemonMoveIndex, PokemonSideCondition,
-    PokemonStatus, PokemonType, SideReference,
+    PokemonStatus, PokemonType, SideReference, SlotReference,
 };
 use std::fmt;
 use std::fmt::Formatter;
 
 #[derive(PartialEq, Clone)]
 pub struct StateInstructions {
+    pub end_of_turn_triggered: bool,
     pub percentage: f32,
     pub instruction_list: Vec<Instruction>,
 }
@@ -17,6 +18,7 @@ pub struct StateInstructions {
 impl Default for StateInstructions {
     fn default() -> StateInstructions {
         StateInstructions {
+            end_of_turn_triggered: false,
             percentage: 100.0,
             instruction_list: Vec::with_capacity(4),
         }
@@ -69,14 +71,13 @@ pub enum Instruction {
     DecrementWish(DecrementWishInstruction),
     SetFutureSight(SetFutureSightInstruction),
     DecrementFutureSight(DecrementFutureSightInstruction),
-    DamageSubstitute(DamageInstruction),
+    DamageSubstitute(DamageSubstituteInstruction),
     DecrementRestTurns(DecrementRestTurnsInstruction),
     SetRestTurns(SetSleepTurnsInstruction),
     SetSleepTurns(SetSleepTurnsInstruction),
     ChangeSubstituteHealth(ChangeSubsituteHealthInstruction),
     FormeChange(FormeChangeInstruction),
-    SetSideOneMoveSecondSwitchOutMove(SetSecondMoveSwitchOutMoveInstruction),
-    SetSideTwoMoveSecondSwitchOutMove(SetSecondMoveSwitchOutMoveInstruction),
+    SetSwitchOutMove(SetSecondMoveSwitchOutMoveInstruction),
     ToggleBatonPassing(ToggleBatonPassingInstruction),
     ToggleShedTailing(ToggleShedTailingInstruction),
     SetLastUsedMove(SetLastUsedMoveInstruction),
@@ -86,8 +87,7 @@ pub enum Instruction {
     DecrementPP(DecrementPPInstruction),
     ToggleTrickRoom(ToggleTrickRoomInstruction),
     DecrementTrickRoomTurnsRemaining,
-    ToggleSideOneForceSwitch,
-    ToggleSideTwoForceSwitch,
+    ToggleForceSwitch(ToggleForceSwitchInstruction),
     ToggleTerastallized(ToggleTerastallizedInstruction),
 }
 
@@ -97,22 +97,22 @@ impl fmt::Debug for Instruction {
             Instruction::Switch(s) => {
                 write!(
                     f,
-                    "Switch {:?}: {:?} -> {:?}",
-                    s.side_ref, s.previous_index, s.next_index
+                    "Switch {:?} {:?}: {:?} -> {:?}",
+                    s.side_ref, s.slot_ref, s.previous_index, s.next_index
                 )
             }
             Instruction::ApplyVolatileStatus(a) => {
                 write!(
                     f,
-                    "ApplyVolatileStatus {:?}: {:?}",
-                    a.side_ref, a.volatile_status
+                    "ApplyVolatileStatus {:?} {:?}: {:?}",
+                    a.side_ref, a.slot_ref, a.volatile_status
                 )
             }
             Instruction::RemoveVolatileStatus(r) => {
                 write!(
                     f,
-                    "RemoveVolatileStatus {:?}: {:?}",
-                    r.side_ref, r.volatile_status
+                    "RemoveVolatileStatus {:?} {:?}: {:?}",
+                    r.side_ref, r.slot_ref, r.volatile_status
                 )
             }
             Instruction::ChangeStatus(c) => {
@@ -123,13 +123,25 @@ impl fmt::Debug for Instruction {
                 )
             }
             Instruction::Heal(h) => {
-                write!(f, "Heal {:?}: {:?}", h.side_ref, h.heal_amount)
+                write!(
+                    f,
+                    "Heal {:?} {:?}: {:?}",
+                    h.side_ref, h.pokemon_index, h.heal_amount
+                )
             }
             Instruction::Damage(d) => {
-                write!(f, "Damage {:?}: {}", d.side_ref, d.damage_amount)
+                write!(
+                    f,
+                    "Damage {:?} {:?}: {}",
+                    d.side_ref, d.pokemon_index, d.damage_amount
+                )
             }
             Instruction::Boost(b) => {
-                write!(f, "Boost {:?} {:?}: {:?}", b.side_ref, b.stat, b.amount)
+                write!(
+                    f,
+                    "Boost {:?} {:?} {:?}: {:?}",
+                    b.side_ref, b.slot_ref, b.stat, b.amount
+                )
             }
             Instruction::ChangeSideCondition(c) => {
                 write!(
@@ -141,8 +153,8 @@ impl fmt::Debug for Instruction {
             Instruction::ChangeVolatileStatusDuration(c) => {
                 write!(
                     f,
-                    "ChangeVolatileStatusDuration {:?} {:?}: {:?}",
-                    c.side_ref, c.volatile_status, c.amount
+                    "ChangeVolatileStatusDuration {:?} {:?} {:?}: {:?}",
+                    c.side_ref, c.slot_ref, c.volatile_status, c.amount
                 )
             }
             Instruction::ChangeWeather(c) => {
@@ -174,66 +186,106 @@ impl fmt::Debug for Instruction {
             Instruction::ChangeType(c) => {
                 write!(
                     f,
-                    "ChangeType {:?}: {:?} -> {:?}",
-                    c.side_ref, c.old_types, c.new_types
+                    "ChangeType {:?} {:?}: {:?} -> {:?}",
+                    c.side_ref, c.pokemon_index, c.old_types, c.new_types
                 )
             }
             Instruction::ChangeAbility(c) => {
-                write!(f, "ChangeAbility {:?}: {:?}", c.side_ref, c.ability_change)
+                write!(
+                    f,
+                    "ChangeAbility {:?} {:?}: {:?}",
+                    c.side_ref, c.pokemon_index, c.ability_change
+                )
             }
             Instruction::ChangeItem(c) => {
                 write!(
                     f,
-                    "ChangeItem {:?}: {:?} -> {:?}",
-                    c.side_ref, c.current_item, c.new_item
+                    "ChangeItem {:?} {:?}: {:?} -> {:?}",
+                    c.side_ref, c.pokemon_index, c.current_item, c.new_item
                 )
             }
             Instruction::ChangeAttack(c) => {
-                write!(f, "ChangeAttack {:?}: {}", c.side_ref, c.amount)
+                write!(
+                    f,
+                    "ChangeAttack {:?} {:?}: {}",
+                    c.side_ref, c.pokemon_index, c.amount
+                )
             }
             Instruction::ChangeDefense(c) => {
-                write!(f, "ChangeDefense {:?}: {}", c.side_ref, c.amount)
+                write!(
+                    f,
+                    "ChangeDefense {:?} {:?}: {}",
+                    c.side_ref, c.pokemon_index, c.amount
+                )
             }
             Instruction::ChangeSpecialAttack(c) => {
-                write!(f, "ChangeSpecialAttack {:?}: {}", c.side_ref, c.amount)
+                write!(
+                    f,
+                    "ChangeSpecialAttack {:?} {:?}: {}",
+                    c.side_ref, c.pokemon_index, c.amount
+                )
             }
             Instruction::ChangeSpecialDefense(c) => {
-                write!(f, "ChangeSpecialDefense {:?}: {}", c.side_ref, c.amount)
+                write!(
+                    f,
+                    "ChangeSpecialDefense {:?} {:?}: {}",
+                    c.side_ref, c.pokemon_index, c.amount
+                )
             }
             Instruction::ChangeSpeed(c) => {
-                write!(f, "ChangeSpeed {:?}: {}", c.side_ref, c.amount)
+                write!(
+                    f,
+                    "ChangeSpeed {:?} {:?}: {}",
+                    c.side_ref, c.pokemon_index, c.amount
+                )
             }
             Instruction::DisableMove(d) => {
-                write!(f, "DisableMove {:?}: {:?}", d.side_ref, d.move_index)
+                write!(
+                    f,
+                    "DisableMove {:?} {:?}: {:?}",
+                    d.side_ref, d.pokemon_index, d.move_index
+                )
             }
             Instruction::EnableMove(e) => {
-                write!(f, "EnableMove {:?}: {:?}", e.side_ref, e.move_index)
+                write!(
+                    f,
+                    "EnableMove {:?} {:?}: {:?}",
+                    e.side_ref, e.pokemon_index, e.move_index
+                )
             }
             Instruction::ChangeWish(s) => {
-                write!(f, "SetWish {:?}: {:?}", s.side_ref, s.wish_amount_change)
+                write!(
+                    f,
+                    "SetWish {:?} {:?}: {:?}",
+                    s.side_ref, s.slot_ref, s.wish_amount_change
+                )
             }
             Instruction::DecrementWish(d) => {
-                write!(f, "DecrementWish {:?}", d.side_ref)
+                write!(f, "DecrementWish {:?} {:?}", d.side_ref, d.slot_ref)
             }
             Instruction::SetFutureSight(s) => {
                 write!(
                     f,
-                    "SetFutureSight {:?}: {:?} -> {:?}",
-                    s.side_ref, s.previous_pokemon_index, s.pokemon_index
+                    "SetFutureSight {:?} {:?}: {:?} -> {:?}",
+                    s.side_ref, s.slot_ref, s.previous_pokemon_index, s.pokemon_index
                 )
             }
             Instruction::DecrementFutureSight(d) => {
-                write!(f, "DecrementFutureSight {:?}", d.side_ref)
+                write!(f, "DecrementFutureSight {:?} {:?}", d.side_ref, d.slot_ref)
             }
             Instruction::DamageSubstitute(d) => {
                 write!(
                     f,
-                    "DamageSubstitute {:?}: {:?}",
-                    d.side_ref, d.damage_amount
+                    "DamageSubstitute {:?} {:?}: {:?}",
+                    d.side_ref, d.slot_ref, d.damage_amount
                 )
             }
             Instruction::DecrementRestTurns(d) => {
-                write!(f, "DecrementRestTurns {:?}", d.side_ref)
+                write!(
+                    f,
+                    "DecrementRestTurns {:?} {:?}",
+                    d.side_ref, d.pokemon_index
+                )
             }
             Instruction::SetRestTurns(s) => {
                 write!(
@@ -252,65 +304,70 @@ impl fmt::Debug for Instruction {
             Instruction::ChangeSubstituteHealth(s) => {
                 write!(
                     f,
-                    "ChangeSubstituteHealth {:?}: {:?}",
-                    s.side_ref, s.health_change,
+                    "ChangeSubstituteHealth {:?} {:?}: {:?}",
+                    s.side_ref, s.slot_ref, s.health_change,
                 )
             }
             Instruction::FormeChange(s) => {
-                write!(f, "FormeChange {:?} {}", s.side_ref, s.name_change)
-            }
-            Instruction::SetSideOneMoveSecondSwitchOutMove(s) => {
                 write!(
                     f,
-                    "SideOneMoveSecondSwitchOutMove: {:?} -> {:?}",
-                    s.previous_choice, s.new_choice
+                    "FormeChange {:?} {:?} {}",
+                    s.side_ref, s.pokemon_index, s.name_change
                 )
             }
-            Instruction::SetSideTwoMoveSecondSwitchOutMove(s) => {
+            Instruction::SetSwitchOutMove(s) => {
                 write!(
                     f,
-                    "SideTwoMoveSecondSwitchOutMove: {:?} -> {:?}",
-                    s.previous_choice, s.new_choice
+                    "SetSwitchOutMove: {:?}{:?} {:?} -> {:?}",
+                    s.side_ref, s.slot_ref, s.previous_choice, s.new_choice
                 )
             }
             Instruction::ToggleBatonPassing(s) => {
-                write!(f, "ToggleBatonPassing {:?}", s.side_ref)
+                write!(f, "ToggleBatonPassing {:?} {:?}", s.side_ref, s.slot_ref)
             }
             Instruction::ToggleShedTailing(s) => {
-                write!(f, "ToggleShedTailing {:?}", s.side_ref)
+                write!(f, "ToggleShedTailing {:?} {:?}", s.side_ref, s.slot_ref)
             }
             Instruction::ToggleTerastallized(s) => {
-                write!(f, "ToggleTerastallized {:?}", s.side_ref)
+                write!(
+                    f,
+                    "ToggleTerastallized {:?} {:?}",
+                    s.side_ref, s.pokemon_index
+                )
             }
             Instruction::SetLastUsedMove(s) => {
                 write!(
                     f,
-                    "SetLastUsedMove {:?}: {:?} -> {:?}",
-                    s.side_ref, s.previous_last_used_move, s.last_used_move
+                    "SetLastUsedMove {:?} {:?}: {:?} -> {:?}",
+                    s.side_ref, s.slot_ref, s.previous_last_used_move, s.last_used_move
                 )
             }
             Instruction::ChangeDamageDealtDamage(s) => {
                 write!(
                     f,
-                    "ChangeDamageDealtDamage {:?}: {:?}",
-                    s.side_ref, s.damage_change
+                    "ChangeDamageDealtDamage {:?} {:?}: {:?}",
+                    s.side_ref, s.slot_ref, s.damage_change
                 )
             }
             Instruction::ChangeDamageDealtMoveCatagory(s) => {
                 write!(
                     f,
-                    "ChangeDamageDealtMoveCatagory {:?}: {:?} -> {:?}",
-                    s.side_ref, s.previous_move_category, s.move_category
+                    "ChangeDamageDealtMoveCatagory {:?} {:?}: {:?} -> {:?}",
+                    s.side_ref, s.slot_ref, s.previous_move_category, s.move_category
                 )
             }
             Instruction::ToggleDamageDealtHitSubstitute(s) => {
-                write!(f, "ToggleDamageDealtHitSubstitute {:?}", s.side_ref)
+                write!(
+                    f,
+                    "ToggleDamageDealtHitSubstitute {:?} {:?}",
+                    s.side_ref, s.slot_ref
+                )
             }
             Instruction::DecrementPP(s) => {
                 write!(
                     f,
-                    "DecrementPP {:?}: {:?} {}",
-                    s.side_ref, s.move_index, s.amount
+                    "DecrementPP {:?} {:?}: {:?} {}",
+                    s.side_ref, s.pokemon_index, s.move_index, s.amount
                 )
             }
             Instruction::ToggleTrickRoom(i) => {
@@ -326,11 +383,8 @@ impl fmt::Debug for Instruction {
             Instruction::DecrementTrickRoomTurnsRemaining => {
                 write!(f, "DecrementTrickRoomTurnsRemaining")
             }
-            Instruction::ToggleSideOneForceSwitch => {
-                write!(f, "ToggleSideOneForceSwitch")
-            }
-            Instruction::ToggleSideTwoForceSwitch => {
-                write!(f, "ToggleSideTwoForceSwitch")
+            Instruction::ToggleForceSwitch(i) => {
+                write!(f, "ToggleForceSwitch: {:?} {:?}", i.side_ref, i.slot_ref)
             }
         }
     }
@@ -339,12 +393,14 @@ impl fmt::Debug for Instruction {
 #[derive(Debug, PartialEq, Clone)]
 pub struct ChangeDamageDealtDamageInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
     pub damage_change: i16,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ChangeDamageDealtMoveCategoryInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
     pub move_category: MoveCategory,
     pub previous_move_category: MoveCategory,
 }
@@ -352,11 +408,13 @@ pub struct ChangeDamageDealtMoveCategoryInstruction {
 #[derive(Debug, PartialEq, Clone)]
 pub struct ToggleDamageDealtHitSubstituteInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct DecrementPPInstruction {
     pub side_ref: SideReference,
+    pub pokemon_index: PokemonIndex,
     pub move_index: PokemonMoveIndex,
     pub amount: i8,
 }
@@ -364,6 +422,7 @@ pub struct DecrementPPInstruction {
 #[derive(Debug, PartialEq, Clone)]
 pub struct SetLastUsedMoveInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
     pub last_used_move: LastUsedMove,
     pub previous_last_used_move: LastUsedMove,
 }
@@ -371,16 +430,19 @@ pub struct SetLastUsedMoveInstruction {
 #[derive(Debug, PartialEq, Clone)]
 pub struct ToggleBatonPassingInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ToggleShedTailingInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct DecrementRestTurnsInstruction {
     pub side_ref: SideReference,
+    pub pokemon_index: PokemonIndex,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -393,24 +455,29 @@ pub struct SetSleepTurnsInstruction {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct SetSecondMoveSwitchOutMoveInstruction {
-    pub new_choice: Choices,
-    pub previous_choice: Choices,
+    pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
+    pub new_choice: MoveChoice,
+    pub previous_choice: MoveChoice,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ChangeWishInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
     pub wish_amount_change: i16,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct DecrementWishInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct SetFutureSightInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
     pub pokemon_index: PokemonIndex,
     pub previous_pokemon_index: PokemonIndex,
 }
@@ -418,23 +485,27 @@ pub struct SetFutureSightInstruction {
 #[derive(Debug, PartialEq, Clone)]
 pub struct DecrementFutureSightInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct EnableMoveInstruction {
     pub side_ref: SideReference,
+    pub pokemon_index: PokemonIndex,
     pub move_index: PokemonMoveIndex,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct DisableMoveInstruction {
     pub side_ref: SideReference,
+    pub pokemon_index: PokemonIndex,
     pub move_index: PokemonMoveIndex,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ChangeItemInstruction {
     pub side_ref: SideReference,
+    pub pokemon_index: PokemonIndex,
     pub current_item: Items,
     pub new_item: Items,
 }
@@ -442,30 +513,42 @@ pub struct ChangeItemInstruction {
 #[derive(Debug, PartialEq, Clone)]
 pub struct ChangeStatInstruction {
     pub side_ref: SideReference,
+    pub pokemon_index: PokemonIndex,
     pub amount: i16,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct HealInstruction {
     pub side_ref: SideReference,
+    pub pokemon_index: PokemonIndex,
     pub heal_amount: i16,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct DamageInstruction {
     pub side_ref: SideReference,
+    pub pokemon_index: PokemonIndex,
+    pub damage_amount: i16,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct DamageSubstituteInstruction {
+    pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
     pub damage_amount: i16,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ChangeSubsituteHealthInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
     pub health_change: i16,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct FormeChangeInstruction {
     pub side_ref: SideReference,
+    pub pokemon_index: PokemonIndex,
 
     // PokemonName is represented as i16
     // This is the amount the name has changed by
@@ -475,6 +558,7 @@ pub struct FormeChangeInstruction {
 #[derive(Debug, PartialEq, Clone)]
 pub struct SwitchInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
     pub previous_index: PokemonIndex,
     pub next_index: PokemonIndex,
 }
@@ -492,18 +576,21 @@ pub struct ChangeStatusInstruction {
 #[derive(Debug, PartialEq, Clone)]
 pub struct ApplyVolatileStatusInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
     pub volatile_status: PokemonVolatileStatus,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct RemoveVolatileStatusInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
     pub volatile_status: PokemonVolatileStatus,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct BoostInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
     pub stat: PokemonBoostableStat,
     pub amount: i8,
 }
@@ -518,6 +605,7 @@ pub struct ChangeSideConditionInstruction {
 #[derive(Debug, PartialEq, Clone)]
 pub struct ChangeVolatileStatusDurationInstruction {
     pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
     pub volatile_status: PokemonVolatileStatus,
     pub amount: i8,
 }
@@ -548,11 +636,13 @@ pub struct ToggleTrickRoomInstruction {
 #[derive(Debug, PartialEq, Clone)]
 pub struct ToggleTerastallizedInstruction {
     pub side_ref: SideReference,
+    pub pokemon_index: PokemonIndex,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ChangeType {
     pub side_ref: SideReference,
+    pub pokemon_index: PokemonIndex,
     pub new_types: (PokemonType, PokemonType),
     pub old_types: (PokemonType, PokemonType),
 }
@@ -560,10 +650,17 @@ pub struct ChangeType {
 #[derive(Debug, PartialEq, Clone)]
 pub struct ChangeAbilityInstruction {
     pub side_ref: SideReference,
+    pub pokemon_index: PokemonIndex,
 
     // Abilities enum is an i16
     // This is the amount the ability has changed by
     pub ability_change: i16,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ToggleForceSwitchInstruction {
+    pub side_ref: SideReference,
+    pub slot_ref: SlotReference,
 }
 
 #[cfg(test)]
@@ -573,7 +670,7 @@ mod test {
     // Make sure that the size of the Instruction enum doesn't change
     #[test]
     fn test_instruction_size() {
-        assert_eq!(size_of::<Instruction>(), 6);
+        assert_eq!(size_of::<Instruction>(), 10);
         assert_eq!(align_of::<Instruction>(), 2);
     }
 }

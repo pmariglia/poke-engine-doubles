@@ -1,17 +1,3 @@
-#[cfg(feature = "gen1")]
-#[path = "gen1/mod.rs"]
-pub mod engine;
-
-#[cfg(feature = "gen2")]
-#[path = "gen2/mod.rs"]
-pub mod engine;
-
-#[cfg(feature = "gen3")]
-#[path = "gen3/mod.rs"]
-pub mod engine;
-
-// All other generations
-#[cfg(not(any(feature = "gen1", feature = "gen2", feature = "gen3")))]
 #[path = "genx/mod.rs"]
 pub mod engine;
 
@@ -20,7 +6,6 @@ pub mod instruction;
 pub mod io;
 pub mod mcts;
 pub mod pokemon;
-pub mod search;
 pub mod state;
 
 #[macro_export]

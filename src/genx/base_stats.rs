@@ -15,6 +15,8 @@ impl PokemonName {
             PokemonName::PALAFINHERO => (100, 160, 97, 106, 87, 100),
             PokemonName::EISCUE => (75, 80, 110, 65, 90, 50),
             PokemonName::EISCUENOICE => (75, 80, 70, 65, 50, 130),
+            PokemonName::TERAPAGOSSTELLAR => (95, 95, 110, 110, 110, 85),
+            PokemonName::TERAPAGOSTERASTAL => (160, 105, 110, 130, 110, 85),
             _ => panic!("Base stats not implemented for {}", self),
         }
     }

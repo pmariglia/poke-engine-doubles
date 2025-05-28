@@ -5,28 +5,31 @@ use std::collections::HashSet;
 use poke_engine::choices::{Choices, MoveCategory, MOVES};
 use poke_engine::engine::abilities::Abilities;
 use poke_engine::engine::generate_instructions::{
-    calculate_both_damage_rolls, generate_instructions_from_move_pair,
+    calculate_damage_rolls, generate_instructions_from_move_pair,
 };
 use poke_engine::engine::items::Items;
 use poke_engine::engine::state::{MoveChoice, PokemonVolatileStatus, Terrain, Weather};
 use poke_engine::instruction::{Instruction, StateInstructions};
 use poke_engine::mcts::{perform_mcts, MctsResult, MctsSideResult};
 use poke_engine::pokemon::PokemonName;
-use poke_engine::search::iterative_deepen_expectiminimax;
 use poke_engine::state::{
     LastUsedMove, Move, Pokemon, PokemonIndex, PokemonMoves, PokemonNature, PokemonStatus,
-    PokemonType, Side, SideConditions, SidePokemon, State, StateTerrain, StateTrickRoom,
-    StateWeather, VolatileStatusDurations,
+    PokemonType, Side, SideConditions, SidePokemon, SideReference, SideSlot, SlotReference, State,
+    StateTerrain, StateTrickRoom, StateWeather, VolatileStatusDurations,
 };
 use std::str::FromStr;
 use std::time::Duration;
 
-fn movechoice_to_string(side: &Side, move_choice: &MoveChoice) -> String {
+fn movechoice_to_string(
+    side: &Side,
+    move_choice: &MoveChoice,
+    attacking_slot_ref: &SlotReference,
+) -> String {
     match move_choice {
         MoveChoice::Switch(_) => {
-            format!("switch {}", move_choice.to_string(side))
+            format!("switch {}", move_choice.to_string(side, attacking_slot_ref))
         }
-        _ => move_choice.to_string(side),
+        _ => move_choice.to_string(side, attacking_slot_ref),
     }
 }
 
@@ -104,11 +107,51 @@ impl PySide {
 impl PySide {
     #[new]
     fn new(
+        mut pokemon: Vec<PyPokemon>,
+        slot_a: PySideSlot,
+        slot_b: PySideSlot,
+        side_conditions: PySideConditions,
+    ) -> Self {
+        while pokemon.len() < 6 {
+            pokemon.push(PyPokemon::create_fainted());
+        }
+        PySide {
+            side: Side {
+                pokemon: SidePokemon {
+                    p0: pokemon[0].create_pokemon(),
+                    p1: pokemon[1].create_pokemon(),
+                    p2: pokemon[2].create_pokemon(),
+                    p3: pokemon[3].create_pokemon(),
+                    p4: pokemon[4].create_pokemon(),
+                    p5: pokemon[5].create_pokemon(),
+                },
+                side_conditions: side_conditions.create_side_conditions(),
+                slot_a: slot_a.create_side_slot(),
+                slot_b: slot_b.create_side_slot(),
+            },
+        }
+    }
+}
+
+#[derive(Clone)]
+#[pyclass(name = "SideSlot")]
+pub struct PySideSlot {
+    pub slot: SideSlot,
+}
+
+impl PySideSlot {
+    fn create_side_slot(&self) -> SideSlot {
+        self.slot.clone()
+    }
+}
+
+#[pymethods]
+impl PySideSlot {
+    #[new]
+    fn new(
         active_index: String,
         baton_passing: bool,
         shed_tailing: bool,
-        mut pokemon: Vec<PyPokemon>,
-        side_conditions: PySideConditions,
         volatile_status_durations: PyVolatileStatusDurations,
         wish: (i8, i16),
         future_sight: (i8, String),
@@ -131,23 +174,11 @@ impl PySide {
         for vs in volatile_statuses {
             vs_hashset.insert(PokemonVolatileStatus::from_str(&vs).unwrap());
         }
-        while pokemon.len() < 6 {
-            pokemon.push(PyPokemon::create_fainted());
-        }
-        PySide {
-            side: Side {
+        PySideSlot {
+            slot: SideSlot {
                 active_index: PokemonIndex::deserialize(&active_index),
                 baton_passing,
                 shed_tailing,
-                pokemon: SidePokemon {
-                    p0: pokemon[0].create_pokemon(),
-                    p1: pokemon[1].create_pokemon(),
-                    p2: pokemon[2].create_pokemon(),
-                    p3: pokemon[3].create_pokemon(),
-                    p4: pokemon[4].create_pokemon(),
-                    p5: pokemon[5].create_pokemon(),
-                },
-                side_conditions: side_conditions.create_side_conditions(),
                 wish,
                 future_sight: (future_sight.0, PokemonIndex::deserialize(&future_sight.1)),
                 force_switch,
@@ -166,10 +197,9 @@ impl PySide {
                 evasion_boost,
                 last_used_move: LastUsedMove::deserialize(&last_used_move),
                 damage_dealt: Default::default(),
-                switch_out_move_second_saved_move: Choices::from_str(
+                switch_out_move_second_saved_move: MoveChoice::deserialize(
                     &switch_out_move_second_saved_move,
-                )
-                .unwrap(),
+                ),
             },
         }
     }
@@ -194,6 +224,7 @@ impl PyVolatileStatusDurations {
         confusion: i8,
         encore: i8,
         lockedmove: i8,
+        protect: i8,
         slowstart: i8,
         taunt: i8,
         yawn: i8,
@@ -203,6 +234,7 @@ impl PyVolatileStatusDurations {
                 confusion,
                 encore,
                 lockedmove,
+                protect,
                 slowstart,
                 taunt,
                 yawn,
@@ -399,7 +431,7 @@ impl PyMove {
 #[derive(Clone)]
 #[pyclass(get_all)]
 struct PyMctsSideResult {
-    pub move_choice: String,
+    pub move_choice: (String, String),
     pub total_score: f32,
     pub visits: i64,
 }
@@ -407,7 +439,10 @@ struct PyMctsSideResult {
 impl PyMctsSideResult {
     fn from_mcts_side_result(result: MctsSideResult, side: &Side) -> Self {
         PyMctsSideResult {
-            move_choice: movechoice_to_string(side, &result.move_choice),
+            move_choice: (
+                movechoice_to_string(side, &result.move_choice.0, &SlotReference::SlotA),
+                movechoice_to_string(side, &result.move_choice.1, &SlotReference::SlotB),
+            ),
             total_score: result.total_score,
             visits: result.visits,
         }
@@ -440,37 +475,6 @@ impl PyMctsResult {
     }
 }
 
-#[derive(Clone)]
-#[pyclass(get_all)]
-struct PyIterativeDeepeningResult {
-    s1: Vec<String>,
-    s2: Vec<String>,
-    matrix: Vec<f32>,
-    depth_searched: i8,
-}
-
-impl PyIterativeDeepeningResult {
-    fn from_iterative_deepening_result(
-        result: (Vec<MoveChoice>, Vec<MoveChoice>, Vec<f32>, i8),
-        state: &State,
-    ) -> Self {
-        PyIterativeDeepeningResult {
-            s1: result
-                .0
-                .iter()
-                .map(|c| movechoice_to_string(&state.side_one, c))
-                .collect(),
-            s2: result
-                .1
-                .iter()
-                .map(|c| movechoice_to_string(&state.side_two, c))
-                .collect(),
-            matrix: result.2,
-            depth_searched: result.3,
-        }
-    }
-}
-
 #[pyfunction]
 fn mcts(mut py_state: PyState, duration_ms: u64) -> PyResult<PyMctsResult> {
     let duration = Duration::from_millis(duration_ms);
@@ -479,18 +483,6 @@ fn mcts(mut py_state: PyState, duration_ms: u64) -> PyResult<PyMctsResult> {
 
     let py_mcts_result = PyMctsResult::from_mcts_result(mcts_result, &py_state.state);
     Ok(py_mcts_result)
-}
-
-#[pyfunction]
-fn id(mut py_state: PyState, duration_ms: u64) -> PyResult<PyIterativeDeepeningResult> {
-    let duration = Duration::from_millis(duration_ms);
-    let (s1_options, s2_options) = py_state.state.root_get_all_options();
-    let id_result =
-        iterative_deepen_expectiminimax(&mut py_state.state, s1_options, s2_options, duration);
-
-    let py_id_result =
-        PyIterativeDeepeningResult::from_iterative_deepening_result(id_result, &py_state.state);
-    Ok(py_id_result)
 }
 
 #[derive(Clone)]
@@ -544,30 +536,72 @@ impl PyStateInstructions {
 #[pyfunction]
 fn gi(
     mut py_state: PyState,
-    side_one_move: String,
-    side_two_move: String,
+    side_one_a_move: String,
+    side_one_b_move: String,
+    side_two_a_move: String,
+    side_two_b_move: String,
 ) -> PyResult<Vec<PyStateInstructions>> {
-    let (s1_move, s2_move);
-    match MoveChoice::from_string(&side_one_move, &py_state.state.side_one) {
-        Some(m) => s1_move = m,
+    let (s1_a_move, s1_b_move, s2_a_move, s2_b_move);
+    match MoveChoice::from_string(
+        &side_one_a_move,
+        &py_state.state.side_one,
+        SlotReference::SlotA,
+    ) {
+        Some(m) => s1_a_move = m,
         None => {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid move for s1: {}",
-                side_one_move
+                "Invalid move for s1-a: {}",
+                side_one_a_move
             )))
         }
     }
-    match MoveChoice::from_string(&side_two_move, &py_state.state.side_two) {
-        Some(m) => s2_move = m,
+    match MoveChoice::from_string(
+        &side_one_b_move,
+        &py_state.state.side_one,
+        SlotReference::SlotB,
+    ) {
+        Some(m) => s1_b_move = m,
         None => {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid move for s2: {}",
-                side_two_move
+                "Invalid move for s1-b: {}",
+                side_one_b_move
             )))
         }
     }
-    let instructions =
-        generate_instructions_from_move_pair(&mut py_state.state, &s1_move, &s2_move, true);
+    match MoveChoice::from_string(
+        &side_two_a_move,
+        &py_state.state.side_two,
+        SlotReference::SlotA,
+    ) {
+        Some(m) => s2_a_move = m,
+        None => {
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid move for s2-a: {}",
+                side_two_a_move
+            )))
+        }
+    }
+    match MoveChoice::from_string(
+        &side_two_b_move,
+        &py_state.state.side_two,
+        SlotReference::SlotB,
+    ) {
+        Some(m) => s2_b_move = m,
+        None => {
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid move for s2-b: {}",
+                side_two_b_move
+            )))
+        }
+    }
+    let instructions = generate_instructions_from_move_pair(
+        &mut py_state.state,
+        &s1_a_move,
+        &s1_b_move,
+        &s2_a_move,
+        &s2_b_move,
+        true,
+    );
     let py_instructions = instructions
         .iter()
         .map(|i| PyStateInstructions::from_state_instructions(i.clone()))
@@ -578,51 +612,67 @@ fn gi(
 
 #[pyfunction]
 fn calculate_damage(
-    py_state: PyState,
-    side_one_move: String,
-    side_two_move: String,
-    side_one_moves_first: bool,
-) -> PyResult<(Vec<i16>, Vec<i16>)> {
+    mut py_state: PyState,
+    attacking_side: String,
+    attacking_slot: String,
+    target_side: String,
+    target_slot: String,
+    attacker_move: String,
+    target_move: String,
+) -> PyResult<Vec<i16>> {
     let (mut s1_choice, mut s2_choice);
-    match MOVES.get(&Choices::from_str(side_one_move.as_str()).unwrap()) {
+
+    let attacking_side_ref = SideReference::from_str(&attacking_side)
+        .unwrap_or_else(|_| panic!("Invalid attacking side: {attacking_side}"));
+    let attacking_slot_ref = SlotReference::from_str(&attacking_slot)
+        .unwrap_or_else(|_| panic!("Invalid attacking slot: {attacking_slot}"));
+    let target_side_ref = SideReference::from_str(&target_side)
+        .unwrap_or_else(|_| panic!("Invalid target side: {target_side}"));
+    let target_slot_ref = SlotReference::from_str(&target_slot)
+        .unwrap_or_else(|_| panic!("Invalid target slot: {target_slot}"));
+
+    match MOVES.get(&Choices::from_str(attacker_move.as_str()).unwrap()) {
         Some(m) => s1_choice = m.to_owned(),
         None => {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid move for s1: {}",
-                side_one_move
+                "Invalid move for attacker: {}",
+                attacker_move
             )))
         }
     }
-    match MOVES.get(&Choices::from_str(side_two_move.as_str()).unwrap()) {
+    match MOVES.get(&Choices::from_str(target_move.as_str()).unwrap()) {
         Some(m) => s2_choice = m.to_owned(),
         None => {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
                 "Invalid move for s2: {}",
-                side_one_move
+                target_move
             )))
         }
     }
-    if side_one_move == "switch" {
+    if attacker_move == "switch" {
         s1_choice.category = MoveCategory::Switch
     }
-    if side_two_move == "switch" {
+    if target_move == "switch" {
         s2_choice.category = MoveCategory::Switch
     }
 
-    let (s1_damage_rolls, s2_damage_rolls) =
-        calculate_both_damage_rolls(&py_state.state, s1_choice, s2_choice, side_one_moves_first);
+    let damage_rolls = calculate_damage_rolls(
+        &mut py_state.state,
+        &attacking_side_ref,
+        &attacking_slot_ref,
+        &target_side_ref,
+        &target_slot_ref,
+        s1_choice,
+        &s2_choice,
+    );
 
-    let (s1_py_rolls, s2_py_rolls);
-    match s1_damage_rolls {
-        Some(rolls) => s1_py_rolls = rolls,
-        None => s1_py_rolls = vec![0, 0],
-    }
-    match s2_damage_rolls {
-        Some(rolls) => s2_py_rolls = rolls,
-        None => s2_py_rolls = vec![0, 0],
+    let py_rolls;
+    match damage_rolls {
+        Some(rolls) => py_rolls = rolls,
+        None => py_rolls = vec![0, 0],
     }
 
-    Ok((s1_py_rolls, s2_py_rolls))
+    Ok(py_rolls)
 }
 
 #[pyfunction]
@@ -638,10 +688,10 @@ fn py_poke_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(state_from_string, m)?)?;
     m.add_function(wrap_pyfunction!(calculate_damage, m)?)?;
     m.add_function(wrap_pyfunction!(gi, m)?)?;
-    m.add_function(wrap_pyfunction!(id, m)?)?;
     m.add_function(wrap_pyfunction!(mcts, m)?)?;
     m.add_class::<PyState>()?;
     m.add_class::<PySide>()?;
+    m.add_class::<PySideSlot>()?;
     m.add_class::<PySideConditions>()?;
     m.add_class::<PyVolatileStatusDurations>()?;
     m.add_class::<PyPokemon>()?;

@@ -50,88 +50,33 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::ACID,
-                Choice {
-                    move_id: Choices::ACID,
-                    base_power: 40.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 33.2,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: -1,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
+        moves.insert(
+            Choices::ACID,
+            Choice {
+                move_id: Choices::ACID,
+                move_choice_target: MoveChoiceTarget::AllFoes,
+                base_power: 40.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::POISON,
+                flags: Flags {
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else if cfg!(feature = "gen2") || cfg!(feature = "gen3") {
-            moves.insert(
-                Choices::ACID,
-                Choice {
-                    move_id: Choices::ACID,
-                    base_power: 40.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: -1,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::ACID,
-                Choice {
-                    move_id: Choices::ACID,
-                    base_power: 40.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: -1,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 10.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: -1,
+                        speed: 0,
+                        accuracy: 0,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::ACIDARMOR,
             Choice {
@@ -169,7 +114,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -275,41 +220,22 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::AIRCUTTER,
-                Choice {
-                    move_id: Choices::AIRCUTTER,
-                    accuracy: 95.0,
-                    base_power: 55.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FLYING,
-                    flags: Flags {
+        moves.insert(
+            Choices::AIRCUTTER,
+            Choice {
+                move_id: Choices::AIRCUTTER,
+                move_choice_target: MoveChoiceTarget::AllFoes,
+                accuracy: 95.0,
+                base_power: 60.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::FLYING,
+                flags: Flags {
                         protect: true,
-                        slicing: true,
-                        wind: true,
-                        ..Default::default()
-                    },
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::AIRCUTTER,
-                Choice {
-                    move_id: Choices::AIRCUTTER,
-                    accuracy: 95.0,
-                    base_power: 60.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FLYING,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::AIRSLASH,
             Choice {
@@ -325,7 +251,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -359,55 +285,29 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::AMNESIA,
-                Choice {
-                    move_id: Choices::AMNESIA,
-                    target: MoveTarget::User,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        ..Default::default()
-                    },
-                    boost: Some(Boost {
-                        target: MoveTarget::User,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 2,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        },
-                    }),
+        moves.insert(
+            Choices::AMNESIA,
+            Choice {
+                move_id: Choices::AMNESIA,
+                target: MoveTarget::User,
+                move_type: PokemonType::PSYCHIC,
+                flags: Flags {
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::AMNESIA,
-                Choice {
-                    move_id: Choices::AMNESIA,
+                boost: Some(Boost {
                     target: MoveTarget::User,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        ..Default::default()
+                    boosts: StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: 2,
+                        speed: 0,
+                        accuracy: 0,
                     },
-                    boost: Some(Boost {
-                        target: MoveTarget::User,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 2,
-                            speed: 0,
-                            accuracy: 0,
-                        },
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::ANCHORSHOT,
             Choice {
@@ -462,7 +362,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -610,13 +510,14 @@ lazy_static! {
             Choices::AROMATICMIST,
             Choice {
                 move_id: Choices::AROMATICMIST,
+                move_choice_target: MoveChoiceTarget::Ally,
                 target: MoveTarget::User,
                 move_type: PokemonType::FAIRY,
                 flags: Flags {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::User,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -641,39 +542,21 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::ASSURANCE,
-                Choice {
-                    move_id: Choices::ASSURANCE,
-                    base_power: 50.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::ASSURANCE,
+            Choice {
+                move_id: Choices::ASSURANCE,
+                base_power: 60.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::DARK,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::ASSURANCE,
-                Choice {
-                    move_id: Choices::ASSURANCE,
-                    base_power: 60.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::ASTONISH,
             Choice {
@@ -688,7 +571,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -698,6 +581,7 @@ lazy_static! {
             Choices::ASTRALBARRAGE,
             Choice {
                 move_id: Choices::ASTRALBARRAGE,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 120.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::GHOST,
@@ -733,47 +617,28 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::ATTRACT,
                 }),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::AURASPHERE,
-                Choice {
-                    move_id: Choices::AURASPHERE,
-                    base_power: 90.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        bullet: true,
-                                protect: true,
-                        pulse: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::AURASPHERE,
+            Choice {
+                move_id: Choices::AURASPHERE,
+                base_power: 80.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::FIGHTING,
+                flags: Flags {
+                    bullet: true,
+                            protect: true,
+                    pulse: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::AURASPHERE,
-                Choice {
-                    move_id: Choices::AURASPHERE,
-                    base_power: 80.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        bullet: true,
-                                protect: true,
-                        pulse: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::AURAWHEEL,
             Choice {
@@ -800,61 +665,32 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::AURORABEAM,
-                Choice {
-                    move_id: Choices::AURORABEAM,
-                    base_power: 65.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ICE,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 33.2,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: -1,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
+        moves.insert(
+            Choices::AURORABEAM,
+            Choice {
+                move_id: Choices::AURORABEAM,
+                base_power: 65.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::ICE,
+                flags: Flags {
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::AURORABEAM,
-                Choice {
-                    move_id: Choices::AURORABEAM,
-                    base_power: 65.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ICE,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: -1,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 10.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: -1,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: 0,
+                        speed: 0,
+                        accuracy: 0,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::AURORAVEIL,
             Choice {
@@ -925,7 +761,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
                 }]),
                 crash: Some(0.5),
@@ -944,7 +780,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: -1,
                         defense: 0,
@@ -1002,7 +838,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 50.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::POISON),
                 }]),
                 ..Default::default()
@@ -1076,36 +912,19 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::BEATUP,
-                Choice {
-                    base_power: 10.0,
-                    move_id: Choices::BEATUP,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::BEATUP,
+            Choice {
+                move_id: Choices::BEATUP,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::DARK,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::BEATUP,
-                Choice {
-                    move_id: Choices::BEATUP,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::BEHEMOTHBASH,
             Choice {
@@ -1195,94 +1014,47 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::BIND,
-                Choice {
-                    move_id: Choices::BIND,
-                    accuracy: 75.0,
-                    base_power: 15.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
-                    }),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::BIND,
-                Choice {
-                    move_id: Choices::BIND,
-                    accuracy: 85.0,
-                    base_power: 15.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::BITE,
-                Choice {
-                    move_id: Choices::BITE,
-                    base_power: 60.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        bite: true,
-                        contact: true,
+        moves.insert(
+            Choices::BIND,
+            Choice {
+                move_id: Choices::BIND,
+                accuracy: 85.0,
+                base_power: 15.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                    contact: true,
                         protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
-                    }]),
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::BITE,
-                Choice {
-                    move_id: Choices::BITE,
-                    base_power: 60.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                        bite: true,
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
-                    }]),
+                volatile_status: Some(VolatileStatus {
+                    target: MoveTarget::Target,
+                    volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
+                }),
+                ..Default::default()
+            },
+        );
+        moves.insert(
+            Choices::BITE,
+            Choice {
+                move_id: Choices::BITE,
+                base_power: 60.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::DARK,
+                flags: Flags {
+                    bite: true,
+                    contact: true,
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 30.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::BITTERBLADE,
             Choice {
@@ -1314,7 +1086,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: -1,
                         defense: 0,
@@ -1358,7 +1130,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -1377,7 +1149,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -1387,6 +1159,7 @@ lazy_static! {
             Choices::BLEAKWINDSTORM,
             Choice {
                 move_id: Choices::BLEAKWINDSTORM,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 accuracy: 80.0,
                 base_power: 100.0,
                 category: MoveCategory::Special,
@@ -1398,7 +1171,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -1411,73 +1184,27 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::BLIZZARD,
-                Choice {
-                    move_id: Choices::BLIZZARD,
-                    accuracy: 90.0,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ICE,
-                    flags: Flags {
+        moves.insert(
+            Choices::BLIZZARD,
+            Choice {
+                move_id: Choices::BLIZZARD,
+                move_choice_target: MoveChoiceTarget::AllFoes,
+                accuracy: 70.0,
+                base_power: 110.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::ICE,
+                flags: Flags {
                         protect: true,
-                        wind: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::FREEZE),
-                    }]),
                     ..Default::default()
                 },
-            );
-        }
-        else if cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::BLIZZARD,
-                Choice {
-                    move_id: Choices::BLIZZARD,
-                    accuracy: 70.0,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ICE,
-                    flags: Flags {
-                        protect: true,
-                        wind: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::FREEZE),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::BLIZZARD,
-                Choice {
-                    move_id: Choices::BLIZZARD,
-                    accuracy: 70.0,
-                    base_power: 110.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ICE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::FREEZE),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 10.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Status(PokemonStatus::FREEZE),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::BLOCK,
             Choice {
@@ -1518,7 +1245,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -1553,7 +1280,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
@@ -1589,7 +1316,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
@@ -1609,7 +1336,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -1630,43 +1357,26 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::BONERUSH,
-                Choice {
-                    move_id: Choices::BONERUSH,
-                    accuracy: 80.0,
-                    base_power: 25.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GROUND,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::BONERUSH,
+            Choice {
+                move_id: Choices::BONERUSH,
+                accuracy: 90.0,
+                base_power: 25.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::GROUND,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::BONERUSH,
-                Choice {
-                    move_id: Choices::BONERUSH,
-                    accuracy: 90.0,
-                    base_power: 25.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GROUND,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::BOOMBURST,
             Choice {
                 move_id: Choices::BOOMBURST,
+                move_choice_target: MoveChoiceTarget::AllOther,
                 base_power: 140.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::NORMAL,
@@ -1694,7 +1404,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
@@ -1751,6 +1461,7 @@ lazy_static! {
             Choices::BREAKINGSWIPE,
             Choice {
                 move_id: Choices::BREAKINGSWIPE,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 60.0,
                 category: MoveCategory::Physical,
                 move_type: PokemonType::DRAGON,
@@ -1761,7 +1472,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: -1,
                         defense: 0,
@@ -1807,6 +1518,7 @@ lazy_static! {
             Choices::BRUTALSWING,
             Choice {
                 move_id: Choices::BRUTALSWING,
+                move_choice_target: MoveChoiceTarget::AllOther,
                 base_power: 60.0,
                 category: MoveCategory::Physical,
                 move_type: PokemonType::DARK,
@@ -1818,143 +1530,59 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::BUBBLE,
-                Choice {
-                    move_id: Choices::BUBBLE,
-                    base_power: 20.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 33.2,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: -1,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        } else if cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::BUBBLE,
-                Choice {
-                    move_id: Choices::BUBBLE,
-                    base_power: 20.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: -1,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::BUBBLE,
-                Choice {
-                    move_id: Choices::BUBBLE,
-                    base_power: 40.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: -1,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::BUBBLEBEAM,
-                Choice {
-                    move_id: Choices::BUBBLEBEAM,
-                    base_power: 65.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
+        moves.insert(
+            Choices::BUBBLE,
+            Choice {
+                move_id: Choices::BUBBLE,
+                move_choice_target: MoveChoiceTarget::AllFoes,
+                base_power: 40.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::WATER,
+                flags: Flags {
                         protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 33.2,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: -1,
-                            accuracy: 0,
-                        }),
-                    }]),
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::BUBBLEBEAM,
-                Choice {
-                    move_id: Choices::BUBBLEBEAM,
-                    base_power: 65.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: -1,
-                            accuracy: 0,
-                        }),
-                    }]),
+                secondaries: Some(vec![Secondary {
+                    chance: 10.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: 0,
+                        speed: -1,
+                        accuracy: 0,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
+        moves.insert(
+            Choices::BUBBLEBEAM,
+            Choice {
+                move_id: Choices::BUBBLEBEAM,
+                base_power: 65.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::WATER,
+                flags: Flags {
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 10.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: 0,
+                        speed: -1,
+                        accuracy: 0,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::BUGBITE,
             Choice {
@@ -1984,7 +1612,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -2024,6 +1652,7 @@ lazy_static! {
             Choices::BULLDOZE,
             Choice {
                 move_id: Choices::BULLDOZE,
+                move_choice_target: MoveChoiceTarget::AllOther,
                 base_power: 60.0,
                 category: MoveCategory::Physical,
                 move_type: PokemonType::GROUND,
@@ -2033,7 +1662,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -2063,44 +1692,27 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::BULLETSEED,
-                Choice {
-                    move_id: Choices::BULLETSEED,
-                    base_power: 10.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                        bullet: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::BULLETSEED,
+            Choice {
+                move_id: Choices::BULLETSEED,
+                base_power: 25.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::GRASS,
+                flags: Flags {
+                    bullet: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::BULLETSEED,
-                Choice {
-                    move_id: Choices::BULLETSEED,
-                    base_power: 25.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                        bullet: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::BURNINGBULWARK,
             Choice {
                 move_id: Choices::BURNINGBULWARK,
                 category: MoveCategory::Status,
+                target: MoveTarget::User,
                 move_type: PokemonType::FIRE,
                 priority: 4,
                 flags: Flags {
@@ -2117,6 +1729,7 @@ lazy_static! {
             Choices::BURNINGJEALOUSY,
             Choice {
                 move_id: Choices::BURNINGJEALOUSY,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 70.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::FIRE,
@@ -2154,7 +1767,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
@@ -2199,6 +1812,7 @@ lazy_static! {
             Choices::CAPTIVATE,
             Choice {
                 move_id: Choices::CAPTIVATE,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 move_type: PokemonType::NORMAL,
                 flags: Flags {
                     protect: true,
@@ -2206,7 +1820,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -2234,7 +1848,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 side_condition: Some(SideCondition {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     condition: PokemonSideCondition::Spikes,
                 }),
                 ..Default::default()
@@ -2317,7 +1931,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: -2,
                         defense: 0,
@@ -2330,49 +1944,26 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::CHATTER,
-                Choice {
-                    move_id: Choices::CHATTER,
-                    base_power: 65.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FLYING,
-                    flags: Flags {
-                                protect: true,
-                        sound: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 100.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
-                    }]),
+        moves.insert(
+            Choices::CHATTER,
+            Choice {
+                move_id: Choices::CHATTER,
+                base_power: 65.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::FLYING,
+                flags: Flags {
+                            protect: true,
+                    sound: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::CHATTER,
-                Choice {
-                    move_id: Choices::CHATTER,
-                    base_power: 65.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FLYING,
-                    flags: Flags {
-                                protect: true,
-                        sound: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 100.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 100.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::CHILLINGWATER,
             Choice {
@@ -2386,7 +1977,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: -1,
                         defense: 0,
@@ -2403,6 +1994,7 @@ lazy_static! {
             Choices::CHILLYRECEPTION,
             Choice {
                 move_id: Choices::CHILLYRECEPTION,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::ICE,
                 flags: Flags {
                     pivot: true,
@@ -2463,53 +2055,31 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::CLAMP,
-                Choice {
-                    move_id: Choices::CLAMP,
-                    accuracy: 75.0,
-                    base_power: 35.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
-                    }),
+        moves.insert(
+            Choices::CLAMP,
+            Choice {
+                move_id: Choices::CLAMP,
+                accuracy: 85.0,
+                base_power: 35.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::WATER,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::CLAMP,
-                Choice {
-                    move_id: Choices::CLAMP,
-                    accuracy: 85.0,
-                    base_power: 35.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                volatile_status: Some(VolatileStatus {
+                    target: MoveTarget::Target,
+                    volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::CLANGINGSCALES,
             Choice {
                 move_id: Choices::CLANGINGSCALES,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 110.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::DRAGON,
@@ -2589,6 +2159,7 @@ lazy_static! {
             Choices::COACHING,
             Choice {
                 move_id: Choices::COACHING,
+                move_choice_target: MoveChoiceTarget::Ally,
                 target: MoveTarget::User,
                 move_type: PokemonType::FIGHTING,
                 flags: Flags {
@@ -2659,7 +2230,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
@@ -2707,7 +2278,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -2731,7 +2302,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::CONFUSION,
                 }),
                 ..Default::default()
@@ -2750,41 +2321,12 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
                 }]),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::CONSTRICT,
-                Choice {
-                    move_id: Choices::CONSTRICT,
-                    base_power: 10.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 33.2,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: -1,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        } else {
             moves.insert(
             Choices::CONSTRICT,
             Choice {
@@ -2799,7 +2341,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -2812,7 +2354,6 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        }
         moves.insert(
             Choices::CONVERSION,
             Choice {
@@ -2852,6 +2393,7 @@ lazy_static! {
             Choices::COREENFORCER,
             Choice {
                 move_id: Choices::COREENFORCER,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 100.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::DRAGON,
@@ -2866,6 +2408,7 @@ lazy_static! {
             Choices::CORROSIVEGAS,
             Choice {
                 move_id: Choices::CORROSIVEGAS,
+                move_choice_target: MoveChoiceTarget::AllOther,
                 move_type: PokemonType::POISON,
                 flags: Flags {
                     protect: true,
@@ -2921,60 +2464,32 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::COTTONSPORE,
-                Choice {
-                    move_id: Choices::COTTONSPORE,
-                    accuracy: 85.0,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                            powder: true,
-                        protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    boost: Some(Boost {
-                        target: MoveTarget::Opponent,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: -2,
-                            accuracy: 0,
-                        },
-                    }),
+        moves.insert(
+            Choices::COTTONSPORE,
+            Choice {
+                move_id: Choices::COTTONSPORE,
+                move_choice_target: MoveChoiceTarget::AllFoes,
+                move_type: PokemonType::GRASS,
+                flags: Flags {
+                        powder: true,
+                    protect: true,
+                    reflectable: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::COTTONSPORE,
-                Choice {
-                    move_id: Choices::COTTONSPORE,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                            powder: true,
-                        protect: true,
-                        reflectable: true,
-                        ..Default::default()
+                boost: Some(Boost {
+                    target: MoveTarget::Target,
+                    boosts: StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: 0,
+                        speed: -2,
+                        accuracy: 0,
                     },
-                    boost: Some(Boost {
-                        target: MoveTarget::Opponent,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: -2,
-                            accuracy: 0,
-                        },
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::COUNTER,
             Choice {
@@ -2994,6 +2509,7 @@ lazy_static! {
             Choices::COURTCHANGE,
             Choice {
                 move_id: Choices::COURTCHANGE,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::NORMAL,
                 flags: Flags {
                     ..Default::default()
@@ -3001,74 +2517,37 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::COVET,
-                Choice {
-                    move_id: Choices::COVET,
-                    base_power: 40.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::COVET,
+            Choice {
+                move_id: Choices::COVET,
+                base_power: 60.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::COVET,
-                Choice {
-                    move_id: Choices::COVET,
-                    base_power: 60.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+                ..Default::default()
+            },
+        );
+        moves.insert(
+            Choices::CRABHAMMER,
+            Choice {
+                move_id: Choices::CRABHAMMER,
+                accuracy: 90.0,
+                base_power: 100.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::WATER,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        }
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::CRABHAMMER,
-                Choice {
-                    move_id: Choices::CRABHAMMER,
-                    accuracy: 85.0,
-                    base_power: 90.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::CRABHAMMER,
-                Choice {
-                    move_id: Choices::CRABHAMMER,
-                    accuracy: 90.0,
-                    base_power: 100.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::CRAFTYSHIELD,
             Choice {
@@ -3117,72 +2596,40 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::POISON),
                 }]),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") {
-            moves.insert(
-                Choices::CRUNCH,
-                Choice {
-                    move_id: Choices::CRUNCH,
-                    base_power: 80.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                        bite: true,
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 20.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: -1,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
+        moves.insert(
+            Choices::CRUNCH,
+            Choice {
+                move_id: Choices::CRUNCH,
+                base_power: 80.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::DARK,
+                flags: Flags {
+                    bite: true,
+                    contact: true,
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        }
-        else {
-            moves.insert(
-                Choices::CRUNCH,
-                Choice {
-                    move_id: Choices::CRUNCH,
-                    base_power: 80.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                        bite: true,
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 20.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: -1,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 20.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: 0,
+                        defense: -1,
+                        special_attack: 0,
+                        special_defense: 0,
+                        speed: 0,
+                        accuracy: 0,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::CRUSHCLAW,
             Choice {
@@ -3198,7 +2645,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 50.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: -1,
@@ -3297,55 +2744,36 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") || cfg!(feature = "gen6") {
-            moves.insert(
-                Choices::DARKVOID,
-                Choice {
-                    move_id: Choices::DARKVOID,
-                    accuracy: 80.0,
-                    status: Some(Status {
-                        target: MoveTarget::Opponent,
-                        status: PokemonStatus::SLEEP,
-                    }),
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::DARKVOID,
+            Choice {
+                move_id: Choices::DARKVOID,
+                move_choice_target: MoveChoiceTarget::AllFoes,
+                accuracy: 50.0,
+                status: Some(Status {
+                    target: MoveTarget::Target,
+                    status: PokemonStatus::SLEEP,
+                }),
+                move_type: PokemonType::DARK,
+                flags: Flags {
+                        protect: true,
+                    reflectable: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::DARKVOID,
-                Choice {
-                    move_id: Choices::DARKVOID,
-                    accuracy: 50.0,
-                    status: Some(Status {
-                        target: MoveTarget::Opponent,
-                        status: PokemonStatus::SLEEP,
-                    }),
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::DAZZLINGGLEAM,
             Choice {
                 move_id: Choices::DAZZLINGGLEAM,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 80.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::FAIRY,
@@ -3365,7 +2793,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 2,
                         defense: 0,
@@ -3439,7 +2867,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -3485,116 +2913,50 @@ lazy_static! {
                 ..Default::default()
             },
         );
-
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") || cfg!(feature = "gen6") {
-            moves.insert(
-                Choices::DIAMONDSTORM,
-                Choice {
-                    move_id: Choices::DIAMONDSTORM,
-                    accuracy: 95.0,
-                    base_power: 100.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::ROCK,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 50.0,
-                        target: MoveTarget::User,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 1,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::DIAMONDSTORM,
-                Choice {
-                    move_id: Choices::DIAMONDSTORM,
-                    accuracy: 95.0,
-                    base_power: 100.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::ROCK,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 50.0,
-                        target: MoveTarget::User,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 2,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::DIG,
-                Choice {
-                    move_id: Choices::DIG,
-                    base_power: 100.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GROUND,
-                    flags: Flags {
-                        charge: true,
-                        contact: true,
+        moves.insert(
+            Choices::DIAMONDSTORM,
+            Choice {
+                move_id: Choices::DIAMONDSTORM,
+                move_choice_target: MoveChoiceTarget::AllFoes,
+                accuracy: 95.0,
+                base_power: 100.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::ROCK,
+                flags: Flags {
                         protect: true,
-                        ..Default::default()
-                    },
                     ..Default::default()
                 },
-            );
-        } else if cfg!(feature = "gen2") || cfg!(feature = "gen3") {
-            moves.insert(
-                Choices::DIG,
-                Choice {
-                    move_id: Choices::DIG,
-                    base_power: 60.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GROUND,
-                    flags: Flags {
-                        charge: true,
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
+                secondaries: Some(vec![Secondary {
+                    chance: 50.0,
+                    target: MoveTarget::User,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: 0,
+                        defense: 2,
+                        special_attack: 0,
+                        special_defense: 0,
+                        speed: 0,
+                        accuracy: 0,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
+        moves.insert(
+            Choices::DIG,
+            Choice {
+                move_id: Choices::DIG,
+                base_power: 80.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::GROUND,
+                flags: Flags {
+                    charge: true,
+                    contact: true,
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::DIG,
-                Choice {
-                    move_id: Choices::DIG,
-                    base_power: 80.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GROUND,
-                    flags: Flags {
-                        charge: true,
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::DIRECLAW,
             Choice {
@@ -3610,48 +2972,28 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::DISABLE,
-                Choice {
-                    move_id: Choices::DISABLE,
-                    accuracy: 80.0,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::DISABLE,
-                    }),
+        moves.insert(
+            Choices::DISABLE,
+            Choice {
+                move_id: Choices::DISABLE,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                        protect: true,
+                    reflectable: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::DISABLE,
-                Choice {
-                    move_id: Choices::DISABLE,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::DISABLE,
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                volatile_status: Some(VolatileStatus {
+                    target: MoveTarget::Target,
+                    volatile_status: PokemonVolatileStatus::DISABLE,
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::DISARMINGVOICE,
             Choice {
                 move_id: Choices::DISARMINGVOICE,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 40.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::FAIRY,
@@ -3667,6 +3009,7 @@ lazy_static! {
             Choices::DISCHARGE,
             Choice {
                 move_id: Choices::DISCHARGE,
+                move_choice_target: MoveChoiceTarget::AllOther,
                 base_power: 80.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::ELECTRIC,
@@ -3676,87 +3019,49 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") {
-            moves.insert(
-                Choices::DIVE,
-                Choice {
-                    move_id: Choices::DIVE,
-                    base_power: 60.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                        charge: true,
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::DIVE,
+            Choice {
+                move_id: Choices::DIVE,
+                base_power: 80.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::WATER,
+                flags: Flags {
+                    charge: true,
+                    contact: true,
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::DIVE,
-                Choice {
-                    move_id: Choices::DIVE,
-                    base_power: 80.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                        charge: true,
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
+                ..Default::default()
+            },
+        );
+        moves.insert(
+            Choices::DIZZYPUNCH,
+            Choice {
+                move_id: Choices::DIZZYPUNCH,
+                base_power: 70.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                    contact: true,
+                    protect: true,
+                    punch: true,
                     ..Default::default()
                 },
-            );
-        }
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::DIZZYPUNCH,
-                Choice {
-                    move_id: Choices::DIZZYPUNCH,
-                    base_power: 70.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        punch: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::DIZZYPUNCH,
-                Choice {
-                    move_id: Choices::DIZZYPUNCH,
-                    base_power: 70.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        punch: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 20.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 20.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::DOODLE,
             Choice {
@@ -3768,71 +3073,35 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::DOOMDESIRE,
-                Choice {
-                    move_id: Choices::DOOMDESIRE,
-                    accuracy: 85.0,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::STEEL,
-                    flags: Flags {
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::DOOMDESIRE,
+            Choice {
+                move_id: Choices::DOOMDESIRE,
+                base_power: 140.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::STEEL,
+                flags: Flags {
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::DOOMDESIRE,
-                Choice {
-                    move_id: Choices::DOOMDESIRE,
-                    base_power: 140.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::STEEL,
-                    flags: Flags {
-                        ..Default::default()
-                    },
+                ..Default::default()
+            },
+        );
+        moves.insert(
+            Choices::DOUBLEEDGE,
+            Choice {
+                move_id: Choices::DOUBLEEDGE,
+                base_power: 120.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                    contact: true,
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        }
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::DOUBLEEDGE,
-                Choice {
-                    move_id: Choices::DOUBLEEDGE,
-                    base_power: 100.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    recoil: Some(0.33),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::DOUBLEEDGE,
-                Choice {
-                    move_id: Choices::DOUBLEEDGE,
-                    base_power: 120.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    recoil: Some(0.33),
-                    ..Default::default()
-                },
-            );
-        }
+                recoil: Some(0.33),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::DOUBLEHIT,
             Choice {
@@ -3864,7 +3133,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -3939,61 +3208,32 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::DRACOMETEOR,
-                Choice {
-                    move_id: Choices::DRACOMETEOR,
-                    accuracy: 90.0,
-                    base_power: 140.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::DRAGON,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    boost: Some(Boost {
-                        target: MoveTarget::User,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: -2,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        },
-                    }),
+        moves.insert(
+            Choices::DRACOMETEOR,
+            Choice {
+                move_id: Choices::DRACOMETEOR,
+                accuracy: 90.0,
+                base_power: 130.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::DRAGON,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::DRACOMETEOR,
-                Choice {
-                    move_id: Choices::DRACOMETEOR,
-                    accuracy: 90.0,
-                    base_power: 130.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::DRAGON,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
+                boost: Some(Boost {
+                    target: MoveTarget::User,
+                    boosts: StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: -2,
+                        special_defense: 0,
+                        speed: 0,
+                        accuracy: 0,
                     },
-                    boost: Some(Boost {
-                        target: MoveTarget::User,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: -2,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        },
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::DRAGONASCENT,
             Choice {
@@ -4033,7 +3273,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
@@ -4043,6 +3283,7 @@ lazy_static! {
             Choices::DRAGONCHEER,
             Choice {
                 move_id: Choices::DRAGONCHEER,
+                move_choice_target: MoveChoiceTarget::Ally,
                 base_power: 60.0,
                 category: MoveCategory::Status,
                 move_type: PokemonType::DRAGON,
@@ -4109,6 +3350,7 @@ lazy_static! {
             Choices::DRAGONENERGY,
             Choice {
                 move_id: Choices::DRAGONENERGY,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 150.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::DRAGON,
@@ -4134,39 +3376,21 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::DRAGONPULSE,
-                Choice {
-                    move_id: Choices::DRAGONPULSE,
-                    base_power: 90.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::DRAGON,
-                    flags: Flags {
-                                protect: true,
-                        pulse: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::DRAGONPULSE,
+            Choice {
+                move_id: Choices::DRAGONPULSE,
+                base_power: 85.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::DRAGON,
+                flags: Flags {
+                            protect: true,
+                    pulse: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::DRAGONPULSE,
-                Choice {
-                    move_id: Choices::DRAGONPULSE,
-                    base_power: 85.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::DRAGON,
-                    flags: Flags {
-                                protect: true,
-                        pulse: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::DRAGONRAGE,
             Choice {
@@ -4195,7 +3419,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -4236,45 +3460,24 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::DRAINPUNCH,
-                Choice {
-                    move_id: Choices::DRAINPUNCH,
-                    base_power: 60.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                        heal: true,
-                            protect: true,
-                        punch: true,
-                        ..Default::default()
-                    },
-                    drain: Some(0.5),
+        moves.insert(
+            Choices::DRAINPUNCH,
+            Choice {
+                move_id: Choices::DRAINPUNCH,
+                base_power: 75.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::FIGHTING,
+                flags: Flags {
+                    contact: true,
+                    heal: true,
+                        protect: true,
+                    punch: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::DRAINPUNCH,
-                Choice {
-                    move_id: Choices::DRAINPUNCH,
-                    base_power: 75.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                        heal: true,
-                            protect: true,
-                        punch: true,
-                        ..Default::default()
-                    },
-                    drain: Some(0.5),
-                    ..Default::default()
-                },
-            );
-        }
+                drain: Some(0.5),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::DREAMEATER,
             Choice {
@@ -4335,7 +3538,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -4410,7 +3613,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
                 }]),
                 ..Default::default()
@@ -4429,7 +3632,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -4446,6 +3649,7 @@ lazy_static! {
             Choices::EARTHQUAKE,
             Choice {
                 move_id: Choices::EARTHQUAKE,
+                move_choice_target: MoveChoiceTarget::AllOther,
                 base_power: 100.0,
                 category: MoveCategory::Physical,
                 move_type: PokemonType::GROUND,
@@ -4482,7 +3686,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -4530,6 +3734,7 @@ lazy_static! {
             Choices::ELECTRICTERRAIN,
             Choice {
                 move_id: Choices::ELECTRICTERRAIN,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::ELECTRIC,
                 flags: Flags {
                     ..Default::default()
@@ -4547,7 +3752,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::ELECTRIFY,
                 }),
                 ..Default::default()
@@ -4601,6 +3806,7 @@ lazy_static! {
             Choices::ELECTROWEB,
             Choice {
                 move_id: Choices::ELECTROWEB,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 accuracy: 95.0,
                 base_power: 55.0,
                 category: MoveCategory::Special,
@@ -4611,7 +3817,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -4635,7 +3841,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::EMBARGO,
                 }),
                 ..Default::default()
@@ -4654,7 +3860,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -4671,7 +3877,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::ENCORE,
                 }),
                 ..Default::default()
@@ -4708,63 +3914,33 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::ENERGYBALL,
-                Choice {
-                    move_id: Choices::ENERGYBALL,
-                    base_power: 80.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                        bullet: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: -1,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
+        moves.insert(
+            Choices::ENERGYBALL,
+            Choice {
+                move_id: Choices::ENERGYBALL,
+                base_power: 90.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::GRASS,
+                flags: Flags {
+                    bullet: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::ENERGYBALL,
-                Choice {
-                    move_id: Choices::ENERGYBALL,
-                    base_power: 90.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                        bullet: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: -1,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 10.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: -1,
+                        speed: 0,
+                        accuracy: 0,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::ENTRAINMENT,
             Choice {
@@ -4782,6 +3958,7 @@ lazy_static! {
             Choices::ERUPTION,
             Choice {
                 move_id: Choices::ERUPTION,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 150.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::FIRE,
@@ -4848,37 +4025,21 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::EXPLOSION,
-                Choice {
-                    move_id: Choices::EXPLOSION,
-                    base_power: 170.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::EXPLOSION,
+            Choice {
+                move_id: Choices::EXPLOSION,
+                move_choice_target: MoveChoiceTarget::AllOther,
+                base_power: 250.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::EXPLOSION,
-                Choice {
-                    move_id: Choices::EXPLOSION,
-                    base_power: 250.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::EXTRASENSORY,
             Choice {
@@ -4892,7 +4053,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -4933,6 +4094,7 @@ lazy_static! {
             Choices::FAIRYLOCK,
             Choice {
                 move_id: Choices::FAIRYLOCK,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::FAIRY,
                 flags: Flags {
                     ..Default::default()
@@ -4970,7 +4132,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -4987,7 +4149,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -5041,7 +4203,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: -2,
                         defense: 0,
@@ -5054,37 +4216,20 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::FEINT,
-                Choice {
-                    move_id: Choices::FEINT,
-                    base_power: 50.0,
-                    category: MoveCategory::Physical,
-                    priority: 2,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            ..Default::default()
-                    },
-                    ..Default::default()
+        moves.insert(
+            Choices::FEINT,
+            Choice {
+                move_id: Choices::FEINT,
+                base_power: 30.0,
+                category: MoveCategory::Physical,
+                priority: 2,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                        ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::FEINT,
-                Choice {
-                    move_id: Choices::FEINT,
-                    base_power: 30.0,
-                    category: MoveCategory::Physical,
-                    priority: 2,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::FEINTATTACK,
             Choice {
@@ -5100,39 +4245,21 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") || cfg!(feature = "gen6") {
-            moves.insert(
-                Choices::FELLSTINGER,
-                Choice {
-                    move_id: Choices::FELLSTINGER,
-                    base_power: 30.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::BUG,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::FELLSTINGER,
+            Choice {
+                move_id: Choices::FELLSTINGER,
+                base_power: 50.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::BUG,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::FELLSTINGER,
-                Choice {
-                    move_id: Choices::FELLSTINGER,
-                    base_power: 50.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::BUG,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::FICKLEBEAM,
             Choice {
@@ -5189,6 +4316,7 @@ lazy_static! {
             Choices::FIERYWRATH,
             Choice {
                 move_id: Choices::FIERYWRATH,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 90.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::DARK,
@@ -5198,7 +4326,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -5229,71 +4357,26 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::FIREBLAST,
-                Choice {
-                    move_id: Choices::FIREBLAST,
-                    accuracy: 85.0,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::BURN),
-                    }]),
+        moves.insert(
+            Choices::FIREBLAST,
+            Choice {
+                move_id: Choices::FIREBLAST,
+                accuracy: 85.0,
+                base_power: 110.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::FIRE,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        }
-        else if cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::FIREBLAST,
-                Choice {
-                    move_id: Choices::FIREBLAST,
-                    accuracy: 85.0,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::BURN),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::FIREBLAST,
-                Choice {
-                    move_id: Choices::FIREBLAST,
-                    accuracy: 85.0,
-                    base_power: 110.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::BURN),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 10.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Status(PokemonStatus::BURN),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::FIREFANG,
             Choice {
@@ -5311,12 +4394,12 @@ lazy_static! {
                 secondaries: Some(vec![
                     Secondary {
                         chance: 10.0,
-                        target: MoveTarget::Opponent,
+                        target: MoveTarget::Target,
                         effect: Effect::Status(PokemonStatus::BURN),
                     },
                     Secondary {
                         chance: 10.0,
-                        target: MoveTarget::Opponent,
+                        target: MoveTarget::Target,
                         effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                     },
                 ]),
@@ -5337,7 +4420,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: -1,
@@ -5350,37 +4433,20 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::FIREPLEDGE,
-                Choice {
-                    move_id: Choices::FIREPLEDGE,
-                    base_power: 50.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                                protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::FIREPLEDGE,
+            Choice {
+                move_id: Choices::FIREPLEDGE,
+                base_power: 80.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::FIRE,
+                flags: Flags {
+                            protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::FIREPLEDGE,
-                Choice {
-                    move_id: Choices::FIREPLEDGE,
-                    base_power: 80.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                                protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::FIREPUNCH,
             Choice {
@@ -5396,53 +4462,31 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::FIRESPIN,
-                Choice {
-                    move_id: Choices::FIRESPIN,
-                    accuracy: 70.0,
-                    base_power: 15.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
-                    }),
+        moves.insert(
+            Choices::FIRESPIN,
+            Choice {
+                move_id: Choices::FIRESPIN,
+                accuracy: 85.0,
+                base_power: 35.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::FIRE,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::FIRESPIN,
-                Choice {
-                    move_id: Choices::FIRESPIN,
-                    accuracy: 85.0,
-                    base_power: 35.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                volatile_status: Some(VolatileStatus {
+                    target: MoveTarget::Target,
+                    volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::FIRSTIMPRESSION,
             Choice {
@@ -5544,47 +4588,25 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::FLAMETHROWER,
-                Choice {
-                    move_id: Choices::FLAMETHROWER,
-                    base_power: 95.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::BURN),
-                    }]),
+        moves.insert(
+            Choices::FLAMETHROWER,
+            Choice {
+                move_id: Choices::FLAMETHROWER,
+                base_power: 90.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::FIRE,
+                flags: Flags {
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::FLAMETHROWER,
-                Choice {
-                    move_id: Choices::FLAMETHROWER,
-                    base_power: 90.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::BURN),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 10.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Status(PokemonStatus::BURN),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::FLAMEWHEEL,
             Choice {
@@ -5599,7 +4621,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -5619,7 +4641,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 recoil: Some(0.33),
@@ -5637,7 +4659,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -5663,7 +4685,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -5687,7 +4709,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -5698,7 +4720,7 @@ lazy_static! {
                     },
                 }),
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::CONFUSION,
                 }),
                 ..Default::default()
@@ -5774,7 +4796,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -5798,6 +4820,7 @@ lazy_static! {
             Choices::FLOWERSHIELD,
             Choice {
                 move_id: Choices::FLOWERSHIELD,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::FAIRY,
                 flags: Flags {
                     ..Default::default()
@@ -5836,41 +4859,22 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") || cfg!(feature = "gen6") {
-            moves.insert(
-                Choices::FLYINGPRESS,
-                Choice {
-                    move_id: Choices::FLYINGPRESS,
-                    accuracy: 95.0,
-                    base_power: 80.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                                        protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::FLYINGPRESS,
+            Choice {
+                move_id: Choices::FLYINGPRESS,
+                accuracy: 95.0,
+                base_power: 100.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::FIGHTING,
+                flags: Flags {
+                    contact: true,
+                                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::FLYINGPRESS,
-                Choice {
-                    move_id: Choices::FLYINGPRESS,
-                    accuracy: 95.0,
-                    base_power: 100.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                                        protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::FOCUSBLAST,
             Choice {
@@ -5886,7 +4890,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -5963,7 +4967,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
@@ -5980,7 +4984,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::FORESIGHT,
                 }),
                 ..Default::default()
@@ -6027,7 +5031,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::FREEZE),
                 }]),
                 ..Default::default()
@@ -6048,7 +5052,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
@@ -6067,7 +5071,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::FREEZE),
                 }]),
                 ..Default::default()
@@ -6104,39 +5108,21 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::FROSTBREATH,
-                Choice {
-                    move_id: Choices::FROSTBREATH,
-                    accuracy: 90.0,
-                    base_power: 40.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ICE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::FROSTBREATH,
+            Choice {
+                move_id: Choices::FROSTBREATH,
+                accuracy: 90.0,
+                base_power: 60.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::ICE,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::FROSTBREATH,
-                Choice {
-                    move_id: Choices::FROSTBREATH,
-                    accuracy: 90.0,
-                    base_power: 60.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ICE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::FRUSTRATION,
             Choice {
@@ -6167,59 +5153,22 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::FURYCUTTER,
-                Choice {
-                    move_id: Choices::FURYCUTTER,
-                    accuracy: 95.0,
-                    base_power: 10.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::BUG,
-                    flags: Flags {
-                        contact: true,
+        moves.insert(
+            Choices::FURYCUTTER,
+            Choice {
+                move_id: Choices::FURYCUTTER,
+                accuracy: 95.0,
+                base_power: 40.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::BUG,
+                flags: Flags {
+                    contact: true,
                         protect: true,
-                        slicing: true,
-                        ..Default::default()
-                    },
                     ..Default::default()
                 },
-            );
-        } else if cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::FURYCUTTER,
-                Choice {
-                    move_id: Choices::FURYCUTTER,
-                    accuracy: 95.0,
-                    base_power: 20.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::BUG,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::FURYCUTTER,
-                Choice {
-                    move_id: Choices::FURYCUTTER,
-                    accuracy: 95.0,
-                    base_power: 40.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::BUG,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::FURYSWIPES,
             Choice {
@@ -6264,50 +5213,19 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::FUTURESIGHT,
-                Choice {
-                    accuracy: 90.0,
-                    move_id: Choices::FUTURESIGHT,
-                    base_power: 80.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::FUTURESIGHT,
+            Choice {
+                move_id: Choices::FUTURESIGHT,
+                base_power: 120.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::PSYCHIC,
+                flags: Flags {
                     ..Default::default()
                 },
-            );
-        } else if cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::FUTURESIGHT,
-                Choice {
-                    move_id: Choices::FUTURESIGHT,
-                    base_power: 100.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::FUTURESIGHT,
-                Choice {
-                    move_id: Choices::FUTURESIGHT,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::GASTROACID,
             Choice {
@@ -6319,7 +5237,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::GASTROACID,
                 }),
                 ..Default::default()
@@ -6377,41 +5295,22 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::GIGADRAIN,
-                Choice {
-                    move_id: Choices::GIGADRAIN,
-                    base_power: 60.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                        heal: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    drain: Some(0.5),
+        moves.insert(
+            Choices::GIGADRAIN,
+            Choice {
+                move_id: Choices::GIGADRAIN,
+                base_power: 75.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::GRASS,
+                flags: Flags {
+                    heal: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::GIGADRAIN,
-                Choice {
-                    move_id: Choices::GIGADRAIN,
-                    base_power: 75.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                        heal: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    drain: Some(0.5),
-                    ..Default::default()
-                },
-            );
-        }
+                drain: Some(0.5),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::GIGAIMPACT,
             Choice {
@@ -6443,42 +5342,26 @@ lazy_static! {
                 ..Default::default()
             },
         );
-
-        if cfg!(feature = "gen9") {
-            moves.insert(
-                Choices::GLACIALLANCE,
-                Choice {
-                    move_id: Choices::GLACIALLANCE,
-                    base_power: 120.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::ICE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::GLACIALLANCE,
+            Choice {
+                move_id: Choices::GLACIALLANCE,
+                move_choice_target: MoveChoiceTarget::AllFoes,
+                base_power: 120.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::ICE,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::GLACIALLANCE,
-                Choice {
-                    move_id: Choices::GLACIALLANCE,
-                    base_power: 130.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::ICE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::GLACIATE,
             Choice {
                 move_id: Choices::GLACIATE,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 accuracy: 95.0,
                 base_power: 65.0,
                 category: MoveCategory::Special,
@@ -6489,7 +5372,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -6517,63 +5400,23 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::GLARE,
-                Choice {
-                    accuracy: 75.0,
-                    move_id: Choices::GLARE,
-                    status: Some(Status {
-                        target: MoveTarget::Opponent,
-                        status: PokemonStatus::PARALYZE,
-                    }),
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::GLARE,
+            Choice {
+                move_id: Choices::GLARE,
+                status: Some(Status {
+                    target: MoveTarget::Target,
+                    status: PokemonStatus::PARALYZE,
+                }),
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                        protect: true,
+                    reflectable: true,
                     ..Default::default()
                 },
-            );
-        } else if cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::GLARE,
-                Choice {
-                    accuracy: 90.0,
-                    move_id: Choices::GLARE,
-                    status: Some(Status {
-                        target: MoveTarget::Opponent,
-                        status: PokemonStatus::PARALYZE,
-                    }),
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::GLARE,
-                Choice {
-                    move_id: Choices::GLARE,
-                    status: Some(Status {
-                        target: MoveTarget::Opponent,
-                        status: PokemonStatus::PARALYZE,
-                    }),
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::GLITZYGLOW,
             Choice {
@@ -6603,44 +5446,27 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::GRASSPLEDGE,
-                Choice {
-                    move_id: Choices::GRASSPLEDGE,
-                    base_power: 50.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                                protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::GRASSPLEDGE,
+            Choice {
+                move_id: Choices::GRASSPLEDGE,
+                base_power: 80.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::GRASS,
+                flags: Flags {
+                            protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::GRASSPLEDGE,
-                Choice {
-                    move_id: Choices::GRASSPLEDGE,
-                    base_power: 80.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                                protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::GRASSWHISTLE,
             Choice {
                 move_id: Choices::GRASSWHISTLE,
                 accuracy: 55.0,
                 status: Some(Status {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     status: PokemonStatus::SLEEP,
                 }),
                 move_type: PokemonType::GRASS,
@@ -6653,44 +5479,26 @@ lazy_static! {
                 ..Default::default()
             },
         );
-
-        if cfg!(feature = "gen9") {
-            moves.insert(
-                Choices::GRASSYGLIDE,
-                Choice {
-                    move_id: Choices::GRASSYGLIDE,
-                    base_power: 55.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::GRASSYGLIDE,
+            Choice {
+                move_id: Choices::GRASSYGLIDE,
+                base_power: 55.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::GRASS,
+                flags: Flags {
+                    contact: true,
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::GRASSYGLIDE,
-                Choice {
-                    move_id: Choices::GRASSYGLIDE,
-                    base_power: 70.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::GRASSYTERRAIN,
             Choice {
                 move_id: Choices::GRASSYTERRAIN,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::GRASS,
                 flags: Flags {
                     ..Default::default()
@@ -6711,7 +5519,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: -1,
@@ -6728,6 +5536,7 @@ lazy_static! {
             Choices::GRAVITY,
             Choice {
                 move_id: Choices::GRAVITY,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::PSYCHIC,
                 flags: Flags {
                     ..Default::default()
@@ -6739,6 +5548,7 @@ lazy_static! {
             Choices::GROWL,
             Choice {
                 move_id: Choices::GROWL,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 move_type: PokemonType::NORMAL,
                 flags: Flags {
                     protect: true,
@@ -6747,7 +5557,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: -1,
                         defense: 0,
@@ -6760,55 +5570,29 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::GROWTH,
-                Choice {
-                    move_id: Choices::GROWTH,
-                    target: MoveTarget::User,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        ..Default::default()
-                    },
-                    boost: Some(Boost {
-                        target: MoveTarget::User,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 1,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        },
-                    }),
+        moves.insert(
+            Choices::GROWTH,
+            Choice {
+                move_id: Choices::GROWTH,
+                target: MoveTarget::User,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::GROWTH,
-                Choice {
-                    move_id: Choices::GROWTH,
+                boost: Some(Boost {
                     target: MoveTarget::User,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        ..Default::default()
+                    boosts: StatBoosts {
+                        attack: 1,
+                        defense: 0,
+                        special_attack: 1,
+                        special_defense: 0,
+                        speed: 0,
+                        accuracy: 0,
                     },
-                    boost: Some(Boost {
-                        target: MoveTarget::User,
-                        boosts: StatBoosts {
-                            attack: 1,
-                            defense: 0,
-                            special_attack: 1,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        },
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::GRUDGE,
             Choice {
@@ -6864,82 +5648,41 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::GUNKSHOT,
-                Choice {
-                    move_id: Choices::GUNKSHOT,
-                    accuracy: 70.0,
-                    base_power: 120.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::POISON),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::GUNKSHOT,
-                Choice {
-                    move_id: Choices::GUNKSHOT,
-                    accuracy: 80.0,
-                    base_power: 120.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::POISON),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::GUST,
-                Choice {
-                    move_id: Choices::GUST,
-                    base_power: 40.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
+        moves.insert(
+            Choices::GUNKSHOT,
+            Choice {
+                move_id: Choices::GUNKSHOT,
+                accuracy: 80.0,
+                base_power: 120.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::POISON,
+                flags: Flags {
                         protect: true,
-                        wind: true,
-                        ..Default::default()
-                    },
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::GUST,
-                Choice {
-                    move_id: Choices::GUST,
-                    base_power: 40.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FLYING,
-                    flags: Flags {
-                        protect: true,
-                        wind: true,
-                        ..Default::default()
-                    },
+                secondaries: Some(vec![Secondary {
+                    chance: 30.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Status(PokemonStatus::POISON),
+                }]),
+                ..Default::default()
+            },
+        );
+        moves.insert(
+            Choices::GUST,
+            Choice {
+                move_id: Choices::GUST,
+                base_power: 40.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::FLYING,
+                flags: Flags {
+                    protect: true,
+                    wind: true,
                     ..Default::default()
                 },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::GYROBALL,
             Choice {
@@ -6959,6 +5702,7 @@ lazy_static! {
             Choices::HAIL,
             Choice {
                 move_id: Choices::HAIL,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::ICE,
                 flags: Flags {
                     ..Default::default()
@@ -7047,6 +5791,7 @@ lazy_static! {
             Choices::HAZE,
             Choice {
                 move_id: Choices::HAZE,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::ICE,
                 flags: Flags {
                     ..Default::default()
@@ -7068,7 +5813,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -7151,6 +5896,7 @@ lazy_static! {
             Choices::HEALBLOCK,
             Choice {
                 move_id: Choices::HEALBLOCK,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 move_type: PokemonType::PSYCHIC,
                 flags: Flags {
                     protect: true,
@@ -7158,7 +5904,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::HEALBLOCK,
                 }),
                 ..Default::default()
@@ -7231,7 +5977,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -7263,51 +6009,28 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::HEATWAVE,
-                Choice {
-                    move_id: Choices::HEATWAVE,
-                    accuracy: 90.0,
-                    base_power: 100.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                        protect: true,
-                        wind: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::BURN),
-                    }]),
+        moves.insert(
+            Choices::HEATWAVE,
+            Choice {
+                move_id: Choices::HEATWAVE,
+                move_choice_target: MoveChoiceTarget::AllFoes,
+                accuracy: 90.0,
+                base_power: 95.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::FIRE,
+                flags: Flags {
+                    protect: true,
+                    wind: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::HEATWAVE,
-                Choice {
-                    move_id: Choices::HEATWAVE,
-                    accuracy: 90.0,
-                    base_power: 95.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                        protect: true,
-                        wind: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::BURN),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 10.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Status(PokemonStatus::BURN),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::HEAVYSLAM,
             Choice {
@@ -7326,6 +6049,7 @@ lazy_static! {
             Choices::HELPINGHAND,
             Choice {
                 move_id: Choices::HELPINGHAND,
+                move_choice_target: MoveChoiceTarget::Ally,
                 priority: 5,
                 target: MoveTarget::User,
                 move_type: PokemonType::NORMAL,
@@ -7333,43 +6057,26 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::User,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::HELPINGHAND,
                 }),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::HEX,
-                Choice {
-                    move_id: Choices::HEX,
-                    base_power: 50.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::GHOST,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::HEX,
+            Choice {
+                move_id: Choices::HEX,
+                base_power: 65.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::GHOST,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::HEX,
-                Choice {
-                    move_id: Choices::HEX,
-                    base_power: 65.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::GHOST,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::HIDDENPOWER,
             Choice {
@@ -7848,62 +6555,23 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") {
-            moves.insert(
-                Choices::HIGHJUMPKICK,
-                Choice {
-                    move_id: Choices::HIGHJUMPKICK,
-                    accuracy: 90.0,
-                    base_power: 85.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    crash: Some(0.5),
+        moves.insert(
+            Choices::HIGHJUMPKICK,
+            Choice {
+                move_id: Choices::HIGHJUMPKICK,
+                accuracy: 90.0,
+                base_power: 130.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::FIGHTING,
+                flags: Flags {
+                    contact: true,
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        }
-        else if cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::HIGHJUMPKICK,
-                Choice {
-                    move_id: Choices::HIGHJUMPKICK,
-                    accuracy: 90.0,
-                    base_power: 100.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    crash: Some(0.5),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::HIGHJUMPKICK,
-                Choice {
-                    move_id: Choices::HIGHJUMPKICK,
-                    accuracy: 90.0,
-                    base_power: 130.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    crash: Some(0.5),
-                    ..Default::default()
-                },
-            );
-        }
+                crash: Some(0.5),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::HOLDBACK,
             Choice {
@@ -7923,6 +6591,7 @@ lazy_static! {
             Choices::HOLDHANDS,
             Choice {
                 move_id: Choices::HOLDHANDS,
+                move_choice_target: MoveChoiceTarget::Ally,
                 target: MoveTarget::User,
                 move_type: PokemonType::NORMAL,
                 flags: Flags {
@@ -8025,51 +6694,27 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::HURRICANE,
-                Choice {
-                    move_id: Choices::HURRICANE,
-                    accuracy: 70.0,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FLYING,
-                    flags: Flags {
-                        protect: true,
-                        wind: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
-                    }]),
+        moves.insert(
+            Choices::HURRICANE,
+            Choice {
+                move_id: Choices::HURRICANE,
+                accuracy: 70.0,
+                base_power: 110.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::FLYING,
+                flags: Flags {
+                    protect: true,
+                    wind: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::HURRICANE,
-                Choice {
-                    move_id: Choices::HURRICANE,
-                    accuracy: 70.0,
-                    base_power: 110.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FLYING,
-                    flags: Flags {
-                        protect: true,
-                        wind: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 30.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::HYDROCANNON,
             Choice {
@@ -8086,39 +6731,21 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::HYDROPUMP,
-                Choice {
-                    move_id: Choices::HYDROPUMP,
-                    accuracy: 80.0,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::HYDROPUMP,
+            Choice {
+                move_id: Choices::HYDROPUMP,
+                accuracy: 80.0,
+                base_power: 110.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::WATER,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::HYDROPUMP,
-                Choice {
-                    move_id: Choices::HYDROPUMP,
-                    accuracy: 80.0,
-                    base_power: 110.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::HYDROSTEAM,
             Choice {
@@ -8179,7 +6806,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -8226,6 +6853,7 @@ lazy_static! {
             Choices::HYPERVOICE,
             Choice {
                 move_id: Choices::HYPERVOICE,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 90.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::NORMAL,
@@ -8243,7 +6871,7 @@ lazy_static! {
                 move_id: Choices::HYPNOSIS,
                 accuracy: 60.0,
                 status: Some(Status {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     status: PokemonStatus::SLEEP,
                 }),
                 move_type: PokemonType::PSYCHIC,
@@ -8272,47 +6900,25 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::ICEBEAM,
-                Choice {
-                    move_id: Choices::ICEBEAM,
-                    base_power: 95.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ICE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::FREEZE),
-                    }]),
+        moves.insert(
+            Choices::ICEBEAM,
+            Choice {
+                move_id: Choices::ICEBEAM,
+                base_power: 90.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::ICE,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::ICEBEAM,
-                Choice {
-                    move_id: Choices::ICEBEAM,
-                    base_power: 90.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ICE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::FREEZE),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 10.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Status(PokemonStatus::FREEZE),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::ICEBURN,
             Choice {
@@ -8328,7 +6934,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -8351,12 +6957,12 @@ lazy_static! {
                 secondaries: Some(vec![
                     Secondary {
                         chance: 10.0,
-                        target: MoveTarget::Opponent,
+                        target: MoveTarget::Target,
                         effect: Effect::Status(PokemonStatus::FREEZE),
                     },
                     Secondary {
                         chance: 10.0,
-                        target: MoveTarget::Opponent,
+                        target: MoveTarget::Target,
                         effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                     },
                 ]),
@@ -8406,7 +7012,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::FREEZE),
                 }]),
                 ..Default::default()
@@ -8456,47 +7062,31 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::ICICLESPEAR,
-                Choice {
-                    move_id: Choices::ICICLESPEAR,
-                    base_power: 10.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::ICE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::ICICLESPEAR,
+            Choice {
+                move_id: Choices::ICICLESPEAR,
+                base_power: 25.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::ICE,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::ICICLESPEAR,
-                Choice {
-                    move_id: Choices::ICICLESPEAR,
-                    base_power: 25.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::ICE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::ICYWIND,
             Choice {
                 move_id: Choices::ICYWIND,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 accuracy: 95.0,
                 base_power: 55.0,
                 category: MoveCategory::Special,
@@ -8508,7 +7098,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -8537,37 +7127,21 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::INCINERATE,
-                Choice {
-                    move_id: Choices::INCINERATE,
-                    base_power: 30.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::INCINERATE,
+            Choice {
+                move_id: Choices::INCINERATE,
+                move_choice_target: MoveChoiceTarget::AllFoes,
+                base_power: 60.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::FIRE,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::INCINERATE,
-                Choice {
-                    move_id: Choices::INCINERATE,
-                    base_power: 60.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::INFERNALPARADE,
             Choice {
@@ -8581,7 +7155,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -8601,7 +7175,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -8620,7 +7194,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
                 }),
                 ..Default::default()
@@ -8658,6 +7232,7 @@ lazy_static! {
             Choices::IONDELUGE,
             Choice {
                 move_id: Choices::IONDELUGE,
+                move_choice_target: MoveChoiceTarget::Field,
                 priority: 1,
                 move_type: PokemonType::ELECTRIC,
                 flags: Flags {
@@ -8703,7 +7278,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -8724,7 +7299,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: -1,
@@ -8798,62 +7373,23 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") {
-            moves.insert(
-                Choices::JUMPKICK,
-                Choice {
-                    move_id: Choices::JUMPKICK,
-                    accuracy: 95.0,
-                    base_power: 70.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                                protect: true,
-                        ..Default::default()
-                    },
-                    crash: Some(0.5),
+        moves.insert(
+            Choices::JUMPKICK,
+            Choice {
+                move_id: Choices::JUMPKICK,
+                accuracy: 95.0,
+                base_power: 100.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::FIGHTING,
+                flags: Flags {
+                    contact: true,
+                            protect: true,
                     ..Default::default()
                 },
-            );
-        }
-        else if cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::JUMPKICK,
-                Choice {
-                    move_id: Choices::JUMPKICK,
-                    accuracy: 95.0,
-                    base_power: 85.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                                protect: true,
-                        ..Default::default()
-                    },
-                    crash: Some(0.5),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::JUMPKICK,
-                Choice {
-                    move_id: Choices::JUMPKICK,
-                    accuracy: 95.0,
-                    base_power: 100.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                                protect: true,
-                        ..Default::default()
-                    },
-                    crash: Some(0.5),
-                    ..Default::default()
-                },
-            );
-        }
+                crash: Some(0.5),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::JUNGLEHEALING,
             Choice {
@@ -8871,39 +7407,21 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::KARATECHOP,
-                Choice {
-                    move_id: Choices::KARATECHOP,
-                    base_power: 50.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::KARATECHOP,
+            Choice {
+                move_id: Choices::KARATECHOP,
+                base_power: 50.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::FIGHTING,
+                flags: Flags {
+                    contact: true,
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::KARATECHOP,
-                Choice {
-                    move_id: Choices::KARATECHOP,
-                    base_power: 50.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::KINESIS,
             Choice {
@@ -8916,7 +7434,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -8946,39 +7464,21 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::KNOCKOFF,
-                Choice {
-                    move_id: Choices::KNOCKOFF,
-                    base_power: 20.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::KNOCKOFF,
+            Choice {
+                move_id: Choices::KNOCKOFF,
+                base_power: 65.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::DARK,
+                flags: Flags {
+                    contact: true,
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::KNOCKOFF,
-                Choice {
-                    move_id: Choices::KNOCKOFF,
-                    base_power: 65.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::KOWTOWCLEAVE,
             Choice {
@@ -8999,6 +7499,7 @@ lazy_static! {
             Choices::LANDSWRATH,
             Choice {
                 move_id: Choices::LANDSWRATH,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 90.0,
                 category: MoveCategory::Physical,
                 move_type: PokemonType::GROUND,
@@ -9040,39 +7541,21 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::LASTRESORT,
-                Choice {
-                    move_id: Choices::LASTRESORT,
-                    base_power: 130.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::LASTRESORT,
+            Choice {
+                move_id: Choices::LASTRESORT,
+                base_power: 140.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::LASTRESORT,
-                Choice {
-                    move_id: Choices::LASTRESORT,
-                    base_power: 140.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::LASTRESPECTS,
             Choice {
@@ -9091,6 +7574,7 @@ lazy_static! {
             Choices::LAVAPLUME,
             Choice {
                 move_id: Choices::LAVAPLUME,
+                move_choice_target: MoveChoiceTarget::AllOther,
                 base_power: 80.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::FIRE,
@@ -9100,7 +7584,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -9120,96 +7604,48 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") {
-            moves.insert(
-                Choices::LEAFBLADE,
-                Choice {
-                    move_id: Choices::LEAFBLADE,
-                    base_power: 70.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                        contact: true,
+        moves.insert(
+            Choices::LEAFBLADE,
+            Choice {
+                move_id: Choices::LEAFBLADE,
+                base_power: 90.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::GRASS,
+                flags: Flags {
+                    contact: true,
+                    protect: true,
+                    slicing: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        );
+        moves.insert(
+            Choices::LEAFSTORM,
+            Choice {
+                move_id: Choices::LEAFSTORM,
+                accuracy: 90.0,
+                base_power: 130.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::GRASS,
+                flags: Flags {
                         protect: true,
-                        slicing: true,
-                        ..Default::default()
-                    },
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::LEAFBLADE,
-                Choice {
-                    move_id: Choices::LEAFBLADE,
-                    base_power: 90.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        slicing: true,
-                        ..Default::default()
+                boost: Some(Boost {
+                    target: MoveTarget::User,
+                    boosts: StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: -2,
+                        special_defense: 0,
+                        speed: 0,
+                        accuracy: 0,
                     },
-                    ..Default::default()
-                },
-            );
-        }
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::LEAFSTORM,
-                Choice {
-                    move_id: Choices::LEAFSTORM,
-                    accuracy: 90.0,
-                    base_power: 140.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    boost: Some(Boost {
-                        target: MoveTarget::User,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: -2,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        },
-                    }),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::LEAFSTORM,
-                Choice {
-                    move_id: Choices::LEAFSTORM,
-                    accuracy: 90.0,
-                    base_power: 130.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    boost: Some(Boost {
-                        target: MoveTarget::User,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: -2,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        },
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::LEAFTORNADO,
             Choice {
@@ -9224,7 +7660,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 50.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -9237,43 +7673,23 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") || cfg!(feature = "gen6") {
-            moves.insert(
-                Choices::LEECHLIFE,
-                Choice {
-                    move_id: Choices::LEECHLIFE,
-                    base_power: 20.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::BUG,
-                    flags: Flags {
-                        contact: true,
-                        heal: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    drain: Some(0.5),
+        moves.insert(
+            Choices::LEECHLIFE,
+            Choice {
+                move_id: Choices::LEECHLIFE,
+                base_power: 80.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::BUG,
+                flags: Flags {
+                    contact: true,
+                    heal: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::LEECHLIFE,
-                Choice {
-                    move_id: Choices::LEECHLIFE,
-                    base_power: 80.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::BUG,
-                    flags: Flags {
-                        contact: true,
-                        heal: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    drain: Some(0.5),
-                    ..Default::default()
-                },
-            );
-        }
+                drain: Some(0.5),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::LEECHSEED,
             Choice {
@@ -9287,7 +7703,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::LEECHSEED,
                 }),
                 ..Default::default()
@@ -9297,6 +7713,7 @@ lazy_static! {
             Choices::LEER,
             Choice {
                 move_id: Choices::LEER,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 move_type: PokemonType::NORMAL,
                 flags: Flags {
                     protect: true,
@@ -9304,7 +7721,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: -1,
@@ -9317,49 +7734,26 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::LICK,
-                Choice {
-                    move_id: Choices::LICK,
-                    base_power: 20.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GHOST,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::PARALYZE),
-                    }]),
+        moves.insert(
+            Choices::LICK,
+            Choice {
+                move_id: Choices::LICK,
+                base_power: 30.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::GHOST,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::LICK,
-                Choice {
-                    move_id: Choices::LICK,
-                    base_power: 30.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GHOST,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::PARALYZE),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 30.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Status(PokemonStatus::PARALYZE),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::LIFEDEW,
             Choice {
@@ -9393,41 +7787,22 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::LIGHTSCREEN,
-                Choice {
-                    move_id: Choices::LIGHTSCREEN,
-                    target: MoveTarget::User,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::User,
-                        volatile_status: PokemonVolatileStatus::LIGHTSCREEN,
-                    }),
+        moves.insert(
+            Choices::LIGHTSCREEN,
+            Choice {
+                move_id: Choices::LIGHTSCREEN,
+                target: MoveTarget::User,
+                move_type: PokemonType::PSYCHIC,
+                flags: Flags {
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::LIGHTSCREEN,
-                Choice {
-                    move_id: Choices::LIGHTSCREEN,
+                side_condition: Some(SideCondition {
                     target: MoveTarget::User,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        ..Default::default()
-                    },
-                    side_condition: Some(SideCondition {
-                        target: MoveTarget::User,
-                        condition: PokemonSideCondition::LightScreen,
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                    condition: PokemonSideCondition::LightScreen,
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::LIQUIDATION,
             Choice {
@@ -9442,7 +7817,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: -1,
@@ -9473,7 +7848,7 @@ lazy_static! {
                 move_id: Choices::LOVELYKISS,
                 accuracy: 75.0,
                 status: Some(Status {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     status: PokemonStatus::SLEEP,
                 }),
                 move_type: PokemonType::NORMAL,
@@ -9485,101 +7860,47 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") {
-            moves.insert(
-                Choices::LOWKICK,
-                Choice {
-                    move_id: Choices::LOWKICK,
-                    category: MoveCategory::Physical,
-                    base_power: 50.0,
-                    accuracy: 90.0,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
+        moves.insert(
+            Choices::LOWKICK,
+            Choice {
+                move_id: Choices::LOWKICK,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::FIGHTING,
+                flags: Flags {
+                    contact: true,
+                    protect: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        );
+        moves.insert(
+            Choices::LOWSWEEP,
+            Choice {
+                move_id: Choices::LOWSWEEP,
+                base_power: 65.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::FIGHTING,
+                flags: Flags {
+                    contact: true,
                         protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
-                    }]),
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::LOWKICK,
-                Choice {
-                    move_id: Choices::LOWKICK,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::LOWSWEEP,
-                Choice {
-                    move_id: Choices::LOWSWEEP,
-                    base_power: 60.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 100.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: -1,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::LOWSWEEP,
-                Choice {
-                    move_id: Choices::LOWSWEEP,
-                    base_power: 65.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 100.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: -1,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 100.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: 0,
+                        speed: -1,
+                        accuracy: 0,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::LUCKYCHANT,
             Choice {
@@ -9609,7 +7930,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -9666,7 +7987,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: -1,
                         defense: 0,
@@ -9679,8 +8000,7 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen9") {
-            moves.insert(
+        moves.insert(
             Choices::LUSTERPURGE,
             Choice {
                 move_id: Choices::LUSTERPURGE,
@@ -9693,7 +8013,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 50.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -9706,34 +8026,6 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        } else {
-            moves.insert(
-                Choices::LUSTERPURGE,
-                Choice {
-                    move_id: Choices::LUSTERPURGE,
-                    base_power: 70.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 50.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: -1,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
         moves.insert(
             Choices::MACHPUNCH,
             Choice {
@@ -9778,7 +8070,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
                 }]),
                 ..Default::default()
@@ -9819,6 +8111,7 @@ lazy_static! {
             Choices::MAGICROOM,
             Choice {
                 move_id: Choices::MAGICROOM,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::PSYCHIC,
                 flags: Flags {
                     ..Default::default()
@@ -9826,67 +8119,25 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::MAGMASTORM,
-                Choice {
-                    move_id: Choices::MAGMASTORM,
-                    accuracy: 70.0,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
-                    }),
+        moves.insert(
+            Choices::MAGMASTORM,
+            Choice {
+                move_id: Choices::MAGMASTORM,
+                accuracy: 75.0,
+                base_power: 100.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::FIRE,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else if cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::MAGMASTORM,
-                Choice {
-                    move_id: Choices::MAGMASTORM,
-                    accuracy: 75.0,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
-                    }),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::MAGMASTORM,
-                Choice {
-                    move_id: Choices::MAGMASTORM,
-                    accuracy: 75.0,
-                    base_power: 100.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                volatile_status: Some(VolatileStatus {
+                    target: MoveTarget::Target,
+                    volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::MAGNETBOMB,
             Choice {
@@ -9934,6 +8185,7 @@ lazy_static! {
             Choices::MAGNITUDE,
             Choice {
                 move_id: Choices::MAGNITUDE,
+                move_choice_target: MoveChoiceTarget::AllOther,
                 category: MoveCategory::Physical,
                 move_type: PokemonType::GROUND,
                 flags: Flags {
@@ -9947,6 +8199,7 @@ lazy_static! {
             Choices::MAKEITRAIN,
             Choice {
                 move_id: Choices::MAKEITRAIN,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 120.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::STEEL,
@@ -9981,7 +8234,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 50.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::TOXIC),
                 }]),
                 ..Default::default()
@@ -10007,6 +8260,7 @@ lazy_static! {
             Choices::MATCHAGOTCHA,
             Choice {
                 move_id: Choices::MATCHAGOTCHA,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 accuracy: 90.0,
                 base_power: 80.0,
                 category: MoveCategory::Special,
@@ -10018,7 +8272,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 drain: Some(0.5),
@@ -10147,7 +8401,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: -2,
                         defense: 0,
@@ -10218,7 +8472,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -10262,67 +8516,35 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::METEORMASH,
-                Choice {
-                    move_id: Choices::METEORMASH,
-                    accuracy: 85.0,
-                    base_power: 100.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::STEEL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        punch: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 20.0,
-                        target: MoveTarget::User,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 1,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
+        moves.insert(
+            Choices::METEORMASH,
+            Choice {
+                move_id: Choices::METEORMASH,
+                accuracy: 90.0,
+                base_power: 90.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::STEEL,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
+                    punch: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::METEORMASH,
-                Choice {
-                    move_id: Choices::METEORMASH,
-                    accuracy: 90.0,
-                    base_power: 90.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::STEEL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        punch: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 20.0,
-                        target: MoveTarget::User,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 1,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 20.0,
+                    target: MoveTarget::User,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: 1,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: 0,
+                        speed: 0,
+                        accuracy: 0,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::METRONOME,
             Choice {
@@ -10383,6 +8605,7 @@ lazy_static! {
             Choices::MINDBLOWN,
             Choice {
                 move_id: Choices::MINDBLOWN,
+                move_choice_target: MoveChoiceTarget::AllOther,
                 base_power: 150.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::FIRE,
@@ -10443,7 +8666,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::MIRACLEEYE,
                 }),
                 ..Default::default()
@@ -10488,7 +8711,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -10517,67 +8740,38 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen9") {
-            moves.insert(
-                Choices::MISTBALL,
-                Choice {
-                    move_id: Choices::MISTBALL,
-                    base_power: 95.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        bullet: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 50.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: -1,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
+        moves.insert(
+            Choices::MISTBALL,
+            Choice {
+                move_id: Choices::MISTBALL,
+                base_power: 95.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::PSYCHIC,
+                flags: Flags {
+                    bullet: true,
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::MISTBALL,
-                Choice {
-                    move_id: Choices::MISTBALL,
-                    base_power: 70.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        bullet: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 50.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: -1,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 50.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: -1,
+                        special_defense: 0,
+                        speed: 0,
+                        accuracy: 0,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::MISTYEXPLOSION,
             Choice {
                 move_id: Choices::MISTYEXPLOSION,
+                move_choice_target: MoveChoiceTarget::AllOther,
                 base_power: 100.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::FAIRY,
@@ -10592,6 +8786,7 @@ lazy_static! {
             Choices::MISTYTERRAIN,
             Choice {
                 move_id: Choices::MISTYTERRAIN,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::FAIRY,
                 flags: Flags {
                     ..Default::default()
@@ -10612,7 +8807,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -10677,6 +8872,7 @@ lazy_static! {
             Choices::MORTALSPIN,
             Choice {
                 move_id: Choices::MORTALSPIN,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 30.0,
                 category: MoveCategory::Physical,
                 move_type: PokemonType::POISON,
@@ -10687,7 +8883,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::POISON),
                 }]),
                 ..Default::default()
@@ -10707,7 +8903,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -10728,7 +8924,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -10741,63 +8937,34 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::MUDDYWATER,
-                Choice {
-                    move_id: Choices::MUDDYWATER,
-                    accuracy: 85.0,
-                    base_power: 95.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                                protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: -1,
-                        }),
-                    }]),
+        moves.insert(
+            Choices::MUDDYWATER,
+            Choice {
+                move_id: Choices::MUDDYWATER,
+                move_choice_target: MoveChoiceTarget::AllFoes,
+                accuracy: 85.0,
+                base_power: 90.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::WATER,
+                flags: Flags {
+                            protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::MUDDYWATER,
-                Choice {
-                    move_id: Choices::MUDDYWATER,
-                    accuracy: 85.0,
-                    base_power: 90.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                                protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: -1,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 30.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: 0,
+                        speed: 0,
+                        accuracy: -1,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::MUDSHOT,
             Choice {
@@ -10812,7 +8979,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -10838,7 +9005,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -10855,6 +9022,7 @@ lazy_static! {
             Choices::MUDSPORT,
             Choice {
                 move_id: Choices::MUDSPORT,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::GROUND,
                 flags: Flags {
                     ..Default::default()
@@ -10862,94 +9030,47 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen9") || cfg!(feature = "gen8") {
-            moves.insert(
-                Choices::MULTIATTACK,
-                Choice {
-                    move_id: Choices::MULTIATTACK,
-                    base_power: 120.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::MULTIATTACK,
+            Choice {
+                move_id: Choices::MULTIATTACK,
+                base_power: 120.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::MULTIATTACK,
-                Choice {
-                    move_id: Choices::MULTIATTACK,
-                    base_power: 90.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+                ..Default::default()
+            },
+        );
+        moves.insert(
+            Choices::MYSTICALFIRE,
+            Choice {
+                move_id: Choices::MYSTICALFIRE,
+                base_power: 75.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::FIRE,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        }
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") || cfg!(feature = "gen6") {
-            moves.insert(
-                Choices::MYSTICALFIRE,
-                Choice {
-                    move_id: Choices::MYSTICALFIRE,
-                    base_power: 65.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 100.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: -1,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::MYSTICALFIRE,
-                Choice {
-                    move_id: Choices::MYSTICALFIRE,
-                    base_power: 75.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 100.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: -1,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 100.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: -1,
+                        special_defense: 0,
+                        speed: 0,
+                        accuracy: 0,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::MYSTICALPOWER,
             Choice {
@@ -11052,7 +9173,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -11072,7 +9193,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 40.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -11095,7 +9216,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::NIGHTMARE,
                 }),
                 ..Default::default()
@@ -11142,7 +9263,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: -1,
                         defense: 0,
@@ -11207,7 +9328,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::POISON),
                 }]),
                 ..Default::default()
@@ -11227,7 +9348,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
@@ -11281,7 +9402,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 50.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -11304,7 +9425,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::OCTOLOCK,
                 }),
                 ..Default::default()
@@ -11321,7 +9442,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::FORESIGHT,
                 }),
                 ..Default::default()
@@ -11371,6 +9492,7 @@ lazy_static! {
             Choices::ORIGINPULSE,
             Choice {
                 move_id: Choices::ORIGINPULSE,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 accuracy: 85.0,
                 base_power: 110.0,
                 category: MoveCategory::Special,
@@ -11383,51 +9505,30 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") {
-            moves.insert(
-                Choices::OUTRAGE,
-                Choice {
-                    move_id: Choices::OUTRAGE,
-                    base_power: 90.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::DRAGON,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::User,
-                        volatile_status: PokemonVolatileStatus::LOCKEDMOVE,
-                    }),
+        moves.insert(
+            Choices::OUTRAGE,
+            Choice {
+                move_id: Choices::OUTRAGE,
+                base_power: 120.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::DRAGON,
+                flags: Flags {
+                    contact: true,
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::OUTRAGE,
-                Choice {
-                    move_id: Choices::OUTRAGE,
-                    base_power: 120.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::DRAGON,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::User,
-                        volatile_status: PokemonVolatileStatus::LOCKEDMOVE,
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                volatile_status: Some(VolatileStatus {
+                    target: MoveTarget::User,
+                    volatile_status: PokemonVolatileStatus::LOCKEDMOVE,
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::OVERDRIVE,
             Choice {
                 move_id: Choices::OVERDRIVE,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 80.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::ELECTRIC,
@@ -11439,20 +9540,19 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::OVERHEAT,
-                Choice {
-                    move_id: Choices::OVERHEAT,
-                    accuracy: 90.0,
-                    base_power: 140.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    boost: Some(Boost {
+        moves.insert(
+            Choices::OVERHEAT,
+            Choice {
+                move_id: Choices::OVERHEAT,
+                accuracy: 90.0,
+                base_power: 130.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::FIRE,
+                flags: Flags {
+                        protect: true,
+                    ..Default::default()
+                },
+                boost: Some(Boost {
                     target: MoveTarget::User,
                     boosts: StatBoosts {
                         attack: 0,
@@ -11463,37 +9563,9 @@ lazy_static! {
                         accuracy: 0,
                     },
                 }),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::OVERHEAT,
-                Choice {
-                    move_id: Choices::OVERHEAT,
-                    accuracy: 90.0,
-                    base_power: 130.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    boost: Some(Boost {
-                        target: MoveTarget::User,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: -2,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        },
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::PAINSPLIT,
             Choice {
@@ -11519,7 +9591,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: -1,
                         defense: 0,
@@ -11532,41 +9604,23 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") || cfg!(feature = "gen6") {
-            moves.insert(
-                Choices::PARABOLICCHARGE,
-                Choice {
-                    move_id: Choices::PARABOLICCHARGE,
-                    base_power: 50.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ELECTRIC,
-                    flags: Flags {
-                        heal: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    drain: Some(0.5),
+        moves.insert(
+            Choices::PARABOLICCHARGE,
+            Choice {
+                move_id: Choices::PARABOLICCHARGE,
+                move_choice_target: MoveChoiceTarget::AllOther,
+                base_power: 65.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::ELECTRIC,
+                flags: Flags {
+                    heal: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::PARABOLICCHARGE,
-                Choice {
-                    move_id: Choices::PARABOLICCHARGE,
-                    base_power: 65.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ELECTRIC,
-                    flags: Flags {
-                        heal: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    drain: Some(0.5),
-                    ..Default::default()
-                },
-            );
-        }
+                drain: Some(0.5),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::PARTINGSHOT,
             Choice {
@@ -11580,7 +9634,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: -1,
                         defense: 0,
@@ -11641,6 +9695,7 @@ lazy_static! {
             Choices::PERISHSONG,
             Choice {
                 move_id: Choices::PERISHSONG,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::NORMAL,
                 flags: Flags {
                     sound: true,
@@ -11653,6 +9708,7 @@ lazy_static! {
             Choices::PETALBLIZZARD,
             Choice {
                 move_id: Choices::PETALBLIZZARD,
+                move_choice_target: MoveChoiceTarget::AllOther,
                 base_power: 90.0,
                 category: MoveCategory::Physical,
                 move_type: PokemonType::GRASS,
@@ -11664,68 +9720,25 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") {
-            moves.insert(
-                Choices::PETALDANCE,
-                Choice {
-                    move_id: Choices::PETALDANCE,
-                    base_power: 70.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::User,
-                        volatile_status: PokemonVolatileStatus::LOCKEDMOVE,
-                    }),
+        moves.insert(
+            Choices::PETALDANCE,
+            Choice {
+                move_id: Choices::PETALDANCE,
+                base_power: 120.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::GRASS,
+                flags: Flags {
+                    contact: true,
+                            protect: true,
                     ..Default::default()
                 },
-            );
-        }
-        if cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::PETALDANCE,
-                Choice {
-                    move_id: Choices::PETALDANCE,
-                    base_power: 90.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::User,
-                        volatile_status: PokemonVolatileStatus::LOCKEDMOVE,
-                    }),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::PETALDANCE,
-                Choice {
-                    move_id: Choices::PETALDANCE,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                        contact: true,
-                                protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::User,
-                        volatile_status: PokemonVolatileStatus::LOCKEDMOVE,
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                volatile_status: Some(VolatileStatus {
+                    target: MoveTarget::User,
+                    volatile_status: PokemonVolatileStatus::LOCKEDMOVE,
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::PHANTOMFORCE,
             Choice {
@@ -11768,39 +9781,21 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::PINMISSILE,
-                Choice {
-                    move_id: Choices::PINMISSILE,
-                    accuracy: 85.0,
-                    base_power: 14.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::BUG,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::PINMISSILE,
+            Choice {
+                move_id: Choices::PINMISSILE,
+                accuracy: 95.0,
+                base_power: 25.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::BUG,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::PINMISSILE,
-                Choice {
-                    move_id: Choices::PINMISSILE,
-                    accuracy: 95.0,
-                    base_power: 25.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::BUG,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::PLASMAFISTS,
             Choice {
@@ -11827,7 +9822,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: -1,
                         defense: 0,
@@ -11855,7 +9850,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: -1,
                         defense: 0,
@@ -11883,109 +9878,46 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::POISONFANG,
-                Choice {
-                    move_id: Choices::POISONFANG,
-                    base_power: 50.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                        bite: true,
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::TOXIC),
-                    }]),
+        moves.insert(
+            Choices::POISONFANG,
+            Choice {
+                move_id: Choices::POISONFANG,
+                base_power: 50.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::POISON,
+                flags: Flags {
+                    bite: true,
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::POISONFANG,
-                Choice {
-                    move_id: Choices::POISONFANG,
-                    base_power: 50.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                        bite: true,
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 50.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::TOXIC),
-                    }]),
+                secondaries: Some(vec![Secondary {
+                    chance: 50.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Status(PokemonStatus::TOXIC),
+                }]),
+                ..Default::default()
+            },
+        );
+        moves.insert(
+            Choices::POISONGAS,
+            Choice {
+                move_id: Choices::POISONGAS,
+                move_choice_target: MoveChoiceTarget::AllFoes,
+                accuracy: 90.0,
+                status: Some(Status {
+                    target: MoveTarget::Target,
+                    status: PokemonStatus::POISON,
+                }),
+                move_type: PokemonType::POISON,
+                flags: Flags {
+                        protect: true,
+                    reflectable: true,
                     ..Default::default()
                 },
-            );
-        }
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::POISONGAS,
-                Choice {
-                    move_id: Choices::POISONGAS,
-                    accuracy: 55.0,
-                    status: Some(Status {
-                        target: MoveTarget::Opponent,
-                        status: PokemonStatus::POISON,
-                    }),
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        } else if cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::POISONGAS,
-                Choice {
-                    move_id: Choices::POISONGAS,
-                    accuracy: 80.0,
-                    status: Some(Status {
-                        target: MoveTarget::Opponent,
-                        status: PokemonStatus::POISON,
-                    }),
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::POISONGAS,
-                Choice {
-                    move_id: Choices::POISONGAS,
-                    accuracy: 90.0,
-                    status: Some(Status {
-                        target: MoveTarget::Opponent,
-                        status: PokemonStatus::POISON,
-                    }),
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::POISONJAB,
             Choice {
@@ -12000,7 +9932,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::POISON),
                 }]),
                 ..Default::default()
@@ -12012,7 +9944,7 @@ lazy_static! {
                 move_id: Choices::POISONPOWDER,
                 accuracy: 75.0,
                 status: Some(Status {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     status: PokemonStatus::POISON,
                 }),
                 move_type: PokemonType::POISON,
@@ -12025,47 +9957,25 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::POISONSTING,
-                Choice {
-                    move_id: Choices::POISONSTING,
-                    base_power: 15.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 20.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::POISON),
-                    }]),
+        moves.insert(
+            Choices::POISONSTING,
+            Choice {
+                move_id: Choices::POISONSTING,
+                base_power: 15.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::POISON,
+                flags: Flags {
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::POISONSTING,
-                Choice {
-                    move_id: Choices::POISONSTING,
-                    base_power: 15.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::POISON),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 30.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Status(PokemonStatus::POISON),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::POISONTAIL,
             Choice {
@@ -12080,7 +9990,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::POISON),
                 }]),
                 ..Default::default()
@@ -12147,7 +10057,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -12188,7 +10098,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::POWDER,
                 }),
                 ..Default::default()
@@ -12198,6 +10108,7 @@ lazy_static! {
             Choices::POWDERSNOW,
             Choice {
                 move_id: Choices::POWDERSNOW,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 40.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::ICE,
@@ -12207,43 +10118,26 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::FREEZE),
                 }]),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::POWERGEM,
-                Choice {
-                    move_id: Choices::POWERGEM,
-                    base_power: 70.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ROCK,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::POWERGEM,
+            Choice {
+                move_id: Choices::POWERGEM,
+                base_power: 80.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::ROCK,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::POWERGEM,
-                Choice {
-                    move_id: Choices::POWERGEM,
-                    base_power: 80.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ROCK,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::POWERSHIFT,
             Choice {
@@ -12363,6 +10257,7 @@ lazy_static! {
             Choices::PRECIPICEBLADES,
             Choice {
                 move_id: Choices::PRECIPICEBLADES,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 accuracy: 85.0,
                 base_power: 120.0,
                 category: MoveCategory::Physical,
@@ -12433,7 +10328,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
                 }]),
                 ..Default::default()
@@ -12455,61 +10350,32 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::PSYCHIC,
-                Choice {
-                    move_id: Choices::PSYCHIC,
-                    base_power: 90.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 33.2,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: -1,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
+        moves.insert(
+            Choices::PSYCHIC,
+            Choice {
+                move_id: Choices::PSYCHIC,
+                base_power: 90.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::PSYCHIC,
+                flags: Flags {
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::PSYCHIC,
-                Choice {
-                    move_id: Choices::PSYCHIC,
-                    base_power: 90.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: -1,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 10.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: -1,
+                        speed: 0,
+                        accuracy: 0,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::PSYCHICFANGS,
             Choice {
@@ -12539,7 +10405,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::HEALBLOCK,
                 }),
                 ..Default::default()
@@ -12549,6 +10415,7 @@ lazy_static! {
             Choices::PSYCHICTERRAIN,
             Choice {
                 move_id: Choices::PSYCHICTERRAIN,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::PSYCHIC,
                 flags: Flags {
                     ..Default::default()
@@ -12597,34 +10464,18 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::PSYCHOSHIFT,
-                Choice {
-                    accuracy: 90.0,
-                    move_id: Choices::PSYCHOSHIFT,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::PSYCHOSHIFT,
+            Choice {
+                move_id: Choices::PSYCHOSHIFT,
+                move_type: PokemonType::PSYCHIC,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::PSYCHOSHIFT,
-                Choice {
-                    move_id: Choices::PSYCHOSHIFT,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::PSYCHUP,
             Choice {
@@ -12692,36 +10543,19 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::PSYWAVE,
-                Choice {
-                    accuracy: 90.0,
-                    move_id: Choices::PSYWAVE,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::PSYWAVE,
+            Choice {
+                move_id: Choices::PSYWAVE,
+                category: MoveCategory::Special,
+                move_type: PokemonType::PSYCHIC,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::PSYWAVE,
-                Choice {
-                    move_id: Choices::PSYWAVE,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::PUNISHMENT,
             Choice {
@@ -12780,7 +10614,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -12940,6 +10774,7 @@ lazy_static! {
             Choices::RAINDANCE,
             Choice {
                 move_id: Choices::RAINDANCE,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::WATER,
                 flags: Flags {
                     ..Default::default()
@@ -12947,57 +10782,38 @@ lazy_static! {
                 ..Default::default()
             },
         );
-
-        if cfg!(feature = "gen9") || cfg!(feature = "gen8") {
-            moves.insert(
-                Choices::RAPIDSPIN,
-                Choice {
-                    move_id: Choices::RAPIDSPIN,
-                    base_power: 50.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 100.0,
-                        target: MoveTarget::User,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 1,
-                            accuracy: 0,
-                        }),
-                    }]),
+        moves.insert(
+            Choices::RAPIDSPIN,
+            Choice {
+                move_id: Choices::RAPIDSPIN,
+                base_power: 50.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::RAPIDSPIN,
-                Choice {
-                    move_id: Choices::RAPIDSPIN,
-                    base_power: 20.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: None,
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 100.0,
+                    target: MoveTarget::User,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: 0,
+                        speed: 1,
+                        accuracy: 0,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::RAZORLEAF,
             Choice {
                 move_id: Choices::RAZORLEAF,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 accuracy: 95.0,
                 base_power: 55.0,
                 category: MoveCategory::Physical,
@@ -13026,7 +10842,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 50.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: -1,
@@ -13043,6 +10859,7 @@ lazy_static! {
             Choices::RAZORWIND,
             Choice {
                 move_id: Choices::RAZORWIND,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 80.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::NORMAL,
@@ -13095,41 +10912,22 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::REFLECT,
-                Choice {
-                    move_id: Choices::REFLECT,
+        moves.insert(
+            Choices::REFLECT,
+            Choice {
+                move_id: Choices::REFLECT,
+                target: MoveTarget::User,
+                move_type: PokemonType::PSYCHIC,
+                flags: Flags {
+                    ..Default::default()
+                },
+                side_condition: Some(SideCondition {
                     target: MoveTarget::User,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::User,
-                    volatile_status: PokemonVolatileStatus::REFLECT,
+                    condition: PokemonSideCondition::Reflect,
                 }),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::REFLECT,
-                Choice {
-                    move_id: Choices::REFLECT,
-                    target: MoveTarget::User,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        ..Default::default()
-                    },
-                    side_condition: Some(SideCondition {
-                        target: MoveTarget::User,
-                        condition: PokemonSideCondition::Reflect,
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::REFLECTTYPE,
             Choice {
@@ -13158,6 +10956,7 @@ lazy_static! {
             Choices::RELICSONG,
             Choice {
                 move_id: Choices::RELICSONG,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 75.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::NORMAL,
@@ -13168,7 +10967,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::SLEEP),
                 }]),
                 ..Default::default()
@@ -13336,41 +11135,22 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::ROCKBLAST,
-                Choice {
-                    move_id: Choices::ROCKBLAST,
-                    accuracy: 80.0,
-                    base_power: 25.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::ROCK,
-                    flags: Flags {
-                        bullet: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::ROCKBLAST,
+            Choice {
+                move_id: Choices::ROCKBLAST,
+                accuracy: 90.0,
+                base_power: 25.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::ROCK,
+                flags: Flags {
+                    bullet: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::ROCKBLAST,
-                Choice {
-                    move_id: Choices::ROCKBLAST,
-                    accuracy: 90.0,
-                    base_power: 25.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::ROCK,
-                    flags: Flags {
-                        bullet: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::ROCKCLIMB,
             Choice {
@@ -13386,7 +11166,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
                 }]),
                 ..Default::default()
@@ -13415,50 +11195,32 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::ROCKSLIDE,
-                Choice {
-                    move_id: Choices::ROCKSLIDE,
-                    accuracy: 90.0,
-                    base_power: 75.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::ROCK,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::ROCKSLIDE,
+            Choice {
+                move_id: Choices::ROCKSLIDE,
+                move_choice_target: MoveChoiceTarget::AllFoes,
+                accuracy: 90.0,
+                base_power: 75.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::ROCK,
+                flags: Flags {
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::ROCKSLIDE,
-                Choice {
-                    move_id: Choices::ROCKSLIDE,
-                    accuracy: 90.0,
-                    base_power: 75.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::ROCK,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") {
-            moves.insert(
+                secondaries: Some(vec![Secondary {
+                    chance: 30.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
+                }]),
+                ..Default::default()
+            },
+        );
+        moves.insert(
             Choices::ROCKSMASH,
             Choice {
                 move_id: Choices::ROCKSMASH,
-                base_power: 20.0,
+                base_power: 40.0,
                 category: MoveCategory::Physical,
                 move_type: PokemonType::FIGHTING,
                 flags: Flags {
@@ -13468,7 +11230,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 50.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: -1,
@@ -13481,125 +11243,48 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        } else {
-            moves.insert(
-                Choices::ROCKSMASH,
-                Choice {
-                    move_id: Choices::ROCKSMASH,
-                    base_power: 40.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
+        moves.insert(
+            Choices::ROCKTHROW,
+            Choice {
+                move_id: Choices::ROCKTHROW,
+                accuracy: 90.0,
+                base_power: 50.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::ROCK,
+                flags: Flags {
+                    protect: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        );
+        moves.insert(
+            Choices::ROCKTOMB,
+            Choice {
+                move_id: Choices::ROCKTOMB,
+                accuracy: 95.0,
+                base_power: 60.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::ROCK,
+                flags: Flags {
                         protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 50.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: -1,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
                     ..Default::default()
                 },
-            );
-        }
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::ROCKTHROW,
-                Choice {
-                    move_id: Choices::ROCKTHROW,
-                    accuracy: 65.0,
-                    base_power: 50.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::ROCK,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::ROCKTHROW,
-                Choice {
-                    move_id: Choices::ROCKTHROW,
-                    accuracy: 90.0,
-                    base_power: 50.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::ROCK,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::ROCKTOMB,
-                Choice {
-                    move_id: Choices::ROCKTOMB,
-                    accuracy: 80.0,
-                    base_power: 50.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::ROCK,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 100.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: -1,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::ROCKTOMB,
-                Choice {
-                    move_id: Choices::ROCKTOMB,
-                    accuracy: 95.0,
-                    base_power: 60.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::ROCK,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 100.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: -1,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 100.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: 0,
+                        speed: -1,
+                        accuracy: 0,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::ROCKWRECKER,
             Choice {
@@ -13643,7 +11328,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -13690,6 +11375,7 @@ lazy_static! {
             Choices::ROTOTILLER,
             Choice {
                 move_id: Choices::ROTOTILLER,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::GROUND,
                 flags: Flags {
                     ..Default::default()
@@ -13740,7 +11426,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 50.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -13790,67 +11476,41 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::SALTCURE,
                 }),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::SANDATTACK,
-                Choice {
-                    move_id: Choices::SANDATTACK,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    boost: Some(Boost {
-                        target: MoveTarget::Opponent,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: -1,
-                        },
-                    }),
+        moves.insert(
+            Choices::SANDATTACK,
+            Choice {
+                move_id: Choices::SANDATTACK,
+                move_type: PokemonType::GROUND,
+                flags: Flags {
+                    protect: true,
+                    reflectable: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::SANDATTACK,
-                Choice {
-                    move_id: Choices::SANDATTACK,
-                    move_type: PokemonType::GROUND,
-                    flags: Flags {
-                        protect: true,
-                        reflectable: true,
-                        ..Default::default()
+                boost: Some(Boost {
+                    target: MoveTarget::Target,
+                    boosts: StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: 0,
+                        speed: 0,
+                        accuracy: -1,
                     },
-                    boost: Some(Boost {
-                        target: MoveTarget::Opponent,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: -1,
-                        },
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::SANDSEARSTORM,
             Choice {
                 move_id: Choices::SANDSEARSTORM,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 accuracy: 80.0,
                 base_power: 100.0,
                 category: MoveCategory::Special,
@@ -13862,7 +11522,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -13872,6 +11532,7 @@ lazy_static! {
             Choices::SANDSTORM,
             Choice {
                 move_id: Choices::SANDSTORM,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::ROCK,
                 flags: Flags {
                     wind: true,
@@ -13880,47 +11541,25 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::SANDTOMB,
-                Choice {
-                    move_id: Choices::SANDTOMB,
-                    accuracy: 70.0,
-                    base_power: 15.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GROUND,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
-                    }),
+        moves.insert(
+            Choices::SANDTOMB,
+            Choice {
+                move_id: Choices::SANDTOMB,
+                accuracy: 85.0,
+                base_power: 35.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::GROUND,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::SANDTOMB,
-                Choice {
-                    move_id: Choices::SANDTOMB,
-                    accuracy: 85.0,
-                    base_power: 35.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GROUND,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                volatile_status: Some(VolatileStatus {
+                    target: MoveTarget::Target,
+                    volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::SAPPYSEED,
             Choice {
@@ -13950,7 +11589,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -13982,58 +11621,30 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::SCARYFACE,
-                Choice {
-                    move_id: Choices::SCARYFACE,
-                    accuracy: 90.0,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    boost: Some(Boost {
-                        target: MoveTarget::Opponent,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: -2,
-                            accuracy: 0,
-                        },
-                    }),
+        moves.insert(
+            Choices::SCARYFACE,
+            Choice {
+                move_id: Choices::SCARYFACE,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                        protect: true,
+                    reflectable: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::SCARYFACE,
-                Choice {
-                    move_id: Choices::SCARYFACE,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
+                boost: Some(Boost {
+                    target: MoveTarget::Target,
+                    boosts: StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: 0,
+                        speed: -2,
+                        accuracy: 0,
                     },
-                    boost: Some(Boost {
-                        target: MoveTarget::Opponent,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: -2,
-                            accuracy: 0,
-                        },
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::SCORCHINGSANDS,
             Choice {
@@ -14047,7 +11658,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -14081,7 +11692,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: -2,
@@ -14098,6 +11709,7 @@ lazy_static! {
             Choices::SEARINGSHOT,
             Choice {
                 move_id: Choices::SEARINGSHOT,
+                move_choice_target: MoveChoiceTarget::AllOther,
                 base_power: 100.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::FIRE,
@@ -14108,7 +11720,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -14127,7 +11739,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
@@ -14177,7 +11789,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 40.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -14204,37 +11816,21 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::SELFDESTRUCT,
-                Choice {
-                    move_id: Choices::SELFDESTRUCT,
-                    base_power: 130.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::SELFDESTRUCT,
+            Choice {
+                move_id: Choices::SELFDESTRUCT,
+                move_choice_target: MoveChoiceTarget::AllOther,
+                base_power: 200.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::SELFDESTRUCT,
-                Choice {
-                    move_id: Choices::SELFDESTRUCT,
-                    base_power: 200.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::SHADOWBALL,
             Choice {
@@ -14249,7 +11845,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -14275,7 +11871,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: -1,
@@ -14365,7 +11961,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 50.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: -1,
@@ -14442,7 +12038,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::POISON),
                 }]),
                 ..Default::default()
@@ -14475,6 +12071,7 @@ lazy_static! {
             Choices::SHELLTRAP,
             Choice {
                 move_id: Choices::SHELLTRAP,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 150.0,
                 category: MoveCategory::Special,
                 priority: -3,
@@ -14576,7 +12173,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
                 }]),
                 ..Default::default()
@@ -14644,7 +12241,7 @@ lazy_static! {
                 move_id: Choices::SING,
                 accuracy: 55.0,
                 status: Some(Status {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     status: PokemonStatus::SLEEP,
                 }),
                 move_type: PokemonType::NORMAL,
@@ -14671,7 +12268,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -14715,7 +12312,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -14728,41 +12325,22 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::SKULLBASH,
-                Choice {
-                    move_id: Choices::SKULLBASH,
-                    base_power: 100.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        charge: true,
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::SKULLBASH,
+            Choice {
+                move_id: Choices::SKULLBASH,
+                base_power: 130.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                    charge: true,
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::SKULLBASH,
-                Choice {
-                    move_id: Choices::SKULLBASH,
-                    base_power: 130.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        charge: true,
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::SKYATTACK,
             Choice {
@@ -14778,7 +12356,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -14872,7 +12450,7 @@ lazy_static! {
                 move_id: Choices::SLEEPPOWDER,
                 accuracy: 75.0,
                 status: Some(Status {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     status: PokemonStatus::SLEEP,
                 }),
                 move_type: PokemonType::GRASS,
@@ -14897,47 +12475,25 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::SLUDGE,
-                Choice {
-                    move_id: Choices::SLUDGE,
-                    base_power: 65.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 40.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::POISON),
-                    }]),
+        moves.insert(
+            Choices::SLUDGE,
+            Choice {
+                move_id: Choices::SLUDGE,
+                base_power: 65.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::POISON,
+                flags: Flags {
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::SLUDGE,
-                Choice {
-                    move_id: Choices::SLUDGE,
-                    base_power: 65.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::POISON),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 30.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Status(PokemonStatus::POISON),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::SLUDGEBOMB,
             Choice {
@@ -14952,7 +12508,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::POISON),
                 }]),
                 ..Default::default()
@@ -14962,6 +12518,7 @@ lazy_static! {
             Choices::SLUDGEWAVE,
             Choice {
                 move_id: Choices::SLUDGEWAVE,
+                move_choice_target: MoveChoiceTarget::AllOther,
                 base_power: 95.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::POISON,
@@ -14971,7 +12528,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::POISON),
                 }]),
                 ..Default::default()
@@ -14989,7 +12546,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::SMACKDOWN,
                 }),
                 ..Default::default()
@@ -15010,82 +12567,41 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::SMELLINGSALTS,
-                Choice {
-                    move_id: Choices::SMELLINGSALTS,
-                    base_power: 60.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::SMELLINGSALTS,
+            Choice {
+                move_id: Choices::SMELLINGSALTS,
+                base_power: 70.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::SMELLINGSALTS,
-                Choice {
-                    move_id: Choices::SMELLINGSALTS,
-                    base_power: 70.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+                ..Default::default()
+            },
+        );
+        moves.insert(
+            Choices::SMOG,
+            Choice {
+                move_id: Choices::SMOG,
+                accuracy: 70.0,
+                base_power: 30.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::POISON,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        }
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::SMOG,
-                Choice {
-                    move_id: Choices::SMOG,
-                    accuracy: 70.0,
-                    base_power: 20.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 40.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::POISON),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::SMOG,
-                Choice {
-                    move_id: Choices::SMOG,
-                    accuracy: 70.0,
-                    base_power: 30.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 40.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::POISON),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 40.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Status(PokemonStatus::POISON),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::SMOKESCREEN,
             Choice {
@@ -15097,7 +12613,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -15123,7 +12639,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
                 }),
                 ..Default::default()
@@ -15133,6 +12649,7 @@ lazy_static! {
             Choices::SNARL,
             Choice {
                 move_id: Choices::SNARL,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 accuracy: 95.0,
                 base_power: 55.0,
                 category: MoveCategory::Special,
@@ -15144,7 +12661,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -15188,53 +12705,31 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::SNORE,
-                Choice {
-                    move_id: Choices::SNORE,
-                    base_power: 40.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            protect: true,
-                        sound: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
-                    }]),
+        moves.insert(
+            Choices::SNORE,
+            Choice {
+                move_id: Choices::SNORE,
+                base_power: 50.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                        protect: true,
+                    sound: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::SNORE,
-                Choice {
-                    move_id: Choices::SNORE,
-                    base_power: 50.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            protect: true,
-                        sound: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 30.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::SNOWSCAPE,
             Choice {
                 move_id: Choices::SNOWSCAPE,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::ICE,
                 flags: Flags {
                     ..Default::default()
@@ -15347,7 +12842,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
@@ -15357,6 +12852,7 @@ lazy_static! {
             Choices::SPARKLINGARIA,
             Choice {
                 move_id: Choices::SPARKLINGARIA,
+                move_choice_target: MoveChoiceTarget::AllOther,
                 base_power: 90.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::WATER,
@@ -15367,7 +12863,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::SPARKLINGARIA),
                 }]),
                 ..Default::default()
@@ -15426,7 +12922,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 2,
                         defense: -2,
@@ -15470,13 +12966,14 @@ lazy_static! {
             Choices::SPIKES,
             Choice {
                 move_id: Choices::SPIKES,
+                move_choice_target: MoveChoiceTarget::OtherSide,
                 move_type: PokemonType::GROUND,
                 flags: Flags {
                     reflectable: true,
                     ..Default::default()
                 },
                 side_condition: Some(SideCondition {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     condition: PokemonSideCondition::Spikes,
                 }),
                 ..Default::default()
@@ -15539,7 +13036,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -15608,6 +13105,7 @@ lazy_static! {
             Choices::SPLISHYSPLASH,
             Choice {
                 move_id: Choices::SPLISHYSPLASH,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 90.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::WATER,
@@ -15617,7 +13115,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
@@ -15628,7 +13126,7 @@ lazy_static! {
             Choice {
                 move_id: Choices::SPORE,
                 status: Some(Status {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     status: PokemonStatus::SLEEP,
                 }),
                 move_type: PokemonType::GRASS,
@@ -15653,7 +13151,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::SPOTLIGHT,
                 }),
                 ..Default::default()
@@ -15663,6 +13161,7 @@ lazy_static! {
             Choices::SPRINGTIDESTORM,
             Choice {
                 move_id: Choices::SPRINGTIDESTORM,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 accuracy: 80.0,
                 base_power: 100.0,
                 category: MoveCategory::Special,
@@ -15674,7 +13173,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: -1,
                         defense: 0,
@@ -15691,13 +13190,14 @@ lazy_static! {
             Choices::STEALTHROCK,
             Choice {
                 move_id: Choices::STEALTHROCK,
+                move_choice_target: MoveChoiceTarget::OtherSide,
                 move_type: PokemonType::ROCK,
                 flags: Flags {
                     reflectable: true,
                     ..Default::default()
                 },
                 side_condition: Some(SideCondition {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     condition: PokemonSideCondition::Stealthrock,
                 }),
                 ..Default::default()
@@ -15717,7 +13217,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::BURN),
                 }]),
                 ..Default::default()
@@ -15737,7 +13237,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -15809,13 +13309,14 @@ lazy_static! {
             Choices::STICKYWEB,
             Choice {
                 move_id: Choices::STICKYWEB,
+                move_choice_target: MoveChoiceTarget::OtherSide,
                 move_type: PokemonType::BUG,
                 flags: Flags {
                     reflectable: true,
                     ..Default::default()
                 },
                 side_condition: Some(SideCondition {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     condition: PokemonSideCondition::StickyWeb,
                 }),
                 ..Default::default()
@@ -15851,7 +13352,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -15887,7 +13388,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 side_condition: Some(SideCondition {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     condition: PokemonSideCondition::Stealthrock,
                 }),
                 ..Default::default()
@@ -15922,39 +13423,21 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::STORMTHROW,
-                Choice {
-                    move_id: Choices::STORMTHROW,
-                    base_power: 40.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::STORMTHROW,
+            Choice {
+                move_id: Choices::STORMTHROW,
+                base_power: 60.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::FIGHTING,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::STORMTHROW,
-                Choice {
-                    move_id: Choices::STORMTHROW,
-                    base_power: 60.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::STRANGESTEAM,
             Choice {
@@ -15969,7 +13452,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
                 }]),
                 ..Default::default()
@@ -16008,6 +13491,7 @@ lazy_static! {
             Choices::STRINGSHOT,
             Choice {
                 move_id: Choices::STRINGSHOT,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 accuracy: 95.0,
                 move_type: PokemonType::BUG,
                 flags: Flags {
@@ -16016,7 +13500,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -16034,6 +13518,7 @@ lazy_static! {
             Choice {
                 move_id: Choices::STRUGGLE,
                 base_power: 50.0,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 category: MoveCategory::Physical,
                 move_type: PokemonType::NORMAL,
                 flags: Flags {
@@ -16044,61 +13529,33 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::STRUGGLEBUG,
-                Choice {
-                    move_id: Choices::STRUGGLEBUG,
-                    base_power: 30.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::BUG,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 100.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: -1,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
+        moves.insert(
+            Choices::STRUGGLEBUG,
+            Choice {
+                move_id: Choices::STRUGGLEBUG,
+                move_choice_target: MoveChoiceTarget::AllFoes,
+                base_power: 50.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::BUG,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::STRUGGLEBUG,
-                Choice {
-                    move_id: Choices::STRUGGLEBUG,
-                    base_power: 50.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::BUG,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 100.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Boost(StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: -1,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        }),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 100.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Boost(StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: -1,
+                        special_defense: 0,
+                        speed: 0,
+                        accuracy: 0,
+                    }),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::STUFFCHEEKS,
             Choice {
@@ -16117,7 +13574,7 @@ lazy_static! {
                 move_id: Choices::STUNSPORE,
                 accuracy: 75.0,
                 status: Some(Status {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     status: PokemonStatus::PARALYZE,
                 }),
                 move_type: PokemonType::GRASS,
@@ -16163,45 +13620,27 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") || cfg!(feature = "gen6") {
-            moves.insert(
-                Choices::SUCKERPUNCH,
-                Choice {
-                    move_id: Choices::SUCKERPUNCH,
-                    base_power: 80.0,
-                    category: MoveCategory::Physical,
-                    priority: 1,
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::SUCKERPUNCH,
+            Choice {
+                move_id: Choices::SUCKERPUNCH,
+                base_power: 70.0,
+                category: MoveCategory::Physical,
+                priority: 1,
+                move_type: PokemonType::DARK,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::SUCKERPUNCH,
-                Choice {
-                    move_id: Choices::SUCKERPUNCH,
-                    base_power: 70.0,
-                    category: MoveCategory::Physical,
-                    priority: 1,
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::SUNNYDAY,
             Choice {
                 move_id: Choices::SUNNYDAY,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::FIRE,
                 flags: Flags {
                     ..Default::default()
@@ -16295,43 +13734,27 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::CONFUSION,
                 }),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::SURF,
-                Choice {
-                    move_id: Choices::SURF,
-                    base_power: 95.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                                protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::SURF,
+            Choice {
+                move_id: Choices::SURF,
+                move_choice_target: MoveChoiceTarget::AllOther,
+                base_power: 90.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::WATER,
+                flags: Flags {
+                            protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::SURF,
-                Choice {
-                    move_id: Choices::SURF,
-                    base_power: 90.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                                protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::SURGINGSTRIKES,
             Choice {
@@ -16348,68 +13771,35 @@ lazy_static! {
                 ..Default::default()
             },
         );
-
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") || cfg!(feature = "gen6") {
-            moves.insert(
-                Choices::SWAGGER,
-                Choice {
-                    move_id: Choices::SWAGGER,
-                    accuracy: 85.0,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    boost: Some(Boost {
-                        target: MoveTarget::Opponent,
-                        boosts: StatBoosts {
-                            attack: 2,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        },
-                    }),
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::CONFUSION,
-                    }),
+        moves.insert(
+            Choices::SWAGGER,
+            Choice {
+                move_id: Choices::SWAGGER,
+                accuracy: 90.0,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                        protect: true,
+                    reflectable: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::SWAGGER,
-                Choice {
-                    move_id: Choices::SWAGGER,
-                    accuracy: 90.0,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
+                boost: Some(Boost {
+                    target: MoveTarget::Target,
+                    boosts: StatBoosts {
+                        attack: 2,
+                        defense: 0,
+                        special_attack: 0,
+                        special_defense: 0,
+                        speed: 0,
+                        accuracy: 0,
                     },
-                    boost: Some(Boost {
-                        target: MoveTarget::Opponent,
-                        boosts: StatBoosts {
-                            attack: 2,
-                            defense: 0,
-                            special_attack: 0,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        },
-                    }),
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::CONFUSION,
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                }),
+                volatile_status: Some(VolatileStatus {
+                    target: MoveTarget::Target,
+                    volatile_status: PokemonVolatileStatus::CONFUSION,
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::SWALLOW,
             Choice {
@@ -16435,7 +13825,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::CONFUSION,
                 }),
                 ..Default::default()
@@ -16445,6 +13835,7 @@ lazy_static! {
             Choices::SWEETSCENT,
             Choice {
                 move_id: Choices::SWEETSCENT,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 move_type: PokemonType::NORMAL,
                 flags: Flags {
                     protect: true,
@@ -16452,7 +13843,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -16469,6 +13860,7 @@ lazy_static! {
             Choices::SWIFT,
             Choice {
                 move_id: Choices::SWIFT,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 60.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::NORMAL,
@@ -16514,37 +13906,21 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::SYNCHRONOISE,
-                Choice {
-                    move_id: Choices::SYNCHRONOISE,
-                    base_power: 70.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::SYNCHRONOISE,
+            Choice {
+                move_id: Choices::SYNCHRONOISE,
+                move_choice_target: MoveChoiceTarget::AllOther,
+                base_power: 120.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::PSYCHIC,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::SYNCHRONOISE,
-                Choice {
-                    move_id: Choices::SYNCHRONOISE,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::SYNTHESIS,
             Choice {
@@ -16577,7 +13953,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::SYRUPBOMB),
                 }]),
                 ..Default::default()
@@ -16613,55 +13989,29 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::TAILGLOW,
-                Choice {
-                    move_id: Choices::TAILGLOW,
-                    target: MoveTarget::User,
-                    move_type: PokemonType::BUG,
-                    flags: Flags {
-                            ..Default::default()
-                    },
-                    boost: Some(Boost {
-                        target: MoveTarget::User,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 2,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        },
-                    }),
-                    ..Default::default()
+        moves.insert(
+            Choices::TAILGLOW,
+            Choice {
+                move_id: Choices::TAILGLOW,
+                target: MoveTarget::User,
+                move_type: PokemonType::BUG,
+                flags: Flags {
+                        ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::TAILGLOW,
-                Choice {
-                    move_id: Choices::TAILGLOW,
+                boost: Some(Boost {
                     target: MoveTarget::User,
-                    move_type: PokemonType::BUG,
-                    flags: Flags {
-                            ..Default::default()
+                    boosts: StatBoosts {
+                        attack: 0,
+                        defense: 0,
+                        special_attack: 3,
+                        special_defense: 0,
+                        speed: 0,
+                        accuracy: 0,
                     },
-                    boost: Some(Boost {
-                        target: MoveTarget::User,
-                        boosts: StatBoosts {
-                            attack: 0,
-                            defense: 0,
-                            special_attack: 3,
-                            special_defense: 0,
-                            speed: 0,
-                            accuracy: 0,
-                        },
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::TAILSLAP,
             Choice {
@@ -16682,6 +14032,7 @@ lazy_static! {
             Choices::TAILWHIP,
             Choice {
                 move_id: Choices::TAILWHIP,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 move_type: PokemonType::NORMAL,
                 flags: Flags {
                     protect: true,
@@ -16689,7 +14040,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: -1,
@@ -16759,7 +14110,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -16770,7 +14121,7 @@ lazy_static! {
                     },
                 }),
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::TARSHOT,
                 }),
                 ..Default::default()
@@ -16787,7 +14138,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::TAUNT,
                 }),
                 ..Default::default()
@@ -16803,7 +14154,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: -1,
                         defense: 0,
@@ -16820,6 +14171,7 @@ lazy_static! {
             Choices::TEATIME,
             Choice {
                 move_id: Choices::TEATIME,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::NORMAL,
                 flags: Flags {
                     ..Default::default()
@@ -16827,48 +14179,32 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::TECHNOBLAST,
-                Choice {
-                    move_id: Choices::TECHNOBLAST,
-                    base_power: 85.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::TECHNOBLAST,
+            Choice {
+                move_id: Choices::TECHNOBLAST,
+                base_power: 120.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::TECHNOBLAST,
-                Choice {
-                    move_id: Choices::TECHNOBLAST,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::TEETERDANCE,
             Choice {
                 move_id: Choices::TEETERDANCE,
+                move_choice_target: MoveChoiceTarget::AllOther,
                 move_type: PokemonType::NORMAL,
                 flags: Flags {
                     protect: true,
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::CONFUSION,
                 }),
                 ..Default::default()
@@ -16885,43 +14221,26 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::TELEKINESIS,
                 }),
                 ..Default::default()
             },
         );
-
-        if cfg!(feature = "gen9") || cfg!(feature = "gen8") {
-            moves.insert(
-                Choices::TELEPORT,
-                Choice {
-                    move_id: Choices::TELEPORT,
-                    priority: -6,
-                    target: MoveTarget::User,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        pivot: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::TELEPORT,
+            Choice {
+                move_id: Choices::TELEPORT,
+                priority: -6,
+                target: MoveTarget::User,
+                move_type: PokemonType::PSYCHIC,
+                flags: Flags {
+                    pivot: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::TELEPORT,
-                Choice {
-                    move_id: Choices::TELEPORT,
-                    priority: 0,
-                    target: MoveTarget::User,
-                    move_type: PokemonType::PSYCHIC,
-                    flags: Flags {
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::TEMPERFLARE,
             Choice {
@@ -16980,43 +14299,26 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::THIEF,
-                Choice {
-                    move_id: Choices::THIEF,
-                    base_power: 40.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::THIEF,
+            Choice {
+                move_id: Choices::THIEF,
+                base_power: 60.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::DARK,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::THIEF,
-                Choice {
-                    move_id: Choices::THIEF,
-                    base_power: 60.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::THOUSANDARROWS,
             Choice {
                 move_id: Choices::THOUSANDARROWS,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 90.0,
                 category: MoveCategory::Physical,
                 move_type: PokemonType::GROUND,
@@ -17025,7 +14327,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::SMACKDOWN,
                 }),
                 ..Default::default()
@@ -17035,6 +14337,7 @@ lazy_static! {
             Choices::THOUSANDWAVES,
             Choice {
                 move_id: Choices::THOUSANDWAVES,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 90.0,
                 category: MoveCategory::Physical,
                 move_type: PokemonType::GROUND,
@@ -17045,47 +14348,25 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::THRASH,
-                Choice {
-                    move_id: Choices::THRASH,
-                    base_power: 90.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::User,
-                        volatile_status: PokemonVolatileStatus::LOCKEDMOVE,
-                    }),
+        moves.insert(
+            Choices::THRASH,
+            Choice {
+                move_id: Choices::THRASH,
+                base_power: 120.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::THRASH,
-                Choice {
-                    move_id: Choices::THRASH,
-                    base_power: 120.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::User,
-                        volatile_status: PokemonVolatileStatus::LOCKEDMOVE,
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                volatile_status: Some(VolatileStatus {
+                    target: MoveTarget::User,
+                    volatile_status: PokemonVolatileStatus::LOCKEDMOVE,
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::THROATCHOP,
             Choice {
@@ -17099,117 +14380,51 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::THROATCHOP,
                 }),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::THUNDER,
-                Choice {
-                    move_id: Choices::THUNDER,
-                    accuracy: 70.0,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ELECTRIC,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::PARALYZE),
-                    }]),
+        moves.insert(
+            Choices::THUNDER,
+            Choice {
+                move_id: Choices::THUNDER,
+                accuracy: 70.0,
+                base_power: 110.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::ELECTRIC,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else if cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::THUNDER,
-                Choice {
-                    move_id: Choices::THUNDER,
-                    accuracy: 70.0,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ELECTRIC,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::PARALYZE),
-                    }]),
+                secondaries: Some(vec![Secondary {
+                    chance: 30.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Status(PokemonStatus::PARALYZE),
+                }]),
+                ..Default::default()
+            },
+        );
+        moves.insert(
+            Choices::THUNDERBOLT,
+            Choice {
+                move_id: Choices::THUNDERBOLT,
+                base_power: 90.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::ELECTRIC,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::THUNDER,
-                Choice {
-                    move_id: Choices::THUNDER,
-                    accuracy: 70.0,
-                    base_power: 110.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ELECTRIC,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 30.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::PARALYZE),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::THUNDERBOLT,
-                Choice {
-                    move_id: Choices::THUNDERBOLT,
-                    base_power: 95.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ELECTRIC,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::PARALYZE),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::THUNDERBOLT,
-                Choice {
-                    move_id: Choices::THUNDERBOLT,
-                    base_power: 90.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ELECTRIC,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 10.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::PARALYZE),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 10.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Status(PokemonStatus::PARALYZE),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::THUNDERCAGE,
             Choice {
@@ -17223,7 +14438,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
                 }),
                 ..Default::default()
@@ -17261,12 +14476,12 @@ lazy_static! {
                 secondaries: Some(vec![
                     Secondary {
                         chance: 10.0,
-                        target: MoveTarget::Opponent,
+                        target: MoveTarget::Target,
                         effect: Effect::Status(PokemonStatus::PARALYZE),
                     },
                     Secondary {
                         chance: 10.0,
-                        target: MoveTarget::Opponent,
+                        target: MoveTarget::Target,
                         effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                     },
                 ]),
@@ -17287,7 +14502,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: 0,
                         defense: -1,
@@ -17315,7 +14530,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
@@ -17334,51 +14549,30 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") || cfg!(feature = "gen6") {
-            moves.insert(
-                Choices::THUNDERWAVE,
-                Choice {
-                    move_id: Choices::THUNDERWAVE,
-                    accuracy: 100.0,
-                    status: Some(Status {
-                        target: MoveTarget::Opponent,
-                        status: PokemonStatus::PARALYZE,
-                    }),
-                    move_type: PokemonType::ELECTRIC,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::THUNDERWAVE,
+            Choice {
+                move_id: Choices::THUNDERWAVE,
+                accuracy: 90.0,
+                status: Some(Status {
+                    target: MoveTarget::Target,
+                    status: PokemonStatus::PARALYZE,
+                }),
+                move_type: PokemonType::ELECTRIC,
+                flags: Flags {
+                        protect: true,
+                    reflectable: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::THUNDERWAVE,
-                Choice {
-                    move_id: Choices::THUNDERWAVE,
-                    accuracy: 90.0,
-                    status: Some(Status {
-                        target: MoveTarget::Opponent,
-                        status: PokemonStatus::PARALYZE,
-                    }),
-                    move_type: PokemonType::ELECTRIC,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::TICKLE,
             Choice {
@@ -17390,7 +14584,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: -1,
                         defense: -1,
@@ -17477,62 +14671,42 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::TORMENT,
                 }),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::TOXIC,
-                Choice {
-                    move_id: Choices::TOXIC,
-                    accuracy: 85.0,
-                    status: Some(Status {
-                        target: MoveTarget::Opponent,
-                        status: PokemonStatus::TOXIC,
-                    }),
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::TOXIC,
+            Choice {
+                move_id: Choices::TOXIC,
+                accuracy: 90.0,
+                status: Some(Status {
+                    target: MoveTarget::Target,
+                    status: PokemonStatus::TOXIC,
+                }),
+                move_type: PokemonType::POISON,
+                flags: Flags {
+                        protect: true,
+                    reflectable: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::TOXIC,
-                Choice {
-                    move_id: Choices::TOXIC,
-                    accuracy: 90.0,
-                    status: Some(Status {
-                        target: MoveTarget::Opponent,
-                        status: PokemonStatus::TOXIC,
-                    }),
-                    move_type: PokemonType::POISON,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::TOXICSPIKES,
             Choice {
                 move_id: Choices::TOXICSPIKES,
+                move_choice_target: MoveChoiceTarget::OtherSide,
                 move_type: PokemonType::POISON,
                 flags: Flags {
                     reflectable: true,
                     ..Default::default()
                 },
                 side_condition: Some(SideCondition {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     condition: PokemonSideCondition::ToxicSpikes,
                 }),
                 ..Default::default()
@@ -17543,7 +14717,7 @@ lazy_static! {
             Choice {
                 move_id: Choices::TOXICTHREAD,
                 status: Some(Status {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     status: PokemonStatus::POISON,
                 }),
                 move_type: PokemonType::POISON,
@@ -17553,7 +14727,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 0,
                         defense: 0,
@@ -17604,58 +14778,41 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::TRIATTACK,
-                Choice {
-                    move_id: Choices::TRIATTACK,
-                    base_power: 80.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::TRIATTACK,
+            Choice {
+                move_id: Choices::TRIATTACK,
+                base_power: 80.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::TRIATTACK,
-                Choice {
-                    move_id: Choices::TRIATTACK,
-                    base_power: 80.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        protect: true,
-                        ..Default::default()
-                    },
-                    // not technically correct but idgaf
-                    // this should roll 20% chance to inflict, and then roll for the status
-                    secondaries: Some(
-                        vec![
-                            Secondary {
-                                chance: 6.67,
-                                target: MoveTarget::Opponent,
-                                effect: Effect::Status(PokemonStatus::PARALYZE),
-                            },
-                            Secondary {
-                                chance: 6.67,
-                                target: MoveTarget::Opponent,
-                                effect: Effect::Status(PokemonStatus::BURN),
-                            },
-                            Secondary {
-                                chance: 6.67,
-                                target: MoveTarget::Opponent,
-                                effect: Effect::Status(PokemonStatus::FREEZE),
-                            },
-                        ]
-                    ),
-                    ..Default::default()
-                },
-            );
-        }
+                // not technically correct but idgaf
+                // this should roll 20% chance to inflict, and then roll for the status
+                secondaries: Some(
+                    vec![
+                        Secondary {
+                            chance: 6.67,
+                            target: MoveTarget::Target,
+                            effect: Effect::Status(PokemonStatus::PARALYZE),
+                        },
+                        Secondary {
+                            chance: 6.67,
+                            target: MoveTarget::Target,
+                            effect: Effect::Status(PokemonStatus::BURN),
+                        },
+                        Secondary {
+                            chance: 6.67,
+                            target: MoveTarget::Target,
+                            effect: Effect::Status(PokemonStatus::FREEZE),
+                        },
+                    ]
+                ),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::TRICK,
             Choice {
@@ -17685,6 +14842,7 @@ lazy_static! {
             Choices::TRICKROOM,
             Choice {
                 move_id: Choices::TRICKROOM,
+                move_choice_target: MoveChoiceTarget::Field,
                 priority: -7,
                 move_type: PokemonType::PSYCHIC,
                 flags: Flags {
@@ -17707,7 +14865,7 @@ lazy_static! {
                 secondaries: Some(vec![
                     Secondary {
                         chance: 50.0,
-                        target: MoveTarget::Opponent,
+                        target: MoveTarget::Target,
                         effect: Effect::Boost(StatBoosts {
                             attack: 0,
                             defense: -1,
@@ -17719,7 +14877,7 @@ lazy_static! {
                     },
                     Secondary {
                         chance: 30.0,
-                        target: MoveTarget::Opponent,
+                        target: MoveTarget::Target,
                         effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                     },
                 ]),
@@ -17788,7 +14946,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Boost(StatBoosts {
                         attack: -1,
                         defense: 0,
@@ -17842,7 +15000,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::POISON),
                 }]),
                 ..Default::default()
@@ -17852,6 +15010,7 @@ lazy_static! {
             Choices::TWISTER,
             Choice {
                 move_id: Choices::TWISTER,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 40.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::DRAGON,
@@ -17862,7 +15021,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -17883,45 +15042,27 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 100.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::UPROAR,
-                Choice {
-                    move_id: Choices::UPROAR,
-                    base_power: 50.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            protect: true,
-                        sound: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::UPROAR,
+            Choice {
+                move_id: Choices::UPROAR,
+                base_power: 90.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                        protect: true,
+                    sound: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::UPROAR,
-                Choice {
-                    move_id: Choices::UPROAR,
-                    base_power: 90.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                            protect: true,
-                        sound: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::UTURN,
             Choice {
@@ -17998,6 +15139,7 @@ lazy_static! {
             Choices::VENOMDRENCH,
             Choice {
                 move_id: Choices::VENOMDRENCH,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 move_type: PokemonType::POISON,
                 flags: Flags {
                     protect: true,
@@ -18044,39 +15186,21 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::VINEWHIP,
-                Choice {
-                    move_id: Choices::VINEWHIP,
-                    base_power: 35.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::VINEWHIP,
+            Choice {
+                move_id: Choices::VINEWHIP,
+                base_power: 45.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::GRASS,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::VINEWHIP,
-                Choice {
-                    move_id: Choices::VINEWHIP,
-                    base_power: 45.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::GRASS,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::VISEGRIP,
             Choice {
@@ -18137,46 +15261,28 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 recoil: Some(0.33),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::WAKEUPSLAP,
-                Choice {
-                    move_id: Choices::WAKEUPSLAP,
-                    base_power: 60.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::WAKEUPSLAP,
+            Choice {
+                move_id: Choices::WAKEUPSLAP,
+                base_power: 70.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::FIGHTING,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::WAKEUPSLAP,
-                Choice {
-                    move_id: Choices::WAKEUPSLAP,
-                    base_power: 70.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FIGHTING,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::WATERFALL,
             Choice {
@@ -18191,7 +15297,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -18211,37 +15317,20 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::WATERPLEDGE,
-                Choice {
-                    move_id: Choices::WATERPLEDGE,
-                    base_power: 50.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                                protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::WATERPLEDGE,
+            Choice {
+                move_id: Choices::WATERPLEDGE,
+                base_power: 80.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::WATER,
+                flags: Flags {
+                            protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::WATERPLEDGE,
-                Choice {
-                    move_id: Choices::WATERPLEDGE,
-                    base_power: 80.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                                protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::WATERPULSE,
             Choice {
@@ -18256,51 +15345,32 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::CONFUSION),
                 }]),
                 ..Default::default()
             },
         );
-
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") || cfg!(feature = "gen6") {
-            moves.insert(
-                Choices::WATERSHURIKEN,
-                Choice {
-                    move_id: Choices::WATERSHURIKEN,
-                    base_power: 15.0,
-                    category: MoveCategory::Physical,
-                    priority: 1,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::WATERSHURIKEN,
+            Choice {
+                move_id: Choices::WATERSHURIKEN,
+                base_power: 15.0,
+                category: MoveCategory::Special,
+                priority: 1,
+                move_type: PokemonType::WATER,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::WATERSHURIKEN,
-                Choice {
-                    move_id: Choices::WATERSHURIKEN,
-                    base_power: 15.0,
-                    category: MoveCategory::Special,
-                    priority: 1,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
-
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::WATERSPORT,
             Choice {
                 move_id: Choices::WATERSPORT,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::WATER,
                 flags: Flags {
                     ..Default::default()
@@ -18312,6 +15382,7 @@ lazy_static! {
             Choices::WATERSPOUT,
             Choice {
                 move_id: Choices::WATERSPOUT,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 base_power: 150.0,
                 category: MoveCategory::Special,
                 move_type: PokemonType::WATER,
@@ -18353,47 +15424,25 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::WHIRLPOOL,
-                Choice {
-                    move_id: Choices::WHIRLPOOL,
-                    accuracy: 70.0,
-                    base_power: 15.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
-                    }),
+        moves.insert(
+            Choices::WHIRLPOOL,
+            Choice {
+                move_id: Choices::WHIRLPOOL,
+                accuracy: 85.0,
+                base_power: 35.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::WATER,
+                flags: Flags {
+                        protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::WHIRLPOOL,
-                Choice {
-                    move_id: Choices::WHIRLPOOL,
-                    accuracy: 85.0,
-                    base_power: 35.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::WATER,
-                    flags: Flags {
-                            protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                volatile_status: Some(VolatileStatus {
+                    target: MoveTarget::Target,
+                    volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::WHIRLWIND,
             Choice {
@@ -18409,43 +15458,22 @@ lazy_static! {
                 ..Default::default()
             },
         );
-
-        if cfg!(feature = "gen9") {
-            moves.insert(
-                Choices::WICKEDBLOW,
-                Choice {
-                    move_id: Choices::WICKEDBLOW,
-                    base_power: 75.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        punch: true,
-                        ..Default::default()
-                    },
+        moves.insert(
+            Choices::WICKEDBLOW,
+            Choice {
+                move_id: Choices::WICKEDBLOW,
+                base_power: 75.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::DARK,
+                flags: Flags {
+                    contact: true,
+                        protect: true,
+                    punch: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::WICKEDBLOW,
-                Choice {
-                    move_id: Choices::WICKEDBLOW,
-                    base_power: 80.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::DARK,
-                    flags: Flags {
-                        contact: true,
-                            protect: true,
-                        punch: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
-
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::WICKEDTORQUE,
             Choice {
@@ -18459,7 +15487,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 10.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::SLEEP),
                 }]),
                 ..Default::default()
@@ -18486,6 +15514,7 @@ lazy_static! {
             Choices::WILDBOLTSTORM,
             Choice {
                 move_id: Choices::WILDBOLTSTORM,
+                move_choice_target: MoveChoiceTarget::AllFoes,
                 accuracy: 80.0,
                 base_power: 100.0,
                 category: MoveCategory::Special,
@@ -18497,7 +15526,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::Status(PokemonStatus::PARALYZE),
                 }]),
                 ..Default::default()
@@ -18519,78 +15548,39 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") || cfg!(feature = "gen5") {
-            moves.insert(
-                Choices::WILLOWISP,
-                Choice {
-                    move_id: Choices::WILLOWISP,
-                    accuracy: 75.0,
-                    status: Some(Status {
-                        target: MoveTarget::Opponent,
-                        status: PokemonStatus::BURN,
-                    }),
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        } else {
-            moves.insert(
-                Choices::WILLOWISP,
-                Choice {
-                    move_id: Choices::WILLOWISP,
-                    accuracy: 85.0,
-                    status: Some(Status {
-                        target: MoveTarget::Opponent,
-                        status: PokemonStatus::BURN,
-                    }),
-                    move_type: PokemonType::FIRE,
-                    flags: Flags {
-                            protect: true,
-                        reflectable: true,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            );
-        }
-        if cfg!(feature = "gen1") {
-            moves.insert(
-                Choices::WINGATTACK,
-                Choice {
-                    move_id: Choices::WINGATTACK,
-                    base_power: 35.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FLYING,
-                    flags: Flags {
-                        contact: true,
+        moves.insert(
+            Choices::WILLOWISP,
+            Choice {
+                move_id: Choices::WILLOWISP,
+                accuracy: 85.0,
+                status: Some(Status {
+                    target: MoveTarget::Target,
+                    status: PokemonStatus::BURN,
+                }),
+                move_type: PokemonType::FIRE,
+                flags: Flags {
                         protect: true,
-                        ..Default::default()
-                    },
+                    reflectable: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::WINGATTACK,
-                Choice {
-                    move_id: Choices::WINGATTACK,
-                    base_power: 60.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::FLYING,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
+                ..Default::default()
+            },
+        );
+        moves.insert(
+            Choices::WINGATTACK,
+            Choice {
+                move_id: Choices::WINGATTACK,
+                base_power: 60.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::FLYING,
+                flags: Flags {
+                    contact: true,
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        }
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::WISH,
             Choice {
@@ -18631,6 +15621,7 @@ lazy_static! {
             Choices::WONDERROOM,
             Choice {
                 move_id: Choices::WONDERROOM,
+                move_choice_target: MoveChoiceTarget::Field,
                 move_type: PokemonType::PSYCHIC,
                 flags: Flags {
                     ..Default::default()
@@ -18690,49 +15681,26 @@ lazy_static! {
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") || cfg!(feature = "gen4") {
-            moves.insert(
-                Choices::WRAP,
-                Choice {
-                    move_id: Choices::WRAP,
-                    accuracy: 85.0,
-                    base_power: 15.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
-                    }),
+        moves.insert(
+            Choices::WRAP,
+            Choice {
+                move_id: Choices::WRAP,
+                accuracy: 90.0,
+                base_power: 15.0,
+                category: MoveCategory::Physical,
+                move_type: PokemonType::NORMAL,
+                flags: Flags {
+                    contact: true,
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::WRAP,
-                Choice {
-                    move_id: Choices::WRAP,
-                    accuracy: 90.0,
-                    base_power: 15.0,
-                    category: MoveCategory::Physical,
-                    move_type: PokemonType::NORMAL,
-                    flags: Flags {
-                        contact: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    volatile_status: Some(VolatileStatus {
-                        target: MoveTarget::Opponent,
-                        volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
-                    }),
-                    ..Default::default()
-                },
-            );
-        }
+                volatile_status: Some(VolatileStatus {
+                    target: MoveTarget::Target,
+                    volatile_status: PokemonVolatileStatus::PARTIALLYTRAPPED,
+                }),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::WRINGOUT,
             Choice {
@@ -18774,57 +15742,33 @@ lazy_static! {
                     ..Default::default()
                 },
                 volatile_status: Some(VolatileStatus {
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     volatile_status: PokemonVolatileStatus::YAWN,
                 }),
                 ..Default::default()
             },
         );
-        if cfg!(feature = "gen1") || cfg!(feature = "gen2") || cfg!(feature = "gen3") {
-            moves.insert(
-                Choices::ZAPCANNON,
-                Choice {
-                    move_id: Choices::ZAPCANNON,
-                    accuracy: 50.0,
-                    base_power: 100.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ELECTRIC,
-                    flags: Flags {
-                        bullet: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 100.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::PARALYZE),
-                    }]),
+        moves.insert(
+            Choices::ZAPCANNON,
+            Choice {
+                move_id: Choices::ZAPCANNON,
+                accuracy: 50.0,
+                base_power: 120.0,
+                category: MoveCategory::Special,
+                move_type: PokemonType::ELECTRIC,
+                flags: Flags {
+                    bullet: true,
+                    protect: true,
                     ..Default::default()
                 },
-            );
-        } else {
-            moves.insert(
-                Choices::ZAPCANNON,
-                Choice {
-                    move_id: Choices::ZAPCANNON,
-                    accuracy: 50.0,
-                    base_power: 120.0,
-                    category: MoveCategory::Special,
-                    move_type: PokemonType::ELECTRIC,
-                    flags: Flags {
-                        bullet: true,
-                        protect: true,
-                        ..Default::default()
-                    },
-                    secondaries: Some(vec![Secondary {
-                        chance: 100.0,
-                        target: MoveTarget::Opponent,
-                        effect: Effect::Status(PokemonStatus::PARALYZE),
-                    }]),
-                    ..Default::default()
-                },
-            );
-        }
+                secondaries: Some(vec![Secondary {
+                    chance: 100.0,
+                    target: MoveTarget::Target,
+                    effect: Effect::Status(PokemonStatus::PARALYZE),
+                }]),
+                ..Default::default()
+            },
+        );
         moves.insert(
             Choices::ZENHEADBUTT,
             Choice {
@@ -18840,7 +15784,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 20.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -18860,7 +15804,7 @@ lazy_static! {
                 },
                 secondaries: Some(vec![Secondary {
                     chance: 30.0,
-                    target: MoveTarget::Opponent,
+                    target: MoveTarget::Target,
                     effect: Effect::VolatileStatus(PokemonVolatileStatus::FLINCH),
                 }]),
                 ..Default::default()
@@ -18894,10 +15838,6 @@ lazy_static! {
                 ..Default::default()
             },
         );
-
-        #[cfg(any(feature = "gen1", feature = "gen2", feature = "gen3"))]
-        undo_physical_special_split(&mut moves);
-
         moves
     };
 }
@@ -18913,7 +15853,17 @@ pub enum MoveCategory {
 #[derive(PartialEq, Debug, Clone)]
 pub enum MoveTarget {
     User,
-    Opponent,
+    Target,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum MoveChoiceTarget {
+    AllOther,
+    AllFoes,
+    Ally,
+    OtherSide,
+    Field,
+    Normal,
 }
 
 #[derive(Debug, Clone)]
@@ -20083,6 +17033,7 @@ pub struct Choice {
     pub secondaries: Option<Vec<Secondary>>,
 
     pub target: MoveTarget,
+    pub move_choice_target: MoveChoiceTarget,
 
     pub first_move: bool,
     pub sleep_talk_move: bool,
@@ -20212,7 +17163,8 @@ impl Default for Choice {
             volatile_status: None,
             side_condition: None,
             secondaries: None,
-            target: MoveTarget::Opponent,
+            target: MoveTarget::Target,
+            move_choice_target: MoveChoiceTarget::Normal,
             first_move: true,
             sleep_talk_move: false,
         }

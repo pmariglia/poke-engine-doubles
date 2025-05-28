@@ -2,7 +2,14 @@ from poke_engine import calculate_damage
 
 from example_state import state
 
-s1_rolls, s2_rolls = calculate_damage(state, "ember", "tackle", True)
+rolls = calculate_damage(
+    state,
+    "1",
+    "a",
+    "2",
+    "a",
+    "breakingswipe",
+    "tackle",
+)
 
-print(s1_rolls)
-print(s2_rolls)
+print(rolls)

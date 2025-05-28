@@ -8,7 +8,6 @@ from poke_engine import (
     monte_carlo_tree_search,
     generate_instructions,
     calculate_damage,
-    iterative_deepening_expectiminimax,
 )
 
 state = State(
@@ -77,20 +76,3 @@ def test_state_can_be_converted_to_and_from_a_string():
 
 def test_monte_carlo_search():
     monte_carlo_tree_search(state, 10)
-
-
-def test_iterative_deepening_search():
-    iterative_deepening_expectiminimax(state, 10)
-
-
-def test_get_instructions():
-    generate_instructions(state, "watergun", "ember")
-
-
-def test_calculate_damage():
-    calculate_damage(state, "watergun", "ember", True)
-
-
-def test_generate_instructions_errors_when_move_does_not_exist():
-    with pytest.raises(ValueError):
-        generate_instructions(state, "not_a_move", "ember")

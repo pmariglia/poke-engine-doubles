@@ -1,73 +1,47 @@
 use super::abilities::Abilities;
 use super::damage_calc::type_effectiveness_modifier;
 use super::generate_instructions::{add_remove_status_instructions, get_boost_instruction};
-use super::items::{get_choice_move_disable_instructions, Items};
 use super::state::{PokemonVolatileStatus, Terrain, Weather};
 use crate::choices::{
     Boost, Choice, Choices, Effect, Heal, MoveCategory, MoveTarget, Secondary, StatBoosts,
 };
+use crate::engine::items::{get_choice_move_disable_instructions, Items};
 use crate::instruction::{
     ApplyVolatileStatusInstruction, BoostInstruction, ChangeItemInstruction,
     ChangeSideConditionInstruction, ChangeStatusInstruction, ChangeSubsituteHealthInstruction,
     ChangeTerrain, ChangeType, ChangeWeather, ChangeWishInstruction, DamageInstruction,
-    HealInstruction, Instruction, RemoveVolatileStatusInstruction, SetFutureSightInstruction,
-    SetSleepTurnsInstruction, StateInstructions, ToggleTrickRoomInstruction,
+    HealInstruction, Instruction, RemoveVolatileStatusInstruction, SetSleepTurnsInstruction,
+    StateInstructions, ToggleTrickRoomInstruction,
 };
 use crate::pokemon::PokemonName;
 use crate::state::{
     pokemon_index_iter, LastUsedMove, PokemonBoostableStat, PokemonSideCondition, PokemonStatus,
-    PokemonType, Side, SideReference, State,
+    PokemonType, Side, SideReference, SlotReference, State,
 };
 use std::cmp;
 
-pub fn modify_choice(
-    state: &State,
+pub fn choice_change_type(
+    state: &mut State,
     attacker_choice: &mut Choice,
-    defender_choice: &Choice,
     attacking_side_ref: &SideReference,
+    attacking_slot_ref: &SlotReference,
 ) {
-    let (attacking_side, defending_side) = state.get_both_sides_immutable(attacking_side_ref);
+    /*
+    Similar to `modify_choice`, but this needs to be called before certain checks.
+    Whether something goes here or in `modify_choice` doesn't really matter, but changing a move's
+    type **needs** to be done here
+    */
+    let attacking_side = state.get_side_immutable(attacking_side_ref);
     match attacker_choice.move_id {
-        Choices::DOUBLESHOCK => {
-            if !attacking_side
-                .get_active_immutable()
-                .has_type(&PokemonType::ELECTRIC)
-            {
-                attacker_choice.remove_all_effects();
-            }
-        }
-        Choices::BURNUP => {
-            if !attacking_side
-                .get_active_immutable()
-                .has_type(&PokemonType::FIRE)
-            {
-                attacker_choice.remove_all_effects();
-            }
-        }
-        Choices::REVERSAL => {
-            let attacker = attacking_side.get_active_immutable();
-            let hp_ratio = attacker.hp as f32 / attacker.maxhp as f32;
-            if hp_ratio >= 0.688 {
-                attacker_choice.base_power = 20.0;
-            } else if hp_ratio >= 0.354 {
-                attacker_choice.base_power = 40.0;
-            } else if hp_ratio >= 0.208 {
-                attacker_choice.base_power = 80.0;
-            } else if hp_ratio >= 0.104 {
-                attacker_choice.base_power = 100.0;
-            } else if hp_ratio >= 0.042 {
-                attacker_choice.base_power = 150.0;
-            } else {
-                attacker_choice.base_power = 200.0;
-            }
-        }
         Choices::AURAWHEEL => {
-            if attacking_side.get_active_immutable().id == PokemonName::MORPEKOHANGRY {
+            if attacking_side.get_active_immutable(attacking_slot_ref).id
+                == PokemonName::MORPEKOHANGRY
+            {
                 attacker_choice.move_type = PokemonType::DARK;
             }
         }
         Choices::IVYCUDGEL => {
-            let attacker = attacking_side.get_active_immutable();
+            let attacker = attacking_side.get_active_immutable(attacking_slot_ref);
             match attacker.item {
                 Items::WELLSPRINGMASK => {
                     attacker_choice.move_type = PokemonType::WATER;
@@ -85,12 +59,7 @@ pub fn modify_choice(
             // this gives the correct result even though it's not the "correct" way to implement it
             // reflect is only removed if the move hits, but I don't have a way to check that
             // doubling the power ensures the same damage calculation
-            if defending_side.side_conditions.reflect > 0
-                || defending_side.side_conditions.aurora_veil > 0
-            {
-                attacker_choice.base_power *= 2.0;
-            }
-            match attacking_side.get_active_immutable().id {
+            match attacking_side.get_active_immutable(attacking_slot_ref).id {
                 PokemonName::TAUROSPALDEACOMBAT => {
                     attacker_choice.move_type = PokemonType::FIGHTING;
                 }
@@ -103,14 +72,137 @@ pub fn modify_choice(
                 _ => {}
             }
         }
+        Choices::JUDGMENT => {
+            attacker_choice.move_type = attacking_side
+                .get_active_immutable(attacking_slot_ref)
+                .types
+                .0;
+        }
+        Choices::MULTIATTACK => {
+            attacker_choice.move_type = attacking_side
+                .get_active_immutable(attacking_slot_ref)
+                .types
+                .0;
+        }
+        Choices::REVELATIONDANCE => {
+            if attacking_side
+                .get_active_immutable(attacking_slot_ref)
+                .terastallized
+            {
+                attacker_choice.move_type = attacking_side
+                    .get_active_immutable(attacking_slot_ref)
+                    .tera_type;
+            } else {
+                attacker_choice.move_type = attacking_side
+                    .get_active_immutable(attacking_slot_ref)
+                    .types
+                    .0;
+            }
+        }
+        Choices::TERABLAST => {
+            let active = attacking_side.get_active_immutable(attacking_slot_ref);
+            if active.terastallized {
+                attacker_choice.move_type = active.tera_type;
+            }
+        }
+        Choices::TERRAINPULSE => match state.terrain.terrain_type {
+            Terrain::ELECTRICTERRAIN => {
+                attacker_choice.move_type = PokemonType::ELECTRIC;
+            }
+            Terrain::GRASSYTERRAIN => {
+                attacker_choice.move_type = PokemonType::GRASS;
+            }
+            Terrain::MISTYTERRAIN => {
+                attacker_choice.move_type = PokemonType::FAIRY;
+            }
+            Terrain::PSYCHICTERRAIN => {
+                attacker_choice.move_type = PokemonType::PSYCHIC;
+            }
+            Terrain::NONE => {}
+        },
+        Choices::WEATHERBALL => match state.weather.weather_type {
+            Weather::SUN | Weather::HARSHSUN => {
+                attacker_choice.move_type = PokemonType::FIRE;
+            }
+            Weather::RAIN | Weather::HEAVYRAIN => {
+                attacker_choice.move_type = PokemonType::WATER;
+            }
+            Weather::SAND => {
+                attacker_choice.move_type = PokemonType::ROCK;
+            }
+            Weather::HAIL | Weather::SNOW => {
+                attacker_choice.move_type = PokemonType::ICE;
+            }
+            Weather::NONE => {}
+        },
+        _ => {}
+    }
+}
+
+pub fn modify_choice(
+    state: &State,
+    attacker_choice: &mut Choice,
+    target_choice: &Choice,
+    attacking_side_ref: &SideReference,
+    attacking_slot_ref: &SlotReference,
+    target_side_ref: &SideReference,
+    target_slot_ref: &SlotReference,
+    target_has_moved: bool,
+) {
+    let (attacking_side, target_side) =
+        state.get_sides_immutable(attacking_side_ref, target_side_ref);
+    match attacker_choice.move_id {
+        Choices::DOUBLESHOCK => {
+            if !attacking_side
+                .get_active_immutable(attacking_slot_ref)
+                .has_type(&PokemonType::ELECTRIC)
+            {
+                attacker_choice.remove_all_effects();
+            }
+        }
+        Choices::BURNUP => {
+            if !attacking_side
+                .get_active_immutable(attacking_slot_ref)
+                .has_type(&PokemonType::FIRE)
+            {
+                attacker_choice.remove_all_effects();
+            }
+        }
+        Choices::REVERSAL => {
+            let attacker = attacking_side.get_active_immutable(attacking_slot_ref);
+            let hp_ratio = attacker.hp as f32 / attacker.maxhp as f32;
+            if hp_ratio >= 0.688 {
+                attacker_choice.base_power = 20.0;
+            } else if hp_ratio >= 0.354 {
+                attacker_choice.base_power = 40.0;
+            } else if hp_ratio >= 0.208 {
+                attacker_choice.base_power = 80.0;
+            } else if hp_ratio >= 0.104 {
+                attacker_choice.base_power = 100.0;
+            } else if hp_ratio >= 0.042 {
+                attacker_choice.base_power = 150.0;
+            } else {
+                attacker_choice.base_power = 200.0;
+            }
+        }
+        Choices::RAGINGBULL => {
+            // this gives the correct result even though it's not the "correct" way to implement it
+            // reflect is only removed if the move hits, but I don't have a way to check that
+            // doubling the power ensures the same damage calculation
+            if target_side.side_conditions.reflect > 0
+                || target_side.side_conditions.aurora_veil > 0
+            {
+                attacker_choice.base_power *= 2.0;
+            }
+        }
         Choices::BOLTBEAK | Choices::FISHIOUSREND => {
             if attacker_choice.first_move {
                 attacker_choice.base_power *= 2.0;
             }
         }
         Choices::HARDPRESS => {
-            let defender = defending_side.get_active_immutable();
-            attacker_choice.base_power = 100.0 * (defender.hp as f32 / defender.maxhp as f32);
+            let target = target_side.get_active_immutable(target_slot_ref);
+            attacker_choice.base_power = 100.0 * (target.hp as f32 / target.maxhp as f32);
         }
         Choices::LASTRESPECTS => {
             // Technically not correct because of reviving moves but good enough
@@ -123,7 +215,7 @@ pub fn modify_choice(
             attacker_choice.base_power = bp
         }
         Choices::CLANGOROUSSOUL => {
-            let attacker = attacking_side.get_active_immutable();
+            let attacker = attacking_side.get_active_immutable(attacking_slot_ref);
             if attacker.hp > attacker.maxhp / 3 {
                 attacker_choice.heal = Some(Heal {
                     target: MoveTarget::User,
@@ -148,7 +240,7 @@ pub fn modify_choice(
             }
         }
         Choices::FILLETAWAY => {
-            let attacker = attacking_side.get_active_immutable();
+            let attacker = attacking_side.get_active_immutable(attacking_slot_ref);
             if attacker.hp > attacker.maxhp / 2 {
                 attacker_choice.heal = Some(Heal {
                     target: MoveTarget::User,
@@ -167,9 +259,12 @@ pub fn modify_choice(
                 });
             }
         }
-        Choices::FAKEOUT | Choices::FIRSTIMPRESSION => match attacking_side.last_used_move {
-            LastUsedMove::Move(_) => attacker_choice.remove_all_effects(),
-            _ => {}
+        Choices::FAKEOUT | Choices::FIRSTIMPRESSION => match attacking_side
+            .get_slot_immutable(attacking_slot_ref)
+            .last_used_move
+        {
+            LastUsedMove::Switch(_) => {}
+            _ => attacker_choice.remove_all_effects(),
         },
         Choices::GROWTH => {
             if state.weather_is_active(&Weather::SUN) {
@@ -187,7 +282,7 @@ pub fn modify_choice(
             }
         }
         Choices::HEX => {
-            if defending_side.get_active_immutable().status != PokemonStatus::NONE {
+            if target_side.get_active_immutable(target_slot_ref).status != PokemonStatus::NONE {
                 attacker_choice.base_power *= 2.0;
             }
         }
@@ -196,22 +291,11 @@ pub fn modify_choice(
                 attacker_choice.base_power *= 3.0; // 1.5x for being in sun, 2x for cancelling out rain debuff
             }
         }
-        Choices::JUDGMENT => {
-            attacker_choice.move_type = attacking_side.get_active_immutable().types.0;
-        }
-        Choices::MULTIATTACK => {
-            attacker_choice.move_type = attacking_side.get_active_immutable().types.0;
-        }
         Choices::MISTYEXPLOSION => {
             if state.terrain.terrain_type == Terrain::MISTYTERRAIN {
                 attacker_choice.base_power *= 1.5;
             }
         }
-        #[cfg(any(feature = "gen3", feature = "gen4"))]
-        Choices::EXPLOSION | Choices::SELFDESTRUCT => {
-            attacker_choice.base_power *= 2.0;
-        }
-
         Choices::MORNINGSUN | Choices::MOONLIGHT | Choices::SYNTHESIS => {
             match state.weather.weather_type {
                 Weather::SUN => {
@@ -231,6 +315,7 @@ pub fn modify_choice(
         }
         Choices::NORETREAT => {
             if attacking_side
+                .get_slot_immutable(attacking_slot_ref)
                 .volatile_statuses
                 .contains(&PokemonVolatileStatus::NORETREAT)
             {
@@ -238,7 +323,7 @@ pub fn modify_choice(
             }
         }
         Choices::POLTERGEIST => {
-            if defending_side.get_active_immutable().item == Items::NONE {
+            if target_side.get_active_immutable(target_slot_ref).item == Items::NONE {
                 attacker_choice.base_power = 0.0;
             }
         }
@@ -248,15 +333,8 @@ pub fn modify_choice(
             }
         }
         Choices::PURSUIT => {
-            if defender_choice.category == MoveCategory::Switch {
+            if target_choice.category == MoveCategory::Switch {
                 attacker_choice.base_power *= 2.0;
-            }
-        }
-        Choices::REVELATIONDANCE => {
-            if attacking_side.get_active_immutable().terastallized {
-                attacker_choice.move_type = attacking_side.get_active_immutable().tera_type;
-            } else {
-                attacker_choice.move_type = attacking_side.get_active_immutable().types.0;
             }
         }
         Choices::RISINGVOLTAGE => {
@@ -279,7 +357,7 @@ pub fn modify_choice(
         }
         Choices::STRENGTHSAP => {
             attacker_choice.boost = Some(Boost {
-                target: MoveTarget::Opponent,
+                target: MoveTarget::Target,
                 boosts: StatBoosts {
                     attack: -1,
                     defense: 0,
@@ -289,34 +367,43 @@ pub fn modify_choice(
                     accuracy: 0,
                 },
             });
-            if defending_side.attack_boost != -6 {
-                let defender_attack =
-                    defending_side.calculate_boosted_stat(PokemonBoostableStat::Attack);
-                let attacker_maxhp = attacking_side.get_active_immutable().maxhp;
+            let target_slot = target_side.get_slot_immutable(target_slot_ref);
+            if target_slot.attack_boost != -6 {
+                let target_attack = target_side
+                    .calculate_boosted_stat(target_slot_ref, PokemonBoostableStat::Attack);
+                let attacker_maxhp = attacking_side
+                    .get_active_immutable(attacking_slot_ref)
+                    .maxhp;
 
-                if defending_side.get_active_immutable().ability == Abilities::LIQUIDOOZE {
+                if target_side.get_active_immutable(target_slot_ref).ability
+                    == Abilities::LIQUIDOOZE
+                {
                     attacker_choice.heal = Some(Heal {
                         target: MoveTarget::User,
-                        amount: -1.0 * defender_attack as f32 / attacker_maxhp as f32,
+                        amount: -1.0 * target_attack as f32 / attacker_maxhp as f32,
                     });
                 } else {
                     attacker_choice.heal = Some(Heal {
                         target: MoveTarget::User,
-                        amount: defender_attack as f32 / attacker_maxhp as f32,
+                        amount: target_attack as f32 / attacker_maxhp as f32,
                     });
                 }
             }
         }
         Choices::TERABLAST => {
-            let active = attacking_side.get_active_immutable();
+            let active = attacking_side.get_active_immutable(attacking_slot_ref);
             if active.terastallized {
-                attacker_choice.move_type = active.tera_type;
-                if attacking_side.calculate_boosted_stat(PokemonBoostableStat::Attack)
-                    > attacking_side.calculate_boosted_stat(PokemonBoostableStat::SpecialAttack)
+                if attacking_side
+                    .calculate_boosted_stat(attacking_slot_ref, PokemonBoostableStat::Attack)
+                    > attacking_side.calculate_boosted_stat(
+                        attacking_slot_ref,
+                        PokemonBoostableStat::SpecialAttack,
+                    )
                 {
                     attacker_choice.category = MoveCategory::Physical;
                 }
                 if active.tera_type == PokemonType::STELLAR {
+                    attacker_choice.base_power *= 100.0 / 80.0;
                     attacker_choice.add_or_create_secondaries(Secondary {
                         chance: 100.0,
                         target: MoveTarget::User,
@@ -332,35 +419,48 @@ pub fn modify_choice(
                 }
             }
         }
+        Choices::TERASTARSTORM => {
+            // changing to a spread move is done elsewhere
+            let active = attacking_side.get_active_immutable(attacking_slot_ref);
+            if active.terastallized {
+                if attacking_side
+                    .calculate_boosted_stat(attacking_slot_ref, PokemonBoostableStat::Attack)
+                    > attacking_side.calculate_boosted_stat(
+                        attacking_slot_ref,
+                        PokemonBoostableStat::SpecialAttack,
+                    )
+                {
+                    attacker_choice.category = MoveCategory::Physical;
+                }
+            }
+        }
         Choices::PHOTONGEYSER => {
-            if attacking_side.calculate_boosted_stat(PokemonBoostableStat::Attack)
-                > attacking_side.calculate_boosted_stat(PokemonBoostableStat::SpecialAttack)
+            if attacking_side
+                .calculate_boosted_stat(attacking_slot_ref, PokemonBoostableStat::Attack)
+                > attacking_side
+                    .calculate_boosted_stat(attacking_slot_ref, PokemonBoostableStat::SpecialAttack)
             {
                 attacker_choice.category = MoveCategory::Physical;
             }
         }
         Choices::TERRAINPULSE => match state.terrain.terrain_type {
             Terrain::ELECTRICTERRAIN => {
-                attacker_choice.move_type = PokemonType::ELECTRIC;
                 attacker_choice.base_power *= 2.0;
             }
             Terrain::GRASSYTERRAIN => {
-                attacker_choice.move_type = PokemonType::GRASS;
                 attacker_choice.base_power *= 2.0;
             }
             Terrain::MISTYTERRAIN => {
-                attacker_choice.move_type = PokemonType::FAIRY;
                 attacker_choice.base_power *= 2.0;
             }
             Terrain::PSYCHICTERRAIN => {
-                attacker_choice.move_type = PokemonType::PSYCHIC;
                 attacker_choice.base_power *= 2.0;
             }
             Terrain::NONE => {}
         },
         Choices::TOXIC => {
             if attacking_side
-                .get_active_immutable()
+                .get_active_immutable(attacking_slot_ref)
                 .has_type(&PokemonType::POISON)
             {
                 attacker_choice.accuracy = 100.0;
@@ -369,19 +469,15 @@ pub fn modify_choice(
         Choices::WEATHERBALL => match state.weather.weather_type {
             Weather::SUN | Weather::HARSHSUN => {
                 attacker_choice.base_power = 100.0;
-                attacker_choice.move_type = PokemonType::FIRE;
             }
             Weather::RAIN | Weather::HEAVYRAIN => {
                 attacker_choice.base_power = 100.0;
-                attacker_choice.move_type = PokemonType::WATER;
             }
             Weather::SAND => {
                 attacker_choice.base_power = 100.0;
-                attacker_choice.move_type = PokemonType::ROCK;
             }
             Weather::HAIL | Weather::SNOW => {
                 attacker_choice.base_power = 100.0;
-                attacker_choice.move_type = PokemonType::ICE;
             }
             Weather::NONE => {}
         },
@@ -400,7 +496,11 @@ pub fn modify_choice(
                 attacker_choice.accuracy = 100.0;
             }
         }
-        Choices::HURRICANE | Choices::THUNDER => {
+        Choices::HURRICANE
+        | Choices::THUNDER
+        | Choices::BLEAKWINDSTORM
+        | Choices::SANDSEARSTORM
+        | Choices::WILDBOLTSTORM => {
             if state.weather_is_active(&Weather::RAIN)
                 || state.weather_is_active(&Weather::HEAVYRAIN)
             {
@@ -412,33 +512,35 @@ pub fn modify_choice(
             }
         }
 
-        #[cfg(any(feature = "gen6", feature = "gen7", feature = "gen8", feature = "gen9"))]
         Choices::KNOCKOFF => {
             // Bonus damage still applies if substitute is hit
-            let defender = defending_side.get_active_immutable();
-            if !defender.item_is_permanent() && defender.item != Items::NONE {
+            let target = target_side.get_active_immutable(target_slot_ref);
+            if !target.item_is_permanent() && target.item != Items::NONE {
                 attacker_choice.base_power *= 1.5;
             }
         }
 
         Choices::ACROBATICS => {
-            if attacking_side.get_active_immutable().item == Items::NONE {
+            if attacking_side.get_active_immutable(attacking_slot_ref).item == Items::NONE {
                 attacker_choice.base_power *= 2.0;
             }
         }
         Choices::FOCUSPUNCH => {
-            if (defending_side.damage_dealt.move_category == MoveCategory::Physical
-                || defending_side.damage_dealt.move_category == MoveCategory::Special)
-                && !defending_side.damage_dealt.hit_substitute
-                && defending_side.damage_dealt.damage > 0
+            let target_slot = target_side.get_slot_immutable(target_slot_ref);
+            if (target_slot.damage_dealt.move_category == MoveCategory::Physical
+                || target_slot.damage_dealt.move_category == MoveCategory::Special)
+                && !target_slot.damage_dealt.hit_substitute
+                && target_slot.damage_dealt.damage > 0
             {
                 attacker_choice.remove_all_effects();
             }
         }
         Choices::ELECTROBALL => {
-            let attacker_speed = attacking_side.calculate_boosted_stat(PokemonBoostableStat::Speed);
-            let defender_speed = defending_side.calculate_boosted_stat(PokemonBoostableStat::Speed);
-            let speed_ratio = attacker_speed as f32 / defender_speed as f32;
+            let attacker_speed = attacking_side
+                .calculate_boosted_stat(attacking_slot_ref, PokemonBoostableStat::Speed);
+            let target_speed =
+                target_side.calculate_boosted_stat(target_slot_ref, PokemonBoostableStat::Speed);
+            let speed_ratio = attacker_speed as f32 / target_speed as f32;
             if speed_ratio >= 4.0 {
                 attacker_choice.base_power = 150.0;
             } else if speed_ratio >= 3.0 {
@@ -452,115 +554,106 @@ pub fn modify_choice(
             }
         }
         Choices::GYROBALL => {
-            let attacker_speed = attacking_side.calculate_boosted_stat(PokemonBoostableStat::Speed);
-            let defender_speed = defending_side.calculate_boosted_stat(PokemonBoostableStat::Speed);
+            let attacker_speed = attacking_side
+                .calculate_boosted_stat(attacking_slot_ref, PokemonBoostableStat::Speed);
+            let target_speed =
+                target_side.calculate_boosted_stat(target_slot_ref, PokemonBoostableStat::Speed);
 
             attacker_choice.base_power =
-                ((25.0 * defender_speed as f32 / attacker_speed as f32) + 1.0).min(150.0);
+                ((25.0 * target_speed as f32 / attacker_speed as f32) + 1.0).min(150.0);
         }
         Choices::AVALANCHE => {
             if !attacker_choice.first_move
-                && (defender_choice.category == MoveCategory::Physical
-                    || defender_choice.category == MoveCategory::Special)
+                && (target_choice.category == MoveCategory::Physical
+                    || target_choice.category == MoveCategory::Special)
             {
                 attacker_choice.base_power *= 2.0;
             }
         }
-
-        #[cfg(any(feature = "gen3", feature = "gen4"))]
         Choices::PAYBACK => {
-            if !attacker_choice.first_move {
+            if !attacker_choice.first_move && target_choice.category != MoveCategory::Switch {
                 attacker_choice.base_power *= 2.0;
             }
         }
-
-        #[cfg(any(
-            feature = "gen5",
-            feature = "gen6",
-            feature = "gen7",
-            feature = "gen8",
-            feature = "gen9"
-        ))]
-        Choices::PAYBACK => {
-            if !attacker_choice.first_move && defender_choice.category != MoveCategory::Switch {
-                attacker_choice.base_power *= 2.0;
-            }
-        }
-
         Choices::FACADE => {
-            if attacking_side.get_active_immutable().status != PokemonStatus::NONE {
+            if attacking_side
+                .get_active_immutable(attacking_slot_ref)
+                .status
+                != PokemonStatus::NONE
+            {
                 attacker_choice.base_power *= 2.0;
             }
         }
         Choices::STOREDPOWER | Choices::POWERTRIP => {
-            let total_boosts = attacking_side.attack_boost.max(0)
-                + attacking_side.defense_boost.max(0)
-                + attacking_side.special_attack_boost.max(0)
-                + attacking_side.special_defense_boost.max(0)
-                + attacking_side.speed_boost.max(0)
-                + attacking_side.accuracy_boost.max(0)
-                + attacking_side.evasion_boost.max(0);
+            let attacking_slot = attacking_side.get_slot_immutable(attacking_slot_ref);
+            let total_boosts = attacking_slot.attack_boost.max(0)
+                + attacking_slot.defense_boost.max(0)
+                + attacking_slot.special_attack_boost.max(0)
+                + attacking_slot.special_defense_boost.max(0)
+                + attacking_slot.speed_boost.max(0)
+                + attacking_slot.accuracy_boost.max(0)
+                + attacking_slot.evasion_boost.max(0);
             if total_boosts > 0 {
                 attacker_choice.base_power += 20.0 * total_boosts as f32;
             }
         }
         Choices::BARBBARRAGE => {
-            let defending_pkmn_status = defending_side.get_active_immutable().status;
-            if defending_pkmn_status == PokemonStatus::POISON
-                || defending_pkmn_status == PokemonStatus::TOXIC
+            let target_pkmn_status = target_side.get_active_immutable(target_slot_ref).status;
+            if target_pkmn_status == PokemonStatus::POISON
+                || target_pkmn_status == PokemonStatus::TOXIC
             {
                 attacker_choice.base_power *= 2.0;
             }
         }
         Choices::FREEZEDRY => {
-            if defending_side
-                .get_active_immutable()
+            if target_side
+                .get_active_immutable(target_slot_ref)
                 .has_type(&PokemonType::WATER)
             {
                 attacker_choice.base_power *= 4.0; // 2x for being super effective, 2x for nullifying water resistance
             }
         }
         Choices::ERUPTION | Choices::WATERSPOUT | Choices::DRAGONENERGY => {
-            let attacker = attacking_side.get_active_immutable();
+            let attacker = attacking_side.get_active_immutable(attacking_slot_ref);
             let hp_ratio = attacker.hp as f32 / attacker.maxhp as f32;
             attacker_choice.base_power *= hp_ratio;
         }
         Choices::SUCKERPUNCH | Choices::THUNDERCLAP => {
-            if !attacker_choice.first_move || defender_choice.category == MoveCategory::Status {
+            if target_has_moved || target_choice.category == MoveCategory::Status {
                 attacker_choice.base_power = 0.0;
             }
         }
         Choices::UPPERHAND => {
-            if !(attacker_choice.first_move && defender_choice.priority > 0) {
+            if target_has_moved || target_choice.priority <= 0 {
                 attacker_choice.remove_all_effects()
             }
         }
         Choices::COLLISIONCOURSE | Choices::ELECTRODRIFT => {
-            let defender_active = defending_side.get_active_immutable();
-            if type_effectiveness_modifier(&attacker_choice.move_type, &defender_active) > 1.0 {
+            let target_active = target_side.get_active_immutable(target_slot_ref);
+            if type_effectiveness_modifier(&attacker_choice.move_type, &target_active) > 1.0 {
                 attacker_choice.base_power *= 1.3;
             }
         }
         Choices::GRASSKNOT | Choices::LOWKICK => {
-            let defender_active = defending_side.get_active_immutable();
-            if defender_active.weight_kg < 10.0 {
+            let target_active = target_side.get_active_immutable(target_slot_ref);
+            if target_active.weight_kg < 10.0 {
                 attacker_choice.base_power = 20.0;
-            } else if defender_active.weight_kg < 25.0 {
+            } else if target_active.weight_kg < 25.0 {
                 attacker_choice.base_power = 40.0;
-            } else if defender_active.weight_kg < 50.0 {
+            } else if target_active.weight_kg < 50.0 {
                 attacker_choice.base_power = 60.0;
-            } else if defender_active.weight_kg < 100.0 {
+            } else if target_active.weight_kg < 100.0 {
                 attacker_choice.base_power = 80.0;
-            } else if defender_active.weight_kg < 200.0 {
+            } else if target_active.weight_kg < 200.0 {
                 attacker_choice.base_power = 100.0;
             } else {
                 attacker_choice.base_power = 120.0;
             }
         }
         Choices::HEATCRASH | Choices::HEAVYSLAM => {
-            let attacker = attacking_side.get_active_immutable();
-            let defender = defending_side.get_active_immutable();
-            let weight_ratio = defender.weight_kg / attacker.weight_kg;
+            let attacker = attacking_side.get_active_immutable(attacking_slot_ref);
+            let target = target_side.get_active_immutable(target_slot_ref);
+            let weight_ratio = target.weight_kg / attacker.weight_kg;
             if weight_ratio > 0.5 {
                 attacker_choice.base_power = 40.0;
             } else if weight_ratio > 0.3335 {
@@ -581,44 +674,53 @@ pub fn choice_after_damage_hit(
     state: &mut State,
     choice: &Choice,
     attacking_side_ref: &SideReference,
+    attacking_slot_ref: &SlotReference,
+    target_side_ref: &SideReference,
+    target_slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
     hit_sub: bool,
 ) {
-    let (attacking_side, defending_side) = state.get_both_sides(attacking_side_ref);
-    let attacker_active = attacking_side.get_active();
+    let attacking_side = state.get_side(attacking_side_ref);
     if choice.flags.recharge {
         let instruction = Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
-            side_ref: attacking_side_ref.clone(),
+            side_ref: *attacking_side_ref,
+            slot_ref: *attacking_slot_ref,
             volatile_status: PokemonVolatileStatus::MUSTRECHARGE,
         });
         instructions.instruction_list.push(instruction);
         attacking_side
+            .get_slot(attacking_slot_ref)
             .volatile_statuses
             .insert(PokemonVolatileStatus::MUSTRECHARGE);
 
     // Recharging and truant are mutually exclusive, with recharge taking priority
-    } else if attacker_active.ability == Abilities::TRUANT {
+    } else if attacking_side.get_active(attacking_slot_ref).ability == Abilities::TRUANT {
         let instruction = Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
             side_ref: attacking_side_ref.clone(),
+            slot_ref: *attacking_slot_ref,
             volatile_status: PokemonVolatileStatus::TRUANT,
         });
         instructions.instruction_list.push(instruction);
         attacking_side
+            .get_slot(attacking_slot_ref)
             .volatile_statuses
             .insert(PokemonVolatileStatus::TRUANT);
     }
     match choice.move_id {
         Choices::DOUBLESHOCK => {
-            let attacker_active = attacking_side.get_active_immutable();
+            let (attacker_active, attacker_index) =
+                attacking_side.get_active_with_index(attacking_slot_ref);
             let instruction = if attacker_active.types.0 == PokemonType::ELECTRIC {
                 Some(Instruction::ChangeType(ChangeType {
                     side_ref: *attacking_side_ref,
+                    pokemon_index: attacker_index,
                     new_types: (PokemonType::TYPELESS, attacker_active.types.1),
                     old_types: attacker_active.types,
                 }))
             } else if attacker_active.types.1 == PokemonType::ELECTRIC {
                 Some(Instruction::ChangeType(ChangeType {
                     side_ref: *attacking_side_ref,
+                    pokemon_index: attacker_index,
                     new_types: (attacker_active.types.0, PokemonType::TYPELESS),
                     old_types: attacker_active.types,
                 }))
@@ -627,6 +729,7 @@ pub fn choice_after_damage_hit(
             };
             if let Some(typechange_instruction) = instruction {
                 if !attacking_side
+                    .get_slot(attacking_slot_ref)
                     .volatile_statuses
                     .contains(&PokemonVolatileStatus::TYPECHANGE)
                 {
@@ -634,11 +737,13 @@ pub fn choice_after_damage_hit(
                         .instruction_list
                         .push(Instruction::ApplyVolatileStatus(
                             ApplyVolatileStatusInstruction {
-                                side_ref: attacking_side_ref.clone(),
+                                side_ref: *attacking_side_ref,
+                                slot_ref: *attacking_slot_ref,
                                 volatile_status: PokemonVolatileStatus::TYPECHANGE,
                             },
                         ));
                     attacking_side
+                        .get_slot(attacking_slot_ref)
                         .volatile_statuses
                         .insert(PokemonVolatileStatus::TYPECHANGE);
                 }
@@ -647,16 +752,19 @@ pub fn choice_after_damage_hit(
             }
         }
         Choices::BURNUP => {
-            let attacker_active = attacking_side.get_active_immutable();
+            let (attacker_active, attacker_index) =
+                attacking_side.get_active_with_index(attacking_slot_ref);
             let instruction = if attacker_active.types.0 == PokemonType::FIRE {
                 Some(Instruction::ChangeType(ChangeType {
                     side_ref: *attacking_side_ref,
+                    pokemon_index: attacker_index,
                     new_types: (PokemonType::TYPELESS, attacker_active.types.1),
                     old_types: attacker_active.types,
                 }))
             } else if attacker_active.types.1 == PokemonType::FIRE {
                 Some(Instruction::ChangeType(ChangeType {
                     side_ref: *attacking_side_ref,
+                    pokemon_index: attacker_index,
                     new_types: (attacker_active.types.0, PokemonType::TYPELESS),
                     old_types: attacker_active.types,
                 }))
@@ -664,7 +772,8 @@ pub fn choice_after_damage_hit(
                 None
             };
             if let Some(typechange_instruction) = instruction {
-                if !attacking_side
+                let attacking_slot = attacking_side.get_slot(attacking_slot_ref);
+                if !attacking_slot
                     .volatile_statuses
                     .contains(&PokemonVolatileStatus::TYPECHANGE)
                 {
@@ -673,10 +782,11 @@ pub fn choice_after_damage_hit(
                         .push(Instruction::ApplyVolatileStatus(
                             ApplyVolatileStatusInstruction {
                                 side_ref: attacking_side_ref.clone(),
+                                slot_ref: *attacking_slot_ref,
                                 volatile_status: PokemonVolatileStatus::TYPECHANGE,
                             },
                         ));
-                    attacking_side
+                    attacking_slot
                         .volatile_statuses
                         .insert(PokemonVolatileStatus::TYPECHANGE);
                 }
@@ -685,88 +795,96 @@ pub fn choice_after_damage_hit(
             }
         }
         Choices::RAGINGBULL => {
-            if defending_side.side_conditions.reflect > 0 {
+            let target_side = state.get_side(target_side_ref);
+            if target_side.side_conditions.reflect > 0 {
                 instructions
                     .instruction_list
                     .push(Instruction::ChangeSideCondition(
                         ChangeSideConditionInstruction {
-                            side_ref: attacking_side_ref.get_other_side(),
+                            side_ref: *target_side_ref,
                             side_condition: PokemonSideCondition::Reflect,
-                            amount: -1 * defending_side.side_conditions.reflect,
+                            amount: -1 * target_side.side_conditions.reflect,
                         },
                     ));
-                defending_side.side_conditions.reflect = 0;
+                target_side.side_conditions.reflect = 0;
             }
-            if defending_side.side_conditions.light_screen > 0 {
+            if target_side.side_conditions.light_screen > 0 {
                 instructions
                     .instruction_list
                     .push(Instruction::ChangeSideCondition(
                         ChangeSideConditionInstruction {
-                            side_ref: attacking_side_ref.get_other_side(),
+                            side_ref: *target_side_ref,
                             side_condition: PokemonSideCondition::LightScreen,
-                            amount: -1 * defending_side.side_conditions.light_screen,
+                            amount: -1 * target_side.side_conditions.light_screen,
                         },
                     ));
-                defending_side.side_conditions.light_screen = 0;
+                target_side.side_conditions.light_screen = 0;
             }
-            if defending_side.side_conditions.aurora_veil > 0 {
+            if target_side.side_conditions.aurora_veil > 0 {
                 instructions
                     .instruction_list
                     .push(Instruction::ChangeSideCondition(
                         ChangeSideConditionInstruction {
                             side_ref: attacking_side_ref.get_other_side(),
                             side_condition: PokemonSideCondition::AuroraVeil,
-                            amount: -1 * defending_side.side_conditions.aurora_veil,
+                            amount: -1 * target_side.side_conditions.aurora_veil,
                         },
                     ));
-                defending_side.side_conditions.aurora_veil = 0;
+                target_side.side_conditions.aurora_veil = 0;
             }
         }
         Choices::KNOCKOFF => {
-            let defender_active = defending_side.get_active();
-            if defender_active.item_can_be_removed()
-                && defender_active.item != Items::NONE
-                && !hit_sub
+            let target_side = state.get_side(target_side_ref);
+            let (target_active, target_active_index) =
+                target_side.get_active_with_index(target_slot_ref);
+            if target_active.item_can_be_removed() && target_active.item != Items::NONE && !hit_sub
             {
                 let instruction = Instruction::ChangeItem(ChangeItemInstruction {
-                    side_ref: attacking_side_ref.get_other_side(),
-                    current_item: defender_active.item,
+                    side_ref: *target_side_ref,
+                    pokemon_index: target_active_index,
+                    current_item: target_active.item,
                     new_item: Items::NONE,
                 });
                 instructions.instruction_list.push(instruction);
-                defender_active.item = Items::NONE;
+                target_active.item = Items::NONE;
             }
         }
-        Choices::THIEF => {
-            let attacker_active = attacking_side.get_active();
-            let defender_active = defending_side.get_active();
-            if defender_active.item_can_be_removed()
-                && defender_active.item != Items::NONE
-                && attacker_active.item == Items::NONE
-                && !hit_sub
+        Choices::THIEF
+            if attacking_side.get_active_immutable(attacking_slot_ref).item == Items::NONE =>
+        {
+            let (target_active, target_active_index) = state
+                .get_side(target_side_ref)
+                .get_active_with_index(target_slot_ref);
+            if target_active.item_can_be_removed() && target_active.item != Items::NONE && !hit_sub
             {
-                let defender_item = defender_active.item;
+                let target_item = target_active.item;
 
                 let instruction = Instruction::ChangeItem(ChangeItemInstruction {
-                    side_ref: attacking_side_ref.get_other_side(),
-                    current_item: defender_item,
+                    side_ref: *target_side_ref,
+                    pokemon_index: target_active_index,
+                    current_item: target_item,
                     new_item: Items::NONE,
                 });
                 instructions.instruction_list.push(instruction);
-                defender_active.item = Items::NONE;
+                target_active.item = Items::NONE;
 
+                let (attacker_active, attacker_active_index) = state
+                    .get_side(attacking_side_ref)
+                    .get_active_with_index(attacking_slot_ref);
                 let instruction = Instruction::ChangeItem(ChangeItemInstruction {
                     side_ref: *attacking_side_ref,
+                    pokemon_index: attacker_active_index,
                     current_item: Items::NONE,
-                    new_item: defender_item,
+                    new_item: target_item,
                 });
                 instructions.instruction_list.push(instruction);
-                attacker_active.item = defender_item;
+                attacker_active.item = target_item;
             }
         }
         Choices::CLEARSMOG => {
             state.reset_boosts(
-                &attacking_side_ref.get_other_side(),
+                target_side_ref,
+                target_slot_ref,
                 &mut instructions.instruction_list,
             );
         }
@@ -788,43 +906,16 @@ pub fn choice_after_damage_hit(
     }
 }
 
-#[cfg(any(feature = "gen3", feature = "gen4", feature = "gen5", feature = "gen6"))]
 fn destinybond_before_move(
     attacking_side: &mut Side,
     attacking_side_ref: &SideReference,
-    choice: &Choice,
-    instructions: &mut StateInstructions,
-) {
-    // gens 2-6 destinybond is only removed if you are not using destinybond
-    // destinybond is preserved, even if used twice in a row
-    if choice.move_id != Choices::DESTINYBOND
-        && attacking_side
-            .volatile_statuses
-            .contains(&PokemonVolatileStatus::DESTINYBOND)
-    {
-        instructions
-            .instruction_list
-            .push(Instruction::RemoveVolatileStatus(
-                RemoveVolatileStatusInstruction {
-                    side_ref: *attacking_side_ref,
-                    volatile_status: PokemonVolatileStatus::DESTINYBOND,
-                },
-            ));
-        attacking_side
-            .volatile_statuses
-            .remove(&PokemonVolatileStatus::DESTINYBOND);
-    }
-}
-
-#[cfg(any(feature = "gen7", feature = "gen8", feature = "gen9"))]
-fn destinybond_before_move(
-    attacking_side: &mut Side,
-    attacking_side_ref: &SideReference,
+    attacking_slot_ref: &SlotReference,
     choice: &mut Choice,
     instructions: &mut StateInstructions,
 ) {
     // gens 7+ destinybond cannot be used if destinybond is active
-    if attacking_side
+    let attacking_slot = attacking_side.get_slot(attacking_slot_ref);
+    if attacking_slot
         .volatile_statuses
         .contains(&PokemonVolatileStatus::DESTINYBOND)
     {
@@ -833,10 +924,11 @@ fn destinybond_before_move(
             .push(Instruction::RemoveVolatileStatus(
                 RemoveVolatileStatusInstruction {
                     side_ref: *attacking_side_ref,
+                    slot_ref: *attacking_slot_ref,
                     volatile_status: PokemonVolatileStatus::DESTINYBOND,
                 },
             ));
-        attacking_side
+        attacking_slot
             .volatile_statuses
             .remove(&PokemonVolatileStatus::DESTINYBOND);
         if choice.move_id == Choices::DESTINYBOND {
@@ -849,47 +941,74 @@ pub fn choice_before_move(
     state: &mut State,
     choice: &mut Choice,
     attacking_side_ref: &SideReference,
+    attacking_slot_ref: &SlotReference,
+    target_side_ref: &SideReference,
     instructions: &mut StateInstructions,
 ) {
-    let (attacking_side, defending_side) = state.get_both_sides(attacking_side_ref);
+    let defender_ability = state
+        .get_side_immutable(target_side_ref)
+        .get_active_immutable(attacking_slot_ref)
+        .ability;
+    let attacking_side = state.get_side(attacking_side_ref);
+    destinybond_before_move(
+        attacking_side,
+        attacking_side_ref,
+        attacking_slot_ref,
+        choice,
+        instructions,
+    );
 
-    destinybond_before_move(attacking_side, attacking_side_ref, choice, instructions);
-
-    let attacker = attacking_side.get_active();
-    let defender = defending_side.get_active_immutable();
-
+    let (attacker, attacker_index) = attacking_side.get_active_with_index(attacking_slot_ref);
     match choice.move_id {
-        Choices::FUTURESIGHT => {
-            choice.remove_all_effects();
-            if attacking_side.future_sight.0 == 0 {
-                instructions
-                    .instruction_list
-                    .push(Instruction::SetFutureSight(SetFutureSightInstruction {
-                        side_ref: *attacking_side_ref,
-                        pokemon_index: attacking_side.active_index,
-                        previous_pokemon_index: attacking_side.future_sight.1,
-                    }));
-                attacking_side.future_sight = (3, attacking_side.active_index);
+        // TODO: Futuresight needs to be re-implemented for doubles
+        // Choices::FUTURESIGHT => {
+        //     choice.remove_all_effects();
+        //     if attacking_side.future_sight.0 == 0 {
+        //         instructions
+        //             .instruction_list
+        //             .push(Instruction::SetFutureSight(SetFutureSightInstruction {
+        //                 side_ref: *attacking_side_ref,
+        //                 pokemon_index: attacking_side.active_index,
+        //                 previous_pokemon_index: attacking_side.future_sight.1,
+        //             }));
+        //         attacking_side.future_sight = (3, attacking_side.active_index);
+        //     }
+        // }
+        Choices::PARTINGSHOT => {
+            let target_pkmn = state
+                .get_side_immutable(target_side_ref)
+                .get_active_immutable(attacking_slot_ref);
+            if [
+                Abilities::CLEARBODY,
+                Abilities::WHITESMOKE,
+                Abilities::FULLMETALBODY,
+            ]
+            .contains(&target_pkmn.ability)
+                || ([Items::CLEARAMULET].contains(&target_pkmn.item))
+            {
+                choice.remove_all_effects();
             }
         }
         Choices::EXPLOSION | Choices::SELFDESTRUCT | Choices::MISTYEXPLOSION
-            if defender.ability != Abilities::DAMP =>
+            if defender_ability != Abilities::DAMP =>
         {
             let damage_amount = attacker.hp;
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
                     side_ref: *attacking_side_ref,
+                    pokemon_index: attacker_index,
                     damage_amount,
                 }));
             attacker.hp = 0;
         }
-        Choices::MINDBLOWN if defender.ability != Abilities::DAMP => {
+        Choices::MINDBLOWN if defender_ability != Abilities::DAMP => {
             let damage_amount = cmp::min(attacker.maxhp / 2, attacker.hp);
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
                     side_ref: *attacking_side_ref,
+                    pokemon_index: attacker_index,
                     damage_amount,
                 }));
             attacker.hp -= damage_amount;
@@ -901,6 +1020,7 @@ pub fn choice_before_move(
                 &1,
                 attacking_side_ref,
                 attacking_side_ref,
+                attacking_slot_ref,
             ) {
                 state.apply_one_instruction(&boost_instruction);
                 instructions.instruction_list.push(boost_instruction);
@@ -909,13 +1029,14 @@ pub fn choice_before_move(
         _ => {}
     }
     let attacking_side = state.get_side(attacking_side_ref);
-    let attacker = attacking_side.get_active();
+    let attacker = attacking_side.get_active(attacking_slot_ref);
     if choice.flags.charge
         && attacker.item == Items::POWERHERB
         && choice.move_id != Choices::SKYDROP
     {
         let instruction = Instruction::ChangeItem(ChangeItemInstruction {
             side_ref: *attacking_side_ref,
+            pokemon_index: attacker_index,
             current_item: Items::POWERHERB,
             new_item: Items::NONE,
         });
@@ -927,8 +1048,12 @@ pub fn choice_before_move(
         if choice_volatile_status.volatile_status == PokemonVolatileStatus::LOCKEDMOVE
             && choice_volatile_status.target == MoveTarget::User
         {
-            let ins =
-                get_choice_move_disable_instructions(attacker, attacking_side_ref, &choice.move_id);
+            let ins = get_choice_move_disable_instructions(
+                attacker,
+                attacker_index,
+                attacking_side_ref,
+                &choice.move_id,
+            );
             for i in ins {
                 state.apply_one_instruction(&i);
                 instructions.instruction_list.push(i);
@@ -941,9 +1066,15 @@ pub fn choice_hazard_clear(
     state: &mut State,
     choice: &Choice,
     attacking_side_ref: &SideReference,
+    target_side_ref: &SideReference,
+    target_slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) {
-    let (attacking_side, defending_side) = state.get_both_sides(attacking_side_ref);
+    let target_ability = state
+        .get_side_immutable(target_side_ref)
+        .get_active_immutable(target_slot_ref)
+        .ability;
+    let attacking_side = state.get_side(attacking_side_ref);
     match choice.move_id {
         Choices::COURTCHANGE => {
             let mut instruction_list = vec![];
@@ -967,14 +1098,14 @@ pub fn choice_hazard_clear(
                         instruction_list.push(Instruction::ChangeSideCondition(
                             ChangeSideConditionInstruction {
                                 side_ref: side,
-                                side_condition: side_condition,
+                                side_condition,
                                 amount: -1 * side_condition_num,
                             },
                         ));
                         instruction_list.push(Instruction::ChangeSideCondition(
                             ChangeSideConditionInstruction {
                                 side_ref: side.get_other_side(),
-                                side_condition: side_condition,
+                                side_condition,
                                 amount: side_condition_num,
                             },
                         ));
@@ -986,9 +1117,7 @@ pub fn choice_hazard_clear(
                 instructions.instruction_list.push(i)
             }
         }
-        Choices::DEFOG
-            if defending_side.get_active_immutable().ability != Abilities::GOODASGOLD =>
-        {
+        Choices::DEFOG if target_ability != Abilities::GOODASGOLD => {
             if state.terrain.terrain_type != Terrain::NONE {
                 instructions
                     .instruction_list
@@ -1019,7 +1148,7 @@ pub fn choice_hazard_clear(
                     if side_condition_num > 0 {
                         let i = Instruction::ChangeSideCondition(ChangeSideConditionInstruction {
                             side_ref: side,
-                            side_condition: side_condition,
+                            side_condition,
                             amount: -1 * side_condition_num,
                         });
                         state.apply_one_instruction(&i);
@@ -1035,7 +1164,6 @@ pub fn choice_hazard_clear(
                 PokemonSideCondition::ToxicSpikes,
                 PokemonSideCondition::StickyWeb,
             ];
-
             for side in [SideReference::SideOne, SideReference::SideTwo] {
                 for side_condition in side_condition_clears {
                     let side_condition_num = state
@@ -1044,7 +1172,7 @@ pub fn choice_hazard_clear(
                     if side_condition_num > 0 {
                         let i = Instruction::ChangeSideCondition(ChangeSideConditionInstruction {
                             side_ref: side,
-                            side_condition: side_condition,
+                            side_condition,
                             amount: -1 * side_condition_num,
                         });
                         state.apply_one_instruction(&i);
@@ -1052,59 +1180,34 @@ pub fn choice_hazard_clear(
                     }
                 }
             }
-            if state
-                .side_one
-                .volatile_statuses
-                .contains(&PokemonVolatileStatus::SUBSTITUTE)
-            {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeSubstituteHealth(
-                        ChangeSubsituteHealthInstruction {
-                            side_ref: SideReference::SideOne,
-                            health_change: -1 * state.side_one.substitute_health,
-                        },
-                    ));
-                instructions
-                    .instruction_list
-                    .push(Instruction::RemoveVolatileStatus(
-                        RemoveVolatileStatusInstruction {
-                            side_ref: SideReference::SideOne,
-                            volatile_status: PokemonVolatileStatus::SUBSTITUTE,
-                        },
-                    ));
-                state.side_one.substitute_health = 0;
-                state
-                    .side_one
+            for (side_r, slot_r) in State::get_all_sides_and_slots() {
+                let slot = state.get_side(&side_r).get_slot(&slot_r);
+                if slot
                     .volatile_statuses
-                    .remove(&PokemonVolatileStatus::SUBSTITUTE);
-            }
-            if state
-                .side_two
-                .volatile_statuses
-                .contains(&PokemonVolatileStatus::SUBSTITUTE)
-            {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeSubstituteHealth(
-                        ChangeSubsituteHealthInstruction {
-                            side_ref: SideReference::SideTwo,
-                            health_change: -1 * state.side_two.substitute_health,
-                        },
-                    ));
-                instructions
-                    .instruction_list
-                    .push(Instruction::RemoveVolatileStatus(
-                        RemoveVolatileStatusInstruction {
-                            side_ref: SideReference::SideTwo,
-                            volatile_status: PokemonVolatileStatus::SUBSTITUTE,
-                        },
-                    ));
-                state.side_two.substitute_health = 0;
-                state
-                    .side_two
-                    .volatile_statuses
-                    .remove(&PokemonVolatileStatus::SUBSTITUTE);
+                    .contains(&PokemonVolatileStatus::SUBSTITUTE)
+                {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeSubstituteHealth(
+                            ChangeSubsituteHealthInstruction {
+                                side_ref: SideReference::SideOne,
+                                slot_ref: slot_r,
+                                health_change: -1 * slot.substitute_health,
+                            },
+                        ));
+                    instructions
+                        .instruction_list
+                        .push(Instruction::RemoveVolatileStatus(
+                            RemoveVolatileStatusInstruction {
+                                side_ref: SideReference::SideOne,
+                                slot_ref: slot_r,
+                                volatile_status: PokemonVolatileStatus::SUBSTITUTE,
+                            },
+                        ));
+                    slot.substitute_health = 0;
+                    slot.volatile_statuses
+                        .remove(&PokemonVolatileStatus::SUBSTITUTE);
+                }
             }
         }
         Choices::RAPIDSPIN | Choices::MORTALSPIN => {
@@ -1165,109 +1268,150 @@ pub fn choice_special_effect(
     state: &mut State,
     choice: &mut Choice,
     attacking_side_ref: &SideReference,
+    attacking_slot_ref: &SlotReference,
+    target_side_ref: &SideReference,
+    target_slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) {
-    let (attacking_side, defending_side) = state.get_both_sides(attacking_side_ref);
+    let attacking_side = state.get_side(attacking_side_ref);
     match choice.move_id {
+        Choices::POLLENPUFF => {
+            if attacking_side_ref == target_side_ref {
+                choice.category = MoveCategory::Status;
+                choice.base_power = 0.0;
+                choice.accuracy = 100.0;
+                choice.heal = Some(Heal {
+                    target: MoveTarget::Target,
+                    amount: 0.5,
+                });
+            }
+        }
         Choices::BELLYDRUM => {
-            let boost_amount = 6 - attacking_side.attack_boost;
-            let attacker = attacking_side.get_active();
+            let (attacker, attacker_index) =
+                attacking_side.get_active_with_index(attacking_slot_ref);
             if attacker.hp > attacker.maxhp / 2 {
                 instructions
                     .instruction_list
                     .push(Instruction::Damage(DamageInstruction {
                         side_ref: *attacking_side_ref,
+                        pokemon_index: attacker_index,
                         damage_amount: attacker.maxhp / 2,
                     }));
+                attacker.hp -= attacker.maxhp / 2;
+
+                let attacking_slot = attacking_side.get_slot(attacking_slot_ref);
+                let boost_amount = 6 - attacking_slot.attack_boost;
+                attacking_slot.attack_boost = 6;
                 instructions
                     .instruction_list
                     .push(Instruction::Boost(BoostInstruction {
                         side_ref: *attacking_side_ref,
+                        slot_ref: *attacking_slot_ref,
                         stat: PokemonBoostableStat::Attack,
                         amount: boost_amount,
                     }));
-                attacker.hp -= attacker.maxhp / 2;
-                attacking_side.attack_boost = 6;
             }
         }
         Choices::COUNTER => {
-            if defending_side.damage_dealt.move_category == MoveCategory::Physical
-                && !defending_side
-                    .get_active_immutable()
-                    .has_type(&PokemonType::GHOST)
+            let target_side = state.get_side(target_side_ref);
+            if target_side
+                .get_active_immutable(target_slot_ref)
+                .has_type(&PokemonType::GHOST)
             {
-                let damage_amount = cmp::min(
-                    defending_side.damage_dealt.damage * 2,
-                    defending_side.get_active_immutable().hp,
-                );
-                if damage_amount > 0 {
-                    instructions
-                        .instruction_list
-                        .push(Instruction::Damage(DamageInstruction {
-                            side_ref: attacking_side_ref.get_other_side(),
-                            damage_amount: damage_amount,
-                        }));
-                    defending_side.get_active().hp -= damage_amount;
-                }
+                return;
             }
+            let target_slot = target_side.get_slot_immutable(target_slot_ref);
+            if target_slot.damage_dealt.move_category != MoveCategory::Physical
+                || target_slot.damage_dealt.damage == 0
+            {
+                return;
+            }
+            let damage_amount = cmp::min(
+                target_slot.damage_dealt.damage * 2,
+                target_side.get_active_immutable(target_slot_ref).hp,
+            );
+            let (target_active, target_active_index) =
+                target_side.get_active_with_index(target_slot_ref);
+            instructions
+                .instruction_list
+                .push(Instruction::Damage(DamageInstruction {
+                    side_ref: *target_side_ref,
+                    pokemon_index: target_active_index,
+                    damage_amount,
+                }));
+            target_active.hp -= damage_amount;
         }
         Choices::MIRRORCOAT => {
-            if defending_side.damage_dealt.move_category == MoveCategory::Special
-                && !defending_side
-                    .get_active_immutable()
-                    .has_type(&PokemonType::DARK)
+            let target_side = state.get_side(target_side_ref);
+            if target_side
+                .get_active_immutable(target_slot_ref)
+                .has_type(&PokemonType::DARK)
             {
-                let damage_amount = cmp::min(
-                    defending_side.damage_dealt.damage * 2,
-                    defending_side.get_active_immutable().hp,
-                );
-                if damage_amount > 0 {
-                    instructions
-                        .instruction_list
-                        .push(Instruction::Damage(DamageInstruction {
-                            side_ref: attacking_side_ref.get_other_side(),
-                            damage_amount: damage_amount,
-                        }));
-                    defending_side.get_active().hp -= damage_amount;
-                }
+                return;
             }
+            let target_slot = target_side.get_slot_immutable(target_slot_ref);
+            if target_slot.damage_dealt.move_category != MoveCategory::Special
+                || target_slot.damage_dealt.damage == 0
+            {
+                return;
+            }
+            let damage_amount = cmp::min(
+                target_slot.damage_dealt.damage * 2,
+                target_side.get_active_immutable(target_slot_ref).hp,
+            );
+            let (target_active, target_active_index) =
+                target_side.get_active_with_index(target_slot_ref);
+            instructions
+                .instruction_list
+                .push(Instruction::Damage(DamageInstruction {
+                    side_ref: *target_side_ref,
+                    pokemon_index: target_active_index,
+                    damage_amount,
+                }));
+            target_active.hp -= damage_amount;
         }
         Choices::METALBURST | Choices::COMEUPPANCE => {
-            if defending_side.damage_dealt.move_category != MoveCategory::Status
-                && !defending_side.damage_dealt.hit_substitute
-                && !choice.first_move
+            let target_side = state.get_side(target_side_ref);
+            let target_slot = target_side.get_slot_immutable(target_slot_ref);
+            let target_slot_damage_dealt = target_slot.damage_dealt.damage;
+            if target_slot.damage_dealt.move_category == MoveCategory::Status
+                || target_slot.damage_dealt.hit_substitute
+                || choice.first_move
+                || target_slot_damage_dealt == 0
             {
-                let damage_amount = cmp::min(
-                    (defending_side.damage_dealt.damage * 3) / 2,
-                    defending_side.get_active_immutable().hp,
-                );
-                if damage_amount > 0 {
-                    instructions
-                        .instruction_list
-                        .push(Instruction::Damage(DamageInstruction {
-                            side_ref: attacking_side_ref.get_other_side(),
-                            damage_amount: damage_amount,
-                        }));
-                    defending_side.get_active().hp -= damage_amount;
-                }
+                return;
             }
+            let (target_active, target_active_index) =
+                target_side.get_active_with_index(target_slot_ref);
+            let damage_amount = cmp::min((target_slot_damage_dealt * 3) / 2, target_active.hp);
+            instructions
+                .instruction_list
+                .push(Instruction::Damage(DamageInstruction {
+                    side_ref: *target_side_ref,
+                    pokemon_index: target_active_index,
+                    damage_amount,
+                }));
+            target_active.hp -= damage_amount;
         }
         Choices::WISH => {
-            if attacking_side.wish.0 == 0 {
-                let previous_wish_amount = attacking_side.wish.1;
+            let attacker_maxhp = attacking_side
+                .get_active_immutable(attacking_slot_ref)
+                .maxhp;
+            let attacking_slot = attacking_side.get_slot(attacking_slot_ref);
+            if attacking_slot.wish.0 == 0 {
                 instructions.instruction_list.push(Instruction::ChangeWish(
                     ChangeWishInstruction {
                         side_ref: *attacking_side_ref,
-                        wish_amount_change: attacking_side.get_active_immutable().maxhp / 2
-                            - previous_wish_amount,
+                        slot_ref: *attacking_slot_ref,
+                        wish_amount_change: attacker_maxhp / 2 - attacking_slot.wish.1,
                     },
                 ));
-                attacking_side.wish = (2, attacking_side.get_active_immutable().maxhp / 2);
+                attacking_slot.wish = (2, attacker_maxhp / 2);
             }
         }
         Choices::REFRESH => {
-            let active_index = attacking_side.active_index;
-            let active_pkmn = attacking_side.get_active();
+            let (active_pkmn, active_index) =
+                attacking_side.get_active_with_index(attacking_slot_ref);
             if active_pkmn.status != PokemonStatus::NONE {
                 add_remove_status_instructions(
                     instructions,
@@ -1290,12 +1434,30 @@ pub fn choice_special_effect(
             }
         }
         Choices::HAZE => {
-            state.reset_boosts(&SideReference::SideOne, &mut instructions.instruction_list);
-            state.reset_boosts(&SideReference::SideTwo, &mut instructions.instruction_list);
+            state.reset_boosts(
+                &SideReference::SideOne,
+                &SlotReference::SlotA,
+                &mut instructions.instruction_list,
+            );
+            state.reset_boosts(
+                &SideReference::SideOne,
+                &SlotReference::SlotB,
+                &mut instructions.instruction_list,
+            );
+            state.reset_boosts(
+                &SideReference::SideTwo,
+                &SlotReference::SlotA,
+                &mut instructions.instruction_list,
+            );
+            state.reset_boosts(
+                &SideReference::SideTwo,
+                &SlotReference::SlotB,
+                &mut instructions.instruction_list,
+            );
         }
         Choices::REST => {
-            let active_index = attacking_side.active_index;
-            let active_pkmn = attacking_side.get_active();
+            let (active_pkmn, active_index) =
+                attacking_side.get_active_with_index(attacking_slot_ref);
             if active_pkmn.status != PokemonStatus::SLEEP {
                 let heal_amount = active_pkmn.maxhp - active_pkmn.hp;
                 instructions
@@ -1318,7 +1480,8 @@ pub fn choice_special_effect(
                     .instruction_list
                     .push(Instruction::Heal(HealInstruction {
                         side_ref: *attacking_side_ref,
-                        heal_amount: heal_amount,
+                        pokemon_index: active_index,
+                        heal_amount,
                     }));
                 active_pkmn.hp = active_pkmn.maxhp;
                 active_pkmn.status = PokemonStatus::SLEEP;
@@ -1342,7 +1505,9 @@ pub fn choice_special_effect(
             state.trick_room.active = !state.trick_room.active;
         }
         Choices::SUPERFANG | Choices::NATURESMADNESS | Choices::RUINATION => {
-            let target_pkmn = defending_side.get_active();
+            let target_side = state.get_side(target_side_ref);
+            let (target_pkmn, target_active_index) =
+                target_side.get_active_with_index(target_slot_ref);
             if target_pkmn.hp == 1 {
                 return;
             }
@@ -1355,120 +1520,150 @@ pub fn choice_special_effect(
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: attacking_side_ref.get_other_side(),
+                    side_ref: *target_side_ref,
+                    pokemon_index: target_active_index,
                     damage_amount: target_pkmn.hp - target_hp,
                 }));
             target_pkmn.hp = target_hp;
         }
         Choices::NIGHTSHADE => {
-            let (attacking_side, defending_side) = state.get_both_sides(attacking_side_ref);
-            let attacker_level = attacking_side.get_active_immutable().level;
-            let defender_active = defending_side.get_active();
-            if type_effectiveness_modifier(&PokemonType::GHOST, &defender_active) == 0.0 {
+            let attacker_level = attacking_side
+                .get_active_immutable(attacking_slot_ref)
+                .level;
+            let target_side = state.get_side(target_side_ref);
+            let (target_pkmn, target_active_index) =
+                target_side.get_active_with_index(target_slot_ref);
+            if type_effectiveness_modifier(&PokemonType::GHOST, &target_pkmn) == 0.0 {
                 return;
             }
 
-            let damage_amount = cmp::min(attacker_level as i16, defender_active.hp);
+            let damage_amount = cmp::min(attacker_level as i16, target_pkmn.hp);
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: attacking_side_ref.get_other_side(),
-                    damage_amount: damage_amount,
+                    side_ref: *target_side_ref,
+                    pokemon_index: target_active_index,
+                    damage_amount,
                 }));
-            defender_active.hp -= damage_amount;
+            target_pkmn.hp -= damage_amount;
         }
         Choices::SEISMICTOSS => {
-            let (attacking_side, defending_side) = state.get_both_sides(attacking_side_ref);
-            let attacker_level = attacking_side.get_active_immutable().level;
-            let defender_active = defending_side.get_active();
-            if type_effectiveness_modifier(&PokemonType::NORMAL, &defender_active) == 0.0 {
+            let attacker_level = attacking_side
+                .get_active_immutable(attacking_slot_ref)
+                .level;
+            let target_side = state.get_side(target_side_ref);
+            let (target_pkmn, target_active_index) =
+                target_side.get_active_with_index(target_slot_ref);
+            if type_effectiveness_modifier(&PokemonType::NORMAL, &target_pkmn) == 0.0 {
                 return;
             }
 
-            let damage_amount = cmp::min(attacker_level as i16, defender_active.hp);
+            let damage_amount = cmp::min(attacker_level as i16, target_pkmn.hp);
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: attacking_side_ref.get_other_side(),
-                    damage_amount: damage_amount,
+                    side_ref: *target_side_ref,
+                    pokemon_index: target_active_index,
+                    damage_amount,
                 }));
-            defender_active.hp -= damage_amount;
+            target_pkmn.hp -= damage_amount;
         }
         Choices::ENDEAVOR => {
-            let (attacking_side, defending_side) = state.get_both_sides(attacking_side_ref);
-            let attacker = attacking_side.get_active();
-            let defender = defending_side.get_active();
+            let attacker_hp = attacking_side.get_active_immutable(attacking_slot_ref).hp;
+            let target_side = state.get_side(target_side_ref);
+            let (target_pkmn, target_active_index) =
+                target_side.get_active_with_index(target_slot_ref);
 
-            if type_effectiveness_modifier(&PokemonType::NORMAL, &defender) == 0.0
-                || attacker.hp >= defender.hp
+            if type_effectiveness_modifier(&PokemonType::NORMAL, &target_pkmn) == 0.0
+                || attacker_hp >= target_pkmn.hp
             {
                 return;
             }
 
-            let damage_amount = defender.hp - attacker.hp;
+            let damage_amount = target_pkmn.hp - attacker_hp;
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: attacking_side_ref.get_other_side(),
-                    damage_amount: damage_amount,
+                    side_ref: *target_side_ref,
+                    pokemon_index: target_active_index,
+                    damage_amount,
                 }));
-            defender.hp -= damage_amount;
+            target_pkmn.hp -= damage_amount;
         }
         Choices::FINALGAMBIT => {
-            let (attacking_side, defending_side) = state.get_both_sides(attacking_side_ref);
-            let attacker = attacking_side.get_active();
-            let defender = defending_side.get_active();
+            let attacker_hp = attacking_side.get_active_immutable(attacking_slot_ref).hp;
+            let target_side = state.get_side(target_side_ref);
+            let (target_pkmn, target_active_index) =
+                target_side.get_active_with_index(target_slot_ref);
 
-            if type_effectiveness_modifier(&PokemonType::NORMAL, &defender) == 0.0 {
+            if type_effectiveness_modifier(&PokemonType::NORMAL, &target_pkmn) == 0.0 {
                 return;
             }
 
-            let damage_amount = attacker.hp;
+            let damage_amount = attacker_hp;
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: attacking_side_ref.get_other_side(),
-                    damage_amount: damage_amount,
+                    side_ref: *target_side_ref,
+                    pokemon_index: target_active_index,
+                    damage_amount,
                 }));
-            defender.hp -= damage_amount;
+            target_pkmn.hp -= damage_amount;
 
+            let (attacker, attacker_index) = state
+                .get_side(attacking_side_ref)
+                .get_active_with_index(attacking_slot_ref);
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
                     side_ref: *attacking_side_ref,
-                    damage_amount: attacker.hp,
+                    pokemon_index: attacker_index,
+                    damage_amount: attacker_hp,
                 }));
             attacker.hp = 0;
         }
         Choices::PAINSPLIT => {
-            let target_hp = (attacking_side.get_active_immutable().hp
-                + defending_side.get_active_immutable().hp)
-                / 2;
+            let attacker_hp = attacking_side.get_active_immutable(attacking_slot_ref).hp;
+            let target_hp = state
+                .get_side(target_side_ref)
+                .get_active_immutable(target_slot_ref)
+                .hp;
+            let average_hp = (attacker_hp + target_hp) / 2;
+            let (attacker, attacker_index) = state
+                .get_side(attacking_side_ref)
+                .get_active_with_index(attacking_slot_ref);
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
                     side_ref: *attacking_side_ref,
-                    damage_amount: attacking_side.get_active_immutable().hp - target_hp,
+                    pokemon_index: attacker_index,
+                    damage_amount: attacker.hp - average_hp,
                 }));
+            attacker.hp = average_hp;
+
+            let (target, target_index) = state
+                .get_side(target_side_ref)
+                .get_active_with_index(target_slot_ref);
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: attacking_side_ref.get_other_side(),
-                    damage_amount: defending_side.get_active_immutable().hp - target_hp,
+                    side_ref: *target_side_ref,
+                    pokemon_index: target_index,
+                    damage_amount: target.hp - average_hp,
                 }));
-
-            attacking_side.get_active().hp = target_hp;
-            defending_side.get_active().hp = target_hp;
+            target.hp = average_hp;
         }
         Choices::SUBSTITUTE | Choices::SHEDTAIL => {
-            if attacking_side
+            let attacking_slot = attacking_side.get_slot(attacking_slot_ref);
+            if attacking_slot
                 .volatile_statuses
                 .contains(&PokemonVolatileStatus::SUBSTITUTE)
             {
                 return;
             }
-            let sub_current_health = attacking_side.substitute_health;
-            let active_pkmn = attacking_side.get_active();
+            let sub_current_health = attacking_slot.substitute_health;
+            let (active_pkmn, active_index) =
+                attacking_side.get_active_with_index(attacking_slot_ref);
             let sub_target_health = active_pkmn.maxhp / 4;
             let pkmn_health_reduction = if choice.move_id == Choices::SHEDTAIL {
                 active_pkmn.maxhp / 2
@@ -1481,22 +1676,26 @@ pub fn choice_special_effect(
                 }
 
                 let damage_instruction = Instruction::Damage(DamageInstruction {
-                    side_ref: attacking_side_ref.clone(),
+                    side_ref: *attacking_side_ref,
+                    pokemon_index: active_index,
                     damage_amount: pkmn_health_reduction,
                 });
                 let set_sub_health_instruction =
                     Instruction::ChangeSubstituteHealth(ChangeSubsituteHealthInstruction {
-                        side_ref: attacking_side_ref.clone(),
+                        side_ref: *attacking_side_ref,
+                        slot_ref: *attacking_slot_ref,
                         health_change: sub_target_health - sub_current_health,
                     });
                 let apply_vs_instruction =
                     Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
-                        side_ref: attacking_side_ref.clone(),
+                        side_ref: *attacking_side_ref,
+                        slot_ref: *attacking_slot_ref,
                         volatile_status: PokemonVolatileStatus::SUBSTITUTE,
                     });
                 active_pkmn.hp -= pkmn_health_reduction;
-                attacking_side.substitute_health = sub_target_health;
-                attacking_side
+                let attacking_slot = attacking_side.get_slot(attacking_slot_ref);
+                attacking_slot.substitute_health = sub_target_health;
+                attacking_slot
                     .volatile_statuses
                     .insert(PokemonVolatileStatus::SUBSTITUTE);
                 instructions.instruction_list.push(damage_instruction);
@@ -1507,67 +1706,78 @@ pub fn choice_special_effect(
             }
         }
         Choices::PERISHSONG => {
-            for side_ref in [SideReference::SideOne, SideReference::SideTwo] {
+            for (side_ref, slot_ref) in State::get_all_sides_and_slots() {
                 let side = state.get_side(&side_ref);
-                let pkmn = side.get_active();
-                if pkmn.hp != 0
-                    && pkmn.ability != Abilities::SOUNDPROOF
-                    && !(side
+                let slot = side.get_slot(&slot_ref);
+                if slot
+                    .volatile_statuses
+                    .contains(&PokemonVolatileStatus::PERISH4)
+                    || slot
                         .volatile_statuses
-                        .contains(&PokemonVolatileStatus::PERISH4)
-                        || side
-                            .volatile_statuses
-                            .contains(&PokemonVolatileStatus::PERISH3)
-                        || side
-                            .volatile_statuses
-                            .contains(&PokemonVolatileStatus::PERISH2)
-                        || side
-                            .volatile_statuses
-                            .contains(&PokemonVolatileStatus::PERISH1))
+                        .contains(&PokemonVolatileStatus::PERISH3)
+                    || slot
+                        .volatile_statuses
+                        .contains(&PokemonVolatileStatus::PERISH2)
+                    || slot
+                        .volatile_statuses
+                        .contains(&PokemonVolatileStatus::PERISH1)
                 {
+                    continue;
+                }
+                let pkmn = side.get_active(&slot_ref);
+                if pkmn.hp != 0 && pkmn.ability != Abilities::SOUNDPROOF {
                     instructions
                         .instruction_list
                         .push(Instruction::ApplyVolatileStatus(
                             ApplyVolatileStatusInstruction {
-                                side_ref: side_ref,
+                                side_ref,
+                                slot_ref,
                                 volatile_status: PokemonVolatileStatus::PERISH4,
                             },
                         ));
-                    side.volatile_statuses
+                    side.get_slot(&slot_ref)
+                        .volatile_statuses
                         .insert(PokemonVolatileStatus::PERISH4);
                 }
             }
         }
         Choices::TRICK | Choices::SWITCHEROO => {
-            let defender_has_sub = defending_side
+            let attacker_item = attacking_side.get_active(attacking_slot_ref).item;
+            let target_side = state.get_side(target_side_ref);
+            let target_has_sub = target_side
+                .get_slot_immutable(target_slot_ref)
                 .volatile_statuses
                 .contains(&PokemonVolatileStatus::SUBSTITUTE);
-            let attacker = attacking_side.get_active();
-            let defender = defending_side.get_active();
-            let attacker_item = attacker.item;
-            let defender_item = defender.item;
-            if attacker_item == defender_item || !defender.item_can_be_removed() || defender_has_sub
-            {
+            let target_item = target_side.get_active_immutable(target_slot_ref).item;
+            let (target, target_index) = target_side.get_active_with_index(target_slot_ref);
+            let target_item_can_be_removed = !target.item_can_be_removed();
+            if attacker_item == target_item || target_item_can_be_removed || target_has_sub {
                 return;
             }
-            let change_attacker_item_instruction = Instruction::ChangeItem(ChangeItemInstruction {
-                side_ref: *attacking_side_ref,
-                current_item: attacker_item,
-                new_item: defender_item,
-            });
-            let change_defender_item_instruction = Instruction::ChangeItem(ChangeItemInstruction {
-                side_ref: attacking_side_ref.get_other_side(),
-                current_item: defender_item,
+            let change_target_item_instruction = Instruction::ChangeItem(ChangeItemInstruction {
+                side_ref: *target_side_ref,
+                pokemon_index: target_index,
+                current_item: target_item,
                 new_item: attacker_item,
             });
-            attacker.item = defender_item;
-            defender.item = attacker_item;
+            instructions
+                .instruction_list
+                .push(change_target_item_instruction);
+            target.item = attacker_item;
+
+            let (attacker, attacker_index) = state
+                .get_side(attacking_side_ref)
+                .get_active_with_index(attacking_slot_ref);
+            let change_attacker_item_instruction = Instruction::ChangeItem(ChangeItemInstruction {
+                side_ref: *attacking_side_ref,
+                pokemon_index: attacker_index,
+                current_item: attacker_item,
+                new_item: target_item,
+            });
+            attacker.item = target_item;
             instructions
                 .instruction_list
                 .push(change_attacker_item_instruction);
-            instructions
-                .instruction_list
-                .push(change_defender_item_instruction);
         }
         Choices::SUNNYDAY => {
             if state.weather.weather_type != Weather::SUN {
@@ -1667,7 +1877,7 @@ pub fn charge_choice_to_volatile(choice: &Choices) -> PokemonVolatileStatus {
         }
     }
 }
-
+//
 pub fn charge_volatile_to_choice(volatile: &PokemonVolatileStatus) -> Option<Choices> {
     match volatile {
         PokemonVolatileStatus::BOUNCE => Some(Choices::BOUNCE),

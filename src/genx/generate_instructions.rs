@@ -3106,6 +3106,34 @@ fn get_effective_speed(
     boosted_speed as i16
 }
 
+fn get_effective_priority(
+    state: &State,
+    side_reference: &SideReference,
+    slot_reference: &SlotReference,
+    choice: &Choice,
+) -> i8 {
+    let mut priority = choice.priority;
+    let side = state.get_side_immutable(side_reference);
+    let active_pkmn = side.get_active_immutable(slot_reference);
+
+    if choice.move_id == Choices::GRASSYGLIDE && state.terrain_is_active(&Terrain::GRASSYTERRAIN) {
+        priority += 1;
+    }
+
+    match active_pkmn.ability {
+        Abilities::PRANKSTER if choice.category == MoveCategory::Status => priority += 1,
+        Abilities::GALEWINGS
+            if choice.move_type == PokemonType::FLYING && active_pkmn.hp == active_pkmn.maxhp =>
+        {
+            priority += 1
+        }
+        Abilities::TRIAGE if choice.flags.heal => priority += 3,
+        _ => {}
+    }
+
+    priority
+}
+
 fn modify_choice_before_move(
     state: &State,
     side_reference: &SideReference,
@@ -3115,22 +3143,6 @@ fn modify_choice_before_move(
 ) {
     let side = state.get_side_immutable(side_reference);
     let active_pkmn = side.get_active_immutable(slot_reference);
-
-    if choice.move_id == Choices::GRASSYGLIDE && state.terrain_is_active(&Terrain::GRASSYTERRAIN) {
-        choice.priority += 1;
-    }
-
-    match active_pkmn.ability {
-        Abilities::PRANKSTER if choice.category == MoveCategory::Status => choice.priority += 1,
-        Abilities::GALEWINGS
-            if choice.move_type == PokemonType::FLYING && active_pkmn.hp == active_pkmn.maxhp =>
-        {
-            choice.priority += 1
-        }
-        Abilities::TRIAGE if choice.flags.heal => choice.priority += 3,
-        _ => {}
-    }
-
     match choice.move_id {
         Choices::TERASTARSTORM if pkmn_just_used_tera || active_pkmn.terastallized => {
             choice.move_choice_target = MoveChoiceTarget::AllFoes;
@@ -3146,7 +3158,7 @@ fn modify_choice_before_move(
 fn next_to_move(
     state: &State,
     need_to_move: &Vec<RemainingToMove>,
-) -> (SideReference, SlotReference, usize) {
+) -> (SideReference, SlotReference, usize, i8) {
     // General Pesudocode:
     // Get switches. If > 0 switches, filter down to only switches
     // If 1 switch, return that one
@@ -3175,15 +3187,21 @@ fn next_to_move(
             &remaining_to_move.side_ref,
             &remaining_to_move.slot_ref,
         ));
-        effective_priorities.push(remaining_to_move.choice.priority);
+        let this_priority = get_effective_priority(
+            state,
+            &remaining_to_move.side_ref,
+            &remaining_to_move.slot_ref,
+            &remaining_to_move.choice,
+        );
+        effective_priorities.push(this_priority);
         if remaining_to_move.choice.category == MoveCategory::Switch {
             switch_indices.push(index);
         }
-        if remaining_to_move.choice.priority > max_priority {
-            max_priority = remaining_to_move.choice.priority;
+        if this_priority > max_priority {
+            max_priority = this_priority;
             max_priority_indices.clear();
             max_priority_indices.push(index);
-        } else if remaining_to_move.choice.priority == max_priority {
+        } else if this_priority == max_priority {
             max_priority_indices.push(index);
         }
     }
@@ -3197,7 +3215,7 @@ fn next_to_move(
                 ret_index = index;
             }
         }
-        return (side_ref, slot_ref, ret_index);
+        return (side_ref, slot_ref, ret_index, max_priority);
     }
 
     // 2. Since we didn't find any switches, find the highest effective speed
@@ -3212,7 +3230,7 @@ fn next_to_move(
                 ret_index = index;
             }
         }
-        (side_ref, slot_ref, ret_index)
+        (side_ref, slot_ref, ret_index, max_priority)
     } else {
         let mut max_speed = 0;
         for index in max_priority_indices {
@@ -3222,7 +3240,7 @@ fn next_to_move(
                 ret_index = index;
             }
         }
-        (side_ref, slot_ref, ret_index)
+        (side_ref, slot_ref, ret_index, max_priority)
     }
 }
 
@@ -4635,40 +4653,68 @@ pub fn generate_instructions_from_move_pair(
                 target_side_ref,
                 target_slot_ref,
             ) = match next_to_move(&state, &remaining_to_move) {
-                (SideReference::SideOne, SlotReference::SlotA, chosen_index) => {
+                (
+                    SideReference::SideOne,
+                    SlotReference::SlotA,
+                    chosen_index,
+                    move_effective_priority,
+                ) => {
                     remaining_to_move.remove(chosen_index);
+                    let mut this_choice = side_one_a_choice.clone();
+                    this_choice.priority = move_effective_priority;
                     (
-                        side_one_a_choice.clone(),
+                        this_choice,
                         SideReference::SideOne,
                         SlotReference::SlotA,
                         side_one_a_target_side,
                         side_one_a_target_slot,
                     )
                 }
-                (SideReference::SideOne, SlotReference::SlotB, chosen_index) => {
+                (
+                    SideReference::SideOne,
+                    SlotReference::SlotB,
+                    chosen_index,
+                    move_effective_priority,
+                ) => {
                     remaining_to_move.remove(chosen_index);
+                    let mut this_choice = side_one_b_choice.clone();
+                    this_choice.priority = move_effective_priority;
                     (
-                        side_one_b_choice.clone(),
+                        this_choice,
                         SideReference::SideOne,
                         SlotReference::SlotB,
                         side_one_b_target_side,
                         side_one_b_target_slot,
                     )
                 }
-                (SideReference::SideTwo, SlotReference::SlotA, chosen_index) => {
+                (
+                    SideReference::SideTwo,
+                    SlotReference::SlotA,
+                    chosen_index,
+                    move_effective_priority,
+                ) => {
                     remaining_to_move.remove(chosen_index);
+                    let mut this_choice = side_two_a_choice.clone();
+                    this_choice.priority = move_effective_priority;
                     (
-                        side_two_a_choice.clone(),
+                        this_choice,
                         SideReference::SideTwo,
                         SlotReference::SlotA,
                         side_two_a_target_side,
                         side_two_a_target_slot,
                     )
                 }
-                (SideReference::SideTwo, SlotReference::SlotB, chosen_index) => {
+                (
+                    SideReference::SideTwo,
+                    SlotReference::SlotB,
+                    chosen_index,
+                    move_effective_priority,
+                ) => {
                     remaining_to_move.remove(chosen_index);
+                    let mut this_choice = side_two_b_choice.clone();
+                    this_choice.priority = move_effective_priority;
                     (
-                        side_two_b_choice.clone(),
+                        this_choice,
                         SideReference::SideTwo,
                         SlotReference::SlotB,
                         side_two_b_target_side,

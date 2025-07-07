@@ -3,7 +3,9 @@ use poke_engine::engine::abilities::{Abilities, WEATHER_ABILITY_TURNS};
 use poke_engine::engine::generate_instructions::generate_instructions_from_move_pair;
 use poke_engine::engine::items::Items;
 use poke_engine::engine::state::{MoveChoice, PokemonVolatileStatus, Terrain, Weather};
-use poke_engine::instruction::Instruction::DecrementTrickRoomTurnsRemaining;
+use poke_engine::instruction::Instruction::{
+    DecrementTerrainTurnsRemaining, DecrementTrickRoomTurnsRemaining,
+};
 use poke_engine::instruction::{
     ApplyVolatileStatusInstruction, BoostInstruction, ChangeAbilityInstruction,
     ChangeItemInstruction, ChangeSideConditionInstruction, ChangeStatInstruction,
@@ -2567,43 +2569,6 @@ fn test_prankster_status_move_into_armortail() {
 }
 
 #[test]
-fn test_() {
-    let mut state = State::default();
-    state.side_one.pokemon.p0.ability = Abilities::PRANKSTER;
-    state.side_one.pokemon.p1.ability = Abilities::PRANKSTER;
-    state.side_two.pokemon.p0.ability = Abilities::ARMORTAIL;
-
-    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
-        &mut state,
-        TestMoveChoice {
-            choice: Choices::THUNDERWAVE,
-            move_choice: MoveChoice::Move(
-                SlotReference::SlotA,
-                SideReference::SideTwo,
-                PokemonMoveIndex::M0,
-            ),
-        },
-        TestMoveChoice {
-            choice: Choices::THUNDERWAVE,
-            move_choice: MoveChoice::Move(
-                SlotReference::SlotB,
-                SideReference::SideTwo,
-                PokemonMoveIndex::M0,
-            ),
-        },
-        TestMoveChoice::default(),
-        TestMoveChoice::default(),
-    );
-
-    let expected_instructions = vec![StateInstructions {
-        end_of_turn_triggered: true,
-        percentage: 100.0,
-        instruction_list: vec![],
-    }];
-    assert_eq!(expected_instructions, vec_of_instructions);
-}
-
-#[test]
 fn test_moldbreaker_ignores_armortail() {
     let mut state = State::default();
     state.side_one.pokemon.p0.ability = Abilities::MOLDBREAKER;
@@ -3897,6 +3862,80 @@ fn test_tera_starstorm_while_terastallizing() {
             }),
         ],
     }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_mid_turn_priority_change() {
+    /*
+    A more complicated interaction:
+    - grassy terrain is up, meaning there is a +1 prio boost to a grassy glide on side_one
+    - side_two switches into a pokemon with psychicsurge, getting rid of grassy terrain
+    - side_one uses grassy glide, which should now have a priority of 0
+    - side_two has a pokemon with higher speed than the grassy glide user, so it should move first
+    */
+    let mut state = State::default();
+    state.terrain.terrain_type = Terrain::GRASSYTERRAIN;
+    state.terrain.turns_remaining = 3;
+    state.side_two.pokemon.p2.ability = Abilities::PSYCHICSURGE;
+    state.side_one.pokemon.p0.speed = 100;
+    state.side_two.pokemon.p0.speed = 105;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::GRASSYGLIDE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::TACKLE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::Switch(PokemonIndex::P2),
+        },
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Switch(SwitchInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotB,
+                previous_index: PokemonIndex::P1,
+                next_index: PokemonIndex::P2,
+            }),
+            Instruction::ChangeTerrain(ChangeTerrain {
+                previous_terrain: Terrain::GRASSYTERRAIN,
+                new_terrain: Terrain::PSYCHICTERRAIN,
+                previous_terrain_turns_remaining: 3,
+                new_terrain_turns_remaining: 5,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 48,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo, // grassy glide hits side_two last
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 44,
+            }),
+            DecrementTerrainTurnsRemaining,
+        ],
+    }];
+
     assert_eq!(expected_instructions, vec_of_instructions);
 }
 

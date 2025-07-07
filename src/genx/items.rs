@@ -22,6 +22,7 @@ define_enum_with_from_str! {
     Items {
         NONE,
         UNKNOWNITEM,
+        ABILITYSHIELD,
         ABSORBBULB,
         ADRENALINEORB,
         ADAMANTORB,

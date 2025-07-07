@@ -518,11 +518,12 @@ pub fn ability_change_type(
     attacking_side_ref: &SideReference,
     attacking_slot_ref: &SlotReference,
 ) {
-    if state.neutralizing_gas_is_active() {
-        return;
-    }
     let attacking_side = state.get_side_immutable(attacking_side_ref);
     let attacking_pkmn = attacking_side.get_active_immutable(attacking_slot_ref);
+    if state.neutralizing_gas_is_active() && attacking_pkmn.item != Items::ABILITYSHIELD {
+        return;
+    }
+
     match attacking_pkmn.ability {
         Abilities::GALVANIZE => {
             if attacker_choice.move_type == PokemonType::NORMAL {
@@ -569,128 +570,137 @@ pub fn ability_before_move(
     target_slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) {
-    if state.neutralizing_gas_is_active() {
-        return;
-    }
+    let neutralizing_gas_active = state.neutralizing_gas_is_active();
     let target_side = state.get_side(target_side_ref);
     let (target_pkmn, target_active_index) = target_side.get_active_with_index(target_slot_ref);
-    match target_pkmn.ability {
-        // Incomplete: IceFace should not stop secondaries, but setting base_power to 0 makes
-        // secondaries not apply in this engine
-        Abilities::ICEFACE => {
-            if target_pkmn.id == PokemonName::EISCUE && choice.category == MoveCategory::Physical {
-                // hacky - changing the move to a status move makes it do no
-                // damage but preserve secondary effects
-                // due to some bad choices I made I cannot just set base_power to 0
-                choice.category = MoveCategory::Status;
+    if !neutralizing_gas_active || target_pkmn.item == Items::ABILITYSHIELD {
+        match target_pkmn.ability {
+            // Incomplete: IceFace should not stop secondaries, but setting base_power to 0 makes
+            // secondaries not apply in this engine
+            Abilities::ICEFACE => {
+                if target_pkmn.id == PokemonName::EISCUE
+                    && choice.category == MoveCategory::Physical
+                {
+                    // hacky - changing the move to a status move makes it do no
+                    // damage but preserve secondary effects
+                    // due to some bad choices I made I cannot just set base_power to 0
+                    choice.category = MoveCategory::Status;
+                    instructions.instruction_list.push(Instruction::FormeChange(
+                        FormeChangeInstruction {
+                            side_ref: *target_side_ref,
+                            pokemon_index: target_active_index,
+                            name_change: PokemonName::EISCUENOICE as i16 - target_pkmn.id as i16,
+                        },
+                    ));
+                    target_pkmn.id = PokemonName::EISCUENOICE;
+                    target_pkmn.recalculate_stats(
+                        target_side_ref,
+                        target_active_index,
+                        instructions,
+                    );
+                }
+            }
+            Abilities::DISGUISE
+                if (choice.category == MoveCategory::Physical
+                    || choice.category == MoveCategory::Special)
+                    && (target_pkmn.id == PokemonName::MIMIKYU
+                        || target_pkmn.id == PokemonName::MIMIKYUTOTEM) =>
+            {
+                choice.base_power = 0.0;
                 instructions.instruction_list.push(Instruction::FormeChange(
                     FormeChangeInstruction {
                         side_ref: *target_side_ref,
                         pokemon_index: target_active_index,
-                        name_change: PokemonName::EISCUENOICE as i16 - target_pkmn.id as i16,
+                        name_change: PokemonName::MIMIKYUBUSTED as i16 - target_pkmn.id as i16,
                     },
                 ));
-                target_pkmn.id = PokemonName::EISCUENOICE;
-                target_pkmn.recalculate_stats(target_side_ref, target_active_index, instructions);
+                target_pkmn.id = PokemonName::MIMIKYUBUSTED;
+                let dmg = cmp::min(target_pkmn.hp, target_pkmn.maxhp / 8);
+                instructions
+                    .instruction_list
+                    .push(Instruction::Damage(DamageInstruction {
+                        side_ref: *target_side_ref,
+                        pokemon_index: target_active_index,
+                        damage_amount: dmg,
+                    }));
+                target_pkmn.hp -= dmg;
             }
+            _ => {}
         }
-        Abilities::DISGUISE
-            if (choice.category == MoveCategory::Physical
-                || choice.category == MoveCategory::Special)
-                && (target_pkmn.id == PokemonName::MIMIKYU
-                    || target_pkmn.id == PokemonName::MIMIKYUTOTEM) =>
-        {
-            choice.base_power = 0.0;
-            instructions
-                .instruction_list
-                .push(Instruction::FormeChange(FormeChangeInstruction {
-                    side_ref: *target_side_ref,
-                    pokemon_index: target_active_index,
-                    name_change: PokemonName::MIMIKYUBUSTED as i16 - target_pkmn.id as i16,
-                }));
-            target_pkmn.id = PokemonName::MIMIKYUBUSTED;
-            let dmg = cmp::min(target_pkmn.hp, target_pkmn.maxhp / 8);
-            instructions
-                .instruction_list
-                .push(Instruction::Damage(DamageInstruction {
-                    side_ref: *target_side_ref,
-                    pokemon_index: target_active_index,
-                    damage_amount: dmg,
-                }));
-            target_pkmn.hp -= dmg;
-        }
-        _ => {}
     }
     let attacking_side = state.get_side(attacking_side_ref);
     let (attacking_pkmn, attacking_active_index) =
         attacking_side.get_active_with_index(attacking_slot_ref);
-    match attacking_pkmn.ability {
-        Abilities::GULPMISSILE => {
-            if attacking_pkmn.id == PokemonName::CRAMORANT
-                && (choice.move_id == Choices::SURF || choice.move_id == Choices::DIVE)
-            {
-                let new_forme = if attacking_pkmn.hp > attacking_pkmn.maxhp / 2 {
-                    PokemonName::CRAMORANTGULPING
-                } else {
-                    PokemonName::CRAMORANTGORGING
-                };
-                instructions.instruction_list.push(Instruction::FormeChange(
-                    FormeChangeInstruction {
-                        side_ref: *attacking_side_ref,
-                        pokemon_index: attacking_active_index,
-                        name_change: new_forme as i16 - attacking_pkmn.id as i16,
-                    },
-                ));
-                attacking_pkmn.id = new_forme;
-            }
-        }
-        Abilities::PROTEAN | Abilities::LIBERO => {
-            if !attacking_side
-                .get_slot_immutable(attacking_slot_ref)
-                .volatile_statuses
-                .contains(&PokemonVolatileStatus::TYPECHANGE)
-            {
-                let attacking_pkmn = attacking_side.get_active(attacking_slot_ref);
-                if !attacking_pkmn.has_type(&choice.move_type) && !attacking_pkmn.terastallized {
-                    instructions
-                        .instruction_list
-                        .push(Instruction::ChangeType(ChangeType {
+    if !neutralizing_gas_active || attacking_pkmn.item == Items::ABILITYSHIELD {
+        match attacking_pkmn.ability {
+            Abilities::GULPMISSILE => {
+                if attacking_pkmn.id == PokemonName::CRAMORANT
+                    && (choice.move_id == Choices::SURF || choice.move_id == Choices::DIVE)
+                {
+                    let new_forme = if attacking_pkmn.hp > attacking_pkmn.maxhp / 2 {
+                        PokemonName::CRAMORANTGULPING
+                    } else {
+                        PokemonName::CRAMORANTGORGING
+                    };
+                    instructions.instruction_list.push(Instruction::FormeChange(
+                        FormeChangeInstruction {
                             side_ref: *attacking_side_ref,
                             pokemon_index: attacking_active_index,
-                            new_types: (choice.move_type, PokemonType::TYPELESS),
-                            old_types: attacking_pkmn.types,
-                        }));
-                    attacking_pkmn.types = (choice.move_type, PokemonType::TYPELESS);
-
-                    instructions
-                        .instruction_list
-                        .push(Instruction::ApplyVolatileStatus(
-                            ApplyVolatileStatusInstruction {
-                                side_ref: *attacking_side_ref,
-                                slot_ref: *attacking_slot_ref,
-                                volatile_status: PokemonVolatileStatus::TYPECHANGE,
-                            },
-                        ));
-                    attacking_side
-                        .get_slot(attacking_slot_ref)
-                        .volatile_statuses
-                        .insert(PokemonVolatileStatus::TYPECHANGE);
+                            name_change: new_forme as i16 - attacking_pkmn.id as i16,
+                        },
+                    ));
+                    attacking_pkmn.id = new_forme;
                 }
             }
-        }
-        Abilities::GORILLATACTICS => {
-            let ins = get_choice_move_disable_instructions(
-                attacking_pkmn,
-                attacking_active_index,
-                attacking_side_ref,
-                &choice.move_id,
-            );
-            for i in ins {
-                state.apply_one_instruction(&i);
-                instructions.instruction_list.push(i);
+            Abilities::PROTEAN | Abilities::LIBERO => {
+                if !attacking_side
+                    .get_slot_immutable(attacking_slot_ref)
+                    .volatile_statuses
+                    .contains(&PokemonVolatileStatus::TYPECHANGE)
+                {
+                    let attacking_pkmn = attacking_side.get_active(attacking_slot_ref);
+                    if !attacking_pkmn.has_type(&choice.move_type) && !attacking_pkmn.terastallized
+                    {
+                        instructions
+                            .instruction_list
+                            .push(Instruction::ChangeType(ChangeType {
+                                side_ref: *attacking_side_ref,
+                                pokemon_index: attacking_active_index,
+                                new_types: (choice.move_type, PokemonType::TYPELESS),
+                                old_types: attacking_pkmn.types,
+                            }));
+                        attacking_pkmn.types = (choice.move_type, PokemonType::TYPELESS);
+
+                        instructions
+                            .instruction_list
+                            .push(Instruction::ApplyVolatileStatus(
+                                ApplyVolatileStatusInstruction {
+                                    side_ref: *attacking_side_ref,
+                                    slot_ref: *attacking_slot_ref,
+                                    volatile_status: PokemonVolatileStatus::TYPECHANGE,
+                                },
+                            ));
+                        attacking_side
+                            .get_slot(attacking_slot_ref)
+                            .volatile_statuses
+                            .insert(PokemonVolatileStatus::TYPECHANGE);
+                    }
+                }
             }
+            Abilities::GORILLATACTICS => {
+                let ins = get_choice_move_disable_instructions(
+                    attacking_pkmn,
+                    attacking_active_index,
+                    attacking_side_ref,
+                    &choice.move_id,
+                );
+                for i in ins {
+                    state.apply_one_instruction(&i);
+                    instructions.instruction_list.push(i);
+                }
+            }
+            _ => {}
         }
-        _ => {}
     }
 }
 
@@ -704,193 +714,261 @@ pub fn ability_after_damage_hit(
     damage_dealt: i16,
     instructions: &mut StateInstructions,
 ) {
-    if state.neutralizing_gas_is_active() {
-        return;
-    }
+    let neutralizing_gas_active = state.neutralizing_gas_is_active();
     let attacking_side = state.get_side(attacking_side_ref);
     let (active_pkmn, attacker_active_index) =
         attacking_side.get_active_with_index(attacking_slot_ref);
-    match active_pkmn.ability {
-        Abilities::BATTLEBOND => {
-            if damage_dealt > 0
-                && state
-                    .get_side_immutable(target_side_ref)
-                    .get_active_immutable(target_slot_ref)
-                    .hp
-                    == 0
-            {
-                let mut instructions_vec = Vec::with_capacity(3);
-                if let Some(boost_instruction) = get_boost_instruction(
-                    state.get_side_immutable(attacking_side_ref),
-                    &PokemonBoostableStat::Attack,
-                    &1,
-                    attacking_side_ref,
-                    attacking_side_ref,
-                    attacking_slot_ref,
-                ) {
-                    instructions_vec.push(boost_instruction);
-                }
-                if let Some(boost_instruction) = get_boost_instruction(
-                    state.get_side_immutable(attacking_side_ref),
-                    &PokemonBoostableStat::SpecialAttack,
-                    &1,
-                    attacking_side_ref,
-                    attacking_side_ref,
-                    attacking_slot_ref,
-                ) {
-                    instructions_vec.push(boost_instruction);
-                }
-                if let Some(boost_instruction) = get_boost_instruction(
-                    state.get_side_immutable(attacking_side_ref),
-                    &PokemonBoostableStat::Speed,
-                    &1,
-                    attacking_side_ref,
-                    attacking_side_ref,
-                    attacking_slot_ref,
-                ) {
-                    instructions_vec.push(boost_instruction);
-                }
-                for i in instructions_vec {
-                    state.apply_one_instruction(&i);
-                    instructions.instruction_list.push(i);
-                }
-            }
-        }
-        Abilities::MAGICIAN | Abilities::PICKPOCKET => {
-            if active_pkmn.item == Items::NONE {
-                let target_side = state.get_side(target_side_ref);
-                let (target_pkmn, target_active_index) =
-                    target_side.get_active_with_index(target_slot_ref);
-                if damage_dealt > 0 && target_pkmn.item_can_be_removed() {
-                    let target_item = target_pkmn.item;
-                    target_pkmn.item = Items::NONE;
-                    state
-                        .get_side(attacking_side_ref)
-                        .get_active(attacking_slot_ref)
-                        .item = target_item;
-                    instructions.instruction_list.push(Instruction::ChangeItem(
-                        ChangeItemInstruction {
-                            side_ref: *attacking_side_ref,
-                            pokemon_index: attacker_active_index,
-                            current_item: Items::NONE,
-                            new_item: target_item,
-                        },
-                    ));
-                    instructions.instruction_list.push(Instruction::ChangeItem(
-                        ChangeItemInstruction {
-                            side_ref: *target_side_ref,
-                            pokemon_index: target_active_index,
-                            current_item: target_item,
-                            new_item: Items::NONE,
-                        },
-                    ));
+
+    if !neutralizing_gas_active || active_pkmn.item == Items::ABILITYSHIELD {
+        match active_pkmn.ability {
+            Abilities::BATTLEBOND => {
+                if damage_dealt > 0
+                    && state
+                        .get_side_immutable(target_side_ref)
+                        .get_active_immutable(target_slot_ref)
+                        .hp
+                        == 0
+                {
+                    let mut instructions_vec = Vec::with_capacity(3);
+                    if let Some(boost_instruction) = get_boost_instruction(
+                        state.get_side_immutable(attacking_side_ref),
+                        &PokemonBoostableStat::Attack,
+                        &1,
+                        attacking_side_ref,
+                        attacking_side_ref,
+                        attacking_slot_ref,
+                    ) {
+                        instructions_vec.push(boost_instruction);
+                    }
+                    if let Some(boost_instruction) = get_boost_instruction(
+                        state.get_side_immutable(attacking_side_ref),
+                        &PokemonBoostableStat::SpecialAttack,
+                        &1,
+                        attacking_side_ref,
+                        attacking_side_ref,
+                        attacking_slot_ref,
+                    ) {
+                        instructions_vec.push(boost_instruction);
+                    }
+                    if let Some(boost_instruction) = get_boost_instruction(
+                        state.get_side_immutable(attacking_side_ref),
+                        &PokemonBoostableStat::Speed,
+                        &1,
+                        attacking_side_ref,
+                        attacking_side_ref,
+                        attacking_slot_ref,
+                    ) {
+                        instructions_vec.push(boost_instruction);
+                    }
+                    for i in instructions_vec {
+                        state.apply_one_instruction(&i);
+                        instructions.instruction_list.push(i);
+                    }
                 }
             }
-        }
-        Abilities::MOXIE | Abilities::CHILLINGNEIGH | Abilities::ASONEGLASTRIER => {
-            if damage_dealt > 0
-                && state
-                    .get_side_immutable(target_side_ref)
-                    .get_active_immutable(target_slot_ref)
-                    .hp
-                    == 0
-            {
-                if let Some(boost_instruction) = get_boost_instruction(
-                    state.get_side_immutable(attacking_side_ref),
-                    &PokemonBoostableStat::Attack,
-                    &1,
-                    attacking_side_ref,
-                    attacking_side_ref,
-                    attacking_slot_ref,
-                ) {
-                    state.apply_one_instruction(&boost_instruction);
-                    instructions.instruction_list.push(boost_instruction);
+            Abilities::MAGICIAN | Abilities::PICKPOCKET => {
+                if active_pkmn.item == Items::NONE {
+                    let target_side = state.get_side(target_side_ref);
+                    let (target_pkmn, target_active_index) =
+                        target_side.get_active_with_index(target_slot_ref);
+                    if damage_dealt > 0 && target_pkmn.item_can_be_removed() {
+                        let target_item = target_pkmn.item;
+                        target_pkmn.item = Items::NONE;
+                        state
+                            .get_side(attacking_side_ref)
+                            .get_active(attacking_slot_ref)
+                            .item = target_item;
+                        instructions.instruction_list.push(Instruction::ChangeItem(
+                            ChangeItemInstruction {
+                                side_ref: *attacking_side_ref,
+                                pokemon_index: attacker_active_index,
+                                current_item: Items::NONE,
+                                new_item: target_item,
+                            },
+                        ));
+                        instructions.instruction_list.push(Instruction::ChangeItem(
+                            ChangeItemInstruction {
+                                side_ref: *target_side_ref,
+                                pokemon_index: target_active_index,
+                                current_item: target_item,
+                                new_item: Items::NONE,
+                            },
+                        ));
+                    }
                 }
             }
-        }
-        Abilities::GRIMNEIGH | Abilities::ASONESPECTRIER => {
-            if damage_dealt > 0
-                && state
-                    .get_side_immutable(target_side_ref)
-                    .get_active_immutable(target_slot_ref)
-                    .hp
-                    == 0
-            {
-                if let Some(boost_instruction) = get_boost_instruction(
-                    state.get_side_immutable(attacking_side_ref),
-                    &PokemonBoostableStat::SpecialAttack,
-                    &1,
-                    attacking_side_ref,
-                    attacking_side_ref,
-                    attacking_slot_ref,
-                ) {
-                    state.apply_one_instruction(&boost_instruction);
-                    instructions.instruction_list.push(boost_instruction);
+            Abilities::MOXIE | Abilities::CHILLINGNEIGH | Abilities::ASONEGLASTRIER => {
+                if damage_dealt > 0
+                    && state
+                        .get_side_immutable(target_side_ref)
+                        .get_active_immutable(target_slot_ref)
+                        .hp
+                        == 0
+                {
+                    if let Some(boost_instruction) = get_boost_instruction(
+                        state.get_side_immutable(attacking_side_ref),
+                        &PokemonBoostableStat::Attack,
+                        &1,
+                        attacking_side_ref,
+                        attacking_side_ref,
+                        attacking_slot_ref,
+                    ) {
+                        state.apply_one_instruction(&boost_instruction);
+                        instructions.instruction_list.push(boost_instruction);
+                    }
                 }
             }
-        }
-        Abilities::BEASTBOOST => {
-            if damage_dealt > 0
-                && state
-                    .get_side_immutable(target_side_ref)
-                    .get_active_immutable(target_slot_ref)
-                    .hp
-                    == 0
-            {
-                let attacking_side = state.get_side_immutable(attacking_side_ref);
-                let highest_stat = &attacking_side.calculate_highest_stat(attacking_slot_ref);
-                if let Some(boost_instruction) = get_boost_instruction(
-                    attacking_side,
-                    highest_stat,
-                    &1,
-                    attacking_side_ref,
-                    attacking_side_ref,
-                    attacking_slot_ref,
-                ) {
-                    state.apply_one_instruction(&boost_instruction);
-                    instructions.instruction_list.push(boost_instruction);
+            Abilities::GRIMNEIGH | Abilities::ASONESPECTRIER => {
+                if damage_dealt > 0
+                    && state
+                        .get_side_immutable(target_side_ref)
+                        .get_active_immutable(target_slot_ref)
+                        .hp
+                        == 0
+                {
+                    if let Some(boost_instruction) = get_boost_instruction(
+                        state.get_side_immutable(attacking_side_ref),
+                        &PokemonBoostableStat::SpecialAttack,
+                        &1,
+                        attacking_side_ref,
+                        attacking_side_ref,
+                        attacking_slot_ref,
+                    ) {
+                        state.apply_one_instruction(&boost_instruction);
+                        instructions.instruction_list.push(boost_instruction);
+                    }
                 }
             }
+            Abilities::BEASTBOOST => {
+                if damage_dealt > 0
+                    && state
+                        .get_side_immutable(target_side_ref)
+                        .get_active_immutable(target_slot_ref)
+                        .hp
+                        == 0
+                {
+                    let attacking_side = state.get_side_immutable(attacking_side_ref);
+                    let highest_stat = &attacking_side.calculate_highest_stat(attacking_slot_ref);
+                    if let Some(boost_instruction) = get_boost_instruction(
+                        attacking_side,
+                        highest_stat,
+                        &1,
+                        attacking_side_ref,
+                        attacking_side_ref,
+                        attacking_slot_ref,
+                    ) {
+                        state.apply_one_instruction(&boost_instruction);
+                        instructions.instruction_list.push(boost_instruction);
+                    }
+                }
+            }
+            _ => {}
         }
-        _ => {}
     }
     let defending_side = state.get_side(target_side_ref);
     let (defending_pkmn, defender_active_index) =
         defending_side.get_active_with_index(target_slot_ref);
-    match defending_pkmn.ability {
-        Abilities::MUMMY | Abilities::LINGERINGAROMA | Abilities::WANDERINGSPIRIT => {
-            if choice.flags.contact {
-                let attacking_side = state.get_side(attacking_side_ref);
-                let (attacking_pkmn, attacker_active_index) =
-                    attacking_side.get_active_with_index(attacking_slot_ref);
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeAbility(ChangeAbilityInstruction {
-                        side_ref: *attacking_side_ref,
-                        pokemon_index: attacker_active_index,
-                        ability_change: Abilities::MUMMY as i16 - attacking_pkmn.ability as i16,
-                    }));
-                attacking_pkmn.ability = Abilities::MUMMY;
+
+    if !neutralizing_gas_active || defending_pkmn.item == Items::ABILITYSHIELD {
+        match defending_pkmn.ability {
+            Abilities::MUMMY | Abilities::LINGERINGAROMA | Abilities::WANDERINGSPIRIT => {
+                if choice.flags.contact {
+                    let attacking_side = state.get_side(attacking_side_ref);
+                    let (attacking_pkmn, attacker_active_index) =
+                        attacking_side.get_active_with_index(attacking_slot_ref);
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeAbility(ChangeAbilityInstruction {
+                            side_ref: *attacking_side_ref,
+                            pokemon_index: attacker_active_index,
+                            ability_change: Abilities::MUMMY as i16 - attacking_pkmn.ability as i16,
+                        }));
+                    attacking_pkmn.ability = Abilities::MUMMY;
+                }
             }
-        }
-        Abilities::GULPMISSILE => {
-            if damage_dealt > 0
-                && [PokemonName::CRAMORANTGORGING, PokemonName::CRAMORANTGULPING]
-                    .contains(&defending_pkmn.id)
-            {
-                instructions.instruction_list.push(Instruction::FormeChange(
-                    FormeChangeInstruction {
+            Abilities::GULPMISSILE => {
+                if damage_dealt > 0
+                    && [PokemonName::CRAMORANTGORGING, PokemonName::CRAMORANTGULPING]
+                        .contains(&defending_pkmn.id)
+                {
+                    instructions.instruction_list.push(Instruction::FormeChange(
+                        FormeChangeInstruction {
+                            side_ref: *target_side_ref,
+                            pokemon_index: defender_active_index,
+                            name_change: PokemonName::CRAMORANT as i16 - defending_pkmn.id as i16,
+                        },
+                    ));
+
+                    if defending_pkmn.id == PokemonName::CRAMORANTGULPING {
+                        defending_pkmn.id = PokemonName::CRAMORANT;
+                        if let Some(boost_instruction) = get_boost_instruction(
+                            &state.get_side_immutable(attacking_side_ref),
+                            &PokemonBoostableStat::Defense,
+                            &-1,
+                            target_side_ref,
+                            attacking_side_ref,
+                            attacking_slot_ref,
+                        ) {
+                            state.apply_one_instruction(&boost_instruction);
+                            instructions.instruction_list.push(boost_instruction);
+                        }
+                    } else if defending_pkmn.id == PokemonName::CRAMORANTGORGING {
+                        defending_pkmn.id = PokemonName::CRAMORANT;
+                        choice.add_or_create_secondaries(Secondary {
+                            chance: 100.0,
+                            target: MoveTarget::User,
+                            effect: Effect::Status(PokemonStatus::PARALYZE),
+                        })
+                    }
+                    let attacking_side = state.get_side(attacking_side_ref);
+                    let (attacking_pkmn, attacker_active_index) =
+                        attacking_side.get_active_with_index(attacking_slot_ref);
+                    let damage_dealt = cmp::min(attacking_pkmn.maxhp / 4, attacking_pkmn.hp);
+                    instructions
+                        .instruction_list
+                        .push(Instruction::Damage(DamageInstruction {
+                            side_ref: *attacking_side_ref,
+                            pokemon_index: attacker_active_index,
+                            damage_amount: damage_dealt,
+                        }));
+                    attacking_pkmn.hp -= damage_dealt;
+                }
+            }
+            Abilities::COLORCHANGE => {
+                if damage_dealt > 0
+                    && defending_pkmn.hp != 0
+                    && !defending_pkmn.has_type(&choice.move_type)
+                {
+                    let change_type_instruction = Instruction::ChangeType(ChangeType {
                         side_ref: *target_side_ref,
                         pokemon_index: defender_active_index,
-                        name_change: PokemonName::CRAMORANT as i16 - defending_pkmn.id as i16,
-                    },
-                ));
-
-                if defending_pkmn.id == PokemonName::CRAMORANTGULPING {
-                    defending_pkmn.id = PokemonName::CRAMORANT;
+                        new_types: (choice.move_type, PokemonType::TYPELESS),
+                        old_types: defending_pkmn.types,
+                    });
+                    defending_pkmn.types = (choice.move_type, PokemonType::TYPELESS);
+                    instructions.instruction_list.push(change_type_instruction);
+                }
+            }
+            Abilities::STAMINA => {
+                if damage_dealt > 0 && defending_pkmn.hp != 0 {
+                    if let Some(boost_instruction) = get_boost_instruction(
+                        &defending_side,
+                        &PokemonBoostableStat::Defense,
+                        &1,
+                        attacking_side_ref,
+                        target_side_ref,
+                        target_slot_ref,
+                    ) {
+                        state.apply_one_instruction(&boost_instruction);
+                        instructions.instruction_list.push(boost_instruction);
+                    }
+                }
+            }
+            Abilities::COTTONDOWN => {
+                if damage_dealt > 0 {
                     if let Some(boost_instruction) = get_boost_instruction(
                         &state.get_side_immutable(attacking_side_ref),
-                        &PokemonBoostableStat::Defense,
+                        &PokemonBoostableStat::Speed,
                         &-1,
                         target_side_ref,
                         attacking_side_ref,
@@ -899,226 +977,163 @@ pub fn ability_after_damage_hit(
                         state.apply_one_instruction(&boost_instruction);
                         instructions.instruction_list.push(boost_instruction);
                     }
-                } else if defending_pkmn.id == PokemonName::CRAMORANTGORGING {
-                    defending_pkmn.id = PokemonName::CRAMORANT;
-                    choice.add_or_create_secondaries(Secondary {
-                        chance: 100.0,
-                        target: MoveTarget::User,
-                        effect: Effect::Status(PokemonStatus::PARALYZE),
-                    })
                 }
+            }
+            Abilities::SANDSPIT => {
+                if damage_dealt > 0 && state.weather.weather_type != Weather::SAND {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeWeather(ChangeWeather {
+                            new_weather: Weather::SAND,
+                            new_weather_turns_remaining: WEATHER_ABILITY_TURNS,
+                            previous_weather: state.weather.weather_type,
+                            previous_weather_turns_remaining: state.weather.turns_remaining,
+                        }));
+                    state.weather.weather_type = Weather::SAND;
+                    state.weather.turns_remaining = WEATHER_ABILITY_TURNS;
+                }
+            }
+            Abilities::SEEDSOWER => {
+                if damage_dealt > 0 && state.terrain.terrain_type != Terrain::GRASSYTERRAIN {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeTerrain(ChangeTerrain {
+                            new_terrain: Terrain::GRASSYTERRAIN,
+                            new_terrain_turns_remaining: 5,
+                            previous_terrain: state.terrain.terrain_type,
+                            previous_terrain_turns_remaining: state.terrain.turns_remaining,
+                        }));
+                    state.terrain.terrain_type = Terrain::GRASSYTERRAIN;
+                    state.terrain.turns_remaining = 5;
+                }
+            }
+            Abilities::TOXICDEBRIS => {
+                // Not complete: Toxic Spikes are not applied if a substitute is hit
                 let attacking_side = state.get_side(attacking_side_ref);
-                let (attacking_pkmn, attacker_active_index) =
-                    attacking_side.get_active_with_index(attacking_slot_ref);
-                let damage_dealt = cmp::min(attacking_pkmn.maxhp / 4, attacking_pkmn.hp);
-                instructions
-                    .instruction_list
-                    .push(Instruction::Damage(DamageInstruction {
-                        side_ref: *attacking_side_ref,
-                        pokemon_index: attacker_active_index,
-                        damage_amount: damage_dealt,
-                    }));
-                attacking_pkmn.hp -= damage_dealt;
-            }
-        }
-        Abilities::COLORCHANGE => {
-            if damage_dealt > 0
-                && defending_pkmn.hp != 0
-                && !defending_pkmn.has_type(&choice.move_type)
-            {
-                let change_type_instruction = Instruction::ChangeType(ChangeType {
-                    side_ref: *target_side_ref,
-                    pokemon_index: defender_active_index,
-                    new_types: (choice.move_type, PokemonType::TYPELESS),
-                    old_types: defending_pkmn.types,
-                });
-                defending_pkmn.types = (choice.move_type, PokemonType::TYPELESS);
-                instructions.instruction_list.push(change_type_instruction);
-            }
-        }
-        Abilities::STAMINA => {
-            if damage_dealt > 0 && defending_pkmn.hp != 0 {
-                if let Some(boost_instruction) = get_boost_instruction(
-                    &defending_side,
-                    &PokemonBoostableStat::Defense,
-                    &1,
-                    attacking_side_ref,
-                    target_side_ref,
-                    target_slot_ref,
-                ) {
-                    state.apply_one_instruction(&boost_instruction);
-                    instructions.instruction_list.push(boost_instruction);
+                if damage_dealt > 0
+                    && choice.category == MoveCategory::Physical
+                    && attacking_side.side_conditions.toxic_spikes < 2
+                {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeSideCondition(
+                            ChangeSideConditionInstruction {
+                                side_ref: *attacking_side_ref,
+                                side_condition: PokemonSideCondition::ToxicSpikes,
+                                amount: 1,
+                            },
+                        ));
+                    attacking_side.side_conditions.toxic_spikes += 1;
                 }
             }
-        }
-        Abilities::COTTONDOWN => {
-            if damage_dealt > 0 {
-                if let Some(boost_instruction) = get_boost_instruction(
-                    &state.get_side_immutable(attacking_side_ref),
-                    &PokemonBoostableStat::Speed,
-                    &-1,
-                    target_side_ref,
-                    attacking_side_ref,
-                    attacking_slot_ref,
-                ) {
-                    state.apply_one_instruction(&boost_instruction);
-                    instructions.instruction_list.push(boost_instruction);
+            Abilities::BERSERK => {
+                if damage_dealt > 0
+                    && defending_pkmn.hp < defending_pkmn.maxhp / 2
+                    && defending_pkmn.hp + damage_dealt >= defending_pkmn.maxhp / 2
+                {
+                    if let Some(boost_instruction) = get_boost_instruction(
+                        &defending_side,
+                        &PokemonBoostableStat::SpecialAttack,
+                        &1,
+                        target_side_ref,
+                        target_side_ref,
+                        target_slot_ref,
+                    ) {
+                        state.apply_one_instruction(&boost_instruction);
+                        instructions.instruction_list.push(boost_instruction);
+                    }
                 }
             }
-        }
-        Abilities::SANDSPIT => {
-            if damage_dealt > 0 && state.weather.weather_type != Weather::SAND {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeWeather(ChangeWeather {
-                        new_weather: Weather::SAND,
-                        new_weather_turns_remaining: WEATHER_ABILITY_TURNS,
-                        previous_weather: state.weather.weather_type,
-                        previous_weather_turns_remaining: state.weather.turns_remaining,
-                    }));
-                state.weather.weather_type = Weather::SAND;
-                state.weather.turns_remaining = WEATHER_ABILITY_TURNS;
-            }
-        }
-        Abilities::SEEDSOWER => {
-            if damage_dealt > 0 && state.terrain.terrain_type != Terrain::GRASSYTERRAIN {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeTerrain(ChangeTerrain {
-                        new_terrain: Terrain::GRASSYTERRAIN,
-                        new_terrain_turns_remaining: 5,
-                        previous_terrain: state.terrain.terrain_type,
-                        previous_terrain_turns_remaining: state.terrain.turns_remaining,
-                    }));
-                state.terrain.terrain_type = Terrain::GRASSYTERRAIN;
-                state.terrain.turns_remaining = 5;
-            }
-        }
-        Abilities::TOXICDEBRIS => {
-            // Not complete: Toxic Spikes are not applied if a substitute is hit
-            let attacking_side = state.get_side(attacking_side_ref);
-            if damage_dealt > 0
-                && choice.category == MoveCategory::Physical
-                && attacking_side.side_conditions.toxic_spikes < 2
-            {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeSideCondition(
-                        ChangeSideConditionInstruction {
-                            side_ref: *attacking_side_ref,
-                            side_condition: PokemonSideCondition::ToxicSpikes,
-                            amount: 1,
-                        },
-                    ));
-                attacking_side.side_conditions.toxic_spikes += 1;
-            }
-        }
-        Abilities::BERSERK => {
-            if damage_dealt > 0
-                && defending_pkmn.hp < defending_pkmn.maxhp / 2
-                && defending_pkmn.hp + damage_dealt >= defending_pkmn.maxhp / 2
-            {
-                if let Some(boost_instruction) = get_boost_instruction(
-                    &defending_side,
-                    &PokemonBoostableStat::SpecialAttack,
-                    &1,
-                    target_side_ref,
-                    target_side_ref,
-                    target_slot_ref,
-                ) {
-                    state.apply_one_instruction(&boost_instruction);
-                    instructions.instruction_list.push(boost_instruction);
-                }
-            }
-        }
-        Abilities::ROUGHSKIN | Abilities::IRONBARBS => {
-            let attacking_pkmn = state
-                .get_side(attacking_side_ref)
-                .get_active(attacking_slot_ref);
-            if damage_dealt > 0 && choice.flags.contact {
-                let damage_dealt = cmp::min(attacking_pkmn.maxhp / 8, attacking_pkmn.hp);
+            Abilities::ROUGHSKIN | Abilities::IRONBARBS => {
+                let attacking_pkmn = state
+                    .get_side(attacking_side_ref)
+                    .get_active(attacking_slot_ref);
+                if damage_dealt > 0 && choice.flags.contact {
+                    let damage_dealt = cmp::min(attacking_pkmn.maxhp / 8, attacking_pkmn.hp);
 
-                instructions
-                    .instruction_list
-                    .push(Instruction::Damage(DamageInstruction {
-                        side_ref: *attacking_side_ref,
-                        pokemon_index: attacker_active_index,
-                        damage_amount: damage_dealt,
-                    }));
-                attacking_pkmn.hp -= damage_dealt;
+                    instructions
+                        .instruction_list
+                        .push(Instruction::Damage(DamageInstruction {
+                            side_ref: *attacking_side_ref,
+                            pokemon_index: attacker_active_index,
+                            damage_amount: damage_dealt,
+                        }));
+                    attacking_pkmn.hp -= damage_dealt;
+                }
             }
-        }
-        Abilities::AFTERMATH => {
-            if damage_dealt > 0 && defending_pkmn.hp == 0 && choice.flags.contact {
-                let attacking_pkmn = state
-                    .get_side(attacking_side_ref)
-                    .get_active(attacking_slot_ref);
-                let damage_dealt = cmp::min(attacking_pkmn.maxhp / 4, attacking_pkmn.hp);
-                instructions
-                    .instruction_list
-                    .push(Instruction::Damage(DamageInstruction {
-                        side_ref: *attacking_side_ref,
-                        pokemon_index: attacker_active_index,
-                        damage_amount: damage_dealt,
-                    }));
-                attacking_pkmn.hp -= damage_dealt;
+            Abilities::AFTERMATH => {
+                if damage_dealt > 0 && defending_pkmn.hp == 0 && choice.flags.contact {
+                    let attacking_pkmn = state
+                        .get_side(attacking_side_ref)
+                        .get_active(attacking_slot_ref);
+                    let damage_dealt = cmp::min(attacking_pkmn.maxhp / 4, attacking_pkmn.hp);
+                    instructions
+                        .instruction_list
+                        .push(Instruction::Damage(DamageInstruction {
+                            side_ref: *attacking_side_ref,
+                            pokemon_index: attacker_active_index,
+                            damage_amount: damage_dealt,
+                        }));
+                    attacking_pkmn.hp -= damage_dealt;
+                }
             }
-        }
-        Abilities::INNARDSOUT => {
-            if damage_dealt > 0 && defending_pkmn.hp == 0 {
-                let attacking_pkmn = state
-                    .get_side(attacking_side_ref)
-                    .get_active(attacking_slot_ref);
-                let damage_dealt = cmp::min(damage_dealt, attacking_pkmn.hp);
-                instructions
-                    .instruction_list
-                    .push(Instruction::Damage(DamageInstruction {
-                        side_ref: *attacking_side_ref,
-                        pokemon_index: attacker_active_index,
-                        damage_amount: damage_dealt,
-                    }));
-                attacking_pkmn.hp -= damage_dealt;
+            Abilities::INNARDSOUT => {
+                if damage_dealt > 0 && defending_pkmn.hp == 0 {
+                    let attacking_pkmn = state
+                        .get_side(attacking_side_ref)
+                        .get_active(attacking_slot_ref);
+                    let damage_dealt = cmp::min(damage_dealt, attacking_pkmn.hp);
+                    instructions
+                        .instruction_list
+                        .push(Instruction::Damage(DamageInstruction {
+                            side_ref: *attacking_side_ref,
+                            pokemon_index: attacker_active_index,
+                            damage_amount: damage_dealt,
+                        }));
+                    attacking_pkmn.hp -= damage_dealt;
+                }
             }
-        }
-        Abilities::PERISHBODY => {
-            if damage_dealt > 0 && choice.flags.contact {
-                for side_ref in [SideReference::SideOne, SideReference::SideTwo] {
-                    for slot_ref in [SlotReference::SlotA, SlotReference::SlotB] {
-                        let side = state.get_side(&side_ref);
-                        let pkmn = side.get_active_immutable(&slot_ref);
-                        let pkmn_is_immune = pkmn.hp == 0 || pkmn.ability == Abilities::SOUNDPROOF;
-                        let slot = side.get_slot(&slot_ref);
-                        if pkmn_is_immune
-                            || !(slot
-                                .volatile_statuses
-                                .contains(&PokemonVolatileStatus::PERISH4)
-                                || slot
+            Abilities::PERISHBODY => {
+                if damage_dealt > 0 && choice.flags.contact {
+                    for side_ref in [SideReference::SideOne, SideReference::SideTwo] {
+                        for slot_ref in [SlotReference::SlotA, SlotReference::SlotB] {
+                            let side = state.get_side(&side_ref);
+                            let pkmn = side.get_active_immutable(&slot_ref);
+                            let pkmn_is_immune =
+                                pkmn.hp == 0 || pkmn.ability == Abilities::SOUNDPROOF;
+                            let slot = side.get_slot(&slot_ref);
+                            if pkmn_is_immune
+                                || !(slot
                                     .volatile_statuses
-                                    .contains(&PokemonVolatileStatus::PERISH3)
-                                || slot
-                                    .volatile_statuses
-                                    .contains(&PokemonVolatileStatus::PERISH2)
-                                || slot
-                                    .volatile_statuses
-                                    .contains(&PokemonVolatileStatus::PERISH1))
-                        {
-                            instructions
-                                .instruction_list
-                                .push(Instruction::ApplyVolatileStatus(
-                                    ApplyVolatileStatusInstruction {
-                                        side_ref,
-                                        slot_ref,
-                                        volatile_status: PokemonVolatileStatus::PERISH4,
-                                    },
-                                ));
-                            slot.volatile_statuses
-                                .insert(PokemonVolatileStatus::PERISH4);
+                                    .contains(&PokemonVolatileStatus::PERISH4)
+                                    || slot
+                                        .volatile_statuses
+                                        .contains(&PokemonVolatileStatus::PERISH3)
+                                    || slot
+                                        .volatile_statuses
+                                        .contains(&PokemonVolatileStatus::PERISH2)
+                                    || slot
+                                        .volatile_statuses
+                                        .contains(&PokemonVolatileStatus::PERISH1))
+                            {
+                                instructions.instruction_list.push(
+                                    Instruction::ApplyVolatileStatus(
+                                        ApplyVolatileStatusInstruction {
+                                            side_ref,
+                                            slot_ref,
+                                            volatile_status: PokemonVolatileStatus::PERISH4,
+                                        },
+                                    ),
+                                );
+                                slot.volatile_statuses
+                                    .insert(PokemonVolatileStatus::PERISH4);
+                            }
                         }
                     }
                 }
             }
+            _ => {}
         }
-        _ => {}
     }
 }
 
@@ -1128,111 +1143,113 @@ pub fn ability_on_switch_out(
     attacking_slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) {
-    if state.neutralizing_gas_is_active() {
-        return;
-    }
+    let neutralizing_gas_active = state.neutralizing_gas_is_active();
     let attacking_side = state.get_side(attacking_side_ref);
     let (active_pkmn, attacker_active_index) =
         attacking_side.get_active_with_index(attacking_slot_ref);
-    match active_pkmn.ability {
-        Abilities::GULPMISSILE if active_pkmn.base_ability == Abilities::GULPMISSILE => {
-            if active_pkmn.id != PokemonName::CRAMORANT {
-                instructions.instruction_list.push(Instruction::FormeChange(
-                    FormeChangeInstruction {
-                        side_ref: *attacking_side_ref,
-                        pokemon_index: attacker_active_index,
-                        name_change: PokemonName::CRAMORANT as i16 - active_pkmn.id as i16,
-                    },
-                ));
-                active_pkmn.id = PokemonName::CRAMORANT;
-            }
-        }
-        Abilities::ZEROTOHERO => {
-            if active_pkmn.id == PokemonName::PALAFIN {
-                instructions.instruction_list.push(Instruction::FormeChange(
-                    FormeChangeInstruction {
-                        side_ref: *attacking_side_ref,
-                        pokemon_index: attacker_active_index,
-                        name_change: PokemonName::PALAFINHERO as i16 - active_pkmn.id as i16,
-                    },
-                ));
-                active_pkmn.id = PokemonName::PALAFINHERO;
-                active_pkmn.recalculate_stats(
-                    attacking_side_ref,
-                    attacker_active_index,
-                    instructions,
-                );
-            }
-        }
-        Abilities::HUNGERSWITCH => {
-            if active_pkmn.id == PokemonName::MORPEKOHANGRY && !active_pkmn.terastallized {
-                instructions.instruction_list.push(Instruction::FormeChange(
-                    FormeChangeInstruction {
-                        side_ref: *attacking_side_ref,
-                        pokemon_index: attacker_active_index,
-                        name_change: PokemonName::MORPEKO as i16 - active_pkmn.id as i16,
-                    },
-                ));
-                active_pkmn.id = PokemonName::MORPEKO;
-            }
-        }
-        Abilities::NATURALCURE => {
-            if active_pkmn.status != PokemonStatus::NONE {
-                let status = active_pkmn.status.clone();
-                active_pkmn.status = PokemonStatus::NONE;
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeStatus(ChangeStatusInstruction {
-                        side_ref: *attacking_side_ref,
-                        pokemon_index: attacker_active_index,
-                        old_status: status,
-                        new_status: PokemonStatus::NONE,
-                    }));
-            }
-        }
-        Abilities::REGENERATOR => {
-            let hp_recovered = cmp::min(active_pkmn.maxhp / 3, active_pkmn.maxhp - active_pkmn.hp);
 
-            if hp_recovered > 0 && active_pkmn.hp > 0 {
-                instructions
-                    .instruction_list
-                    .push(Instruction::Heal(HealInstruction {
-                        side_ref: *attacking_side_ref,
-                        pokemon_index: attacker_active_index,
-                        heal_amount: hp_recovered,
-                    }));
-                active_pkmn.hp += hp_recovered;
+    if !neutralizing_gas_active || active_pkmn.item == Items::ABILITYSHIELD {
+        match active_pkmn.ability {
+            Abilities::GULPMISSILE if active_pkmn.base_ability == Abilities::GULPMISSILE => {
+                if active_pkmn.id != PokemonName::CRAMORANT {
+                    instructions.instruction_list.push(Instruction::FormeChange(
+                        FormeChangeInstruction {
+                            side_ref: *attacking_side_ref,
+                            pokemon_index: attacker_active_index,
+                            name_change: PokemonName::CRAMORANT as i16 - active_pkmn.id as i16,
+                        },
+                    ));
+                    active_pkmn.id = PokemonName::CRAMORANT;
+                }
             }
-        }
-        Abilities::PRIMORDIALSEA => {
-            if state.weather.weather_type == Weather::HEAVYRAIN {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeWeather(ChangeWeather {
-                        new_weather: Weather::NONE,
-                        new_weather_turns_remaining: -1,
-                        previous_weather: state.weather.weather_type,
-                        previous_weather_turns_remaining: state.weather.turns_remaining,
-                    }));
-                state.weather.weather_type = Weather::NONE;
-                state.weather.turns_remaining = -1;
+            Abilities::ZEROTOHERO => {
+                if active_pkmn.id == PokemonName::PALAFIN {
+                    instructions.instruction_list.push(Instruction::FormeChange(
+                        FormeChangeInstruction {
+                            side_ref: *attacking_side_ref,
+                            pokemon_index: attacker_active_index,
+                            name_change: PokemonName::PALAFINHERO as i16 - active_pkmn.id as i16,
+                        },
+                    ));
+                    active_pkmn.id = PokemonName::PALAFINHERO;
+                    active_pkmn.recalculate_stats(
+                        attacking_side_ref,
+                        attacker_active_index,
+                        instructions,
+                    );
+                }
             }
-        }
-        Abilities::DESOLATELAND => {
-            if state.weather.weather_type == Weather::HARSHSUN {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeWeather(ChangeWeather {
-                        new_weather: Weather::NONE,
-                        new_weather_turns_remaining: -1,
-                        previous_weather: state.weather.weather_type,
-                        previous_weather_turns_remaining: state.weather.turns_remaining,
-                    }));
-                state.weather.weather_type = Weather::NONE;
-                state.weather.turns_remaining = -1;
+            Abilities::HUNGERSWITCH => {
+                if active_pkmn.id == PokemonName::MORPEKOHANGRY && !active_pkmn.terastallized {
+                    instructions.instruction_list.push(Instruction::FormeChange(
+                        FormeChangeInstruction {
+                            side_ref: *attacking_side_ref,
+                            pokemon_index: attacker_active_index,
+                            name_change: PokemonName::MORPEKO as i16 - active_pkmn.id as i16,
+                        },
+                    ));
+                    active_pkmn.id = PokemonName::MORPEKO;
+                }
             }
+            Abilities::NATURALCURE => {
+                if active_pkmn.status != PokemonStatus::NONE {
+                    let status = active_pkmn.status.clone();
+                    active_pkmn.status = PokemonStatus::NONE;
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeStatus(ChangeStatusInstruction {
+                            side_ref: *attacking_side_ref,
+                            pokemon_index: attacker_active_index,
+                            old_status: status,
+                            new_status: PokemonStatus::NONE,
+                        }));
+                }
+            }
+            Abilities::REGENERATOR => {
+                let hp_recovered =
+                    cmp::min(active_pkmn.maxhp / 3, active_pkmn.maxhp - active_pkmn.hp);
+
+                if hp_recovered > 0 && active_pkmn.hp > 0 {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::Heal(HealInstruction {
+                            side_ref: *attacking_side_ref,
+                            pokemon_index: attacker_active_index,
+                            heal_amount: hp_recovered,
+                        }));
+                    active_pkmn.hp += hp_recovered;
+                }
+            }
+            Abilities::PRIMORDIALSEA => {
+                if state.weather.weather_type == Weather::HEAVYRAIN {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeWeather(ChangeWeather {
+                            new_weather: Weather::NONE,
+                            new_weather_turns_remaining: -1,
+                            previous_weather: state.weather.weather_type,
+                            previous_weather_turns_remaining: state.weather.turns_remaining,
+                        }));
+                    state.weather.weather_type = Weather::NONE;
+                    state.weather.turns_remaining = -1;
+                }
+            }
+            Abilities::DESOLATELAND => {
+                if state.weather.weather_type == Weather::HARSHSUN {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeWeather(ChangeWeather {
+                            new_weather: Weather::NONE,
+                            new_weather_turns_remaining: -1,
+                            previous_weather: state.weather.weather_type,
+                            previous_weather_turns_remaining: state.weather.turns_remaining,
+                        }));
+                    state.weather.weather_type = Weather::NONE;
+                    state.weather.turns_remaining = -1;
+                }
+            }
+            _ => {}
         }
-        _ => {}
     }
 
     // revert ability on switch-out to base_ability if they are not the same
@@ -1257,194 +1274,153 @@ pub fn ability_end_of_turn(
     slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) {
-    if state.neutralizing_gas_is_active() {
-        return;
-    }
+    let neutralizing_gas_active = state.neutralizing_gas_is_active();
     let attacking_side = state.get_side(side_ref);
     let (active_pkmn, active_index) = attacking_side.get_active_with_index(slot_ref);
-    match active_pkmn.ability {
-        Abilities::HUNGERSWITCH => {
-            if active_pkmn.id == PokemonName::MORPEKO && !active_pkmn.terastallized {
-                instructions.instruction_list.push(Instruction::FormeChange(
-                    FormeChangeInstruction {
-                        side_ref: *side_ref,
-                        pokemon_index: active_index,
-                        name_change: PokemonName::MORPEKOHANGRY as i16 - active_pkmn.id as i16,
-                    },
-                ));
-                active_pkmn.id = PokemonName::MORPEKOHANGRY;
-            } else if active_pkmn.id == PokemonName::MORPEKOHANGRY && !active_pkmn.terastallized {
-                instructions.instruction_list.push(Instruction::FormeChange(
-                    FormeChangeInstruction {
-                        side_ref: *side_ref,
-                        pokemon_index: active_index,
-                        name_change: PokemonName::MORPEKO as i16 - active_pkmn.id as i16,
-                    },
-                ));
-                active_pkmn.id = PokemonName::MORPEKO;
-            }
-        }
-        Abilities::SHIELDSDOWN => {
-            if active_pkmn.hp <= active_pkmn.maxhp / 2
-                && active_pkmn.id == PokemonName::MINIORMETEOR
-            {
-                instructions.instruction_list.push(Instruction::FormeChange(
-                    FormeChangeInstruction {
-                        side_ref: *side_ref,
-                        pokemon_index: active_index,
-                        name_change: PokemonName::MINIOR as i16 - active_pkmn.id as i16,
-                    },
-                ));
-                active_pkmn.id = PokemonName::MINIOR;
-                active_pkmn.recalculate_stats(side_ref, active_index, instructions);
-            }
-            if active_pkmn.hp > active_pkmn.maxhp / 2 && active_pkmn.id != PokemonName::MINIORMETEOR
-            {
-                instructions.instruction_list.push(Instruction::FormeChange(
-                    FormeChangeInstruction {
-                        side_ref: *side_ref,
-                        pokemon_index: active_index,
-                        name_change: PokemonName::MINIORMETEOR as i16 - active_pkmn.id as i16,
-                    },
-                ));
-                active_pkmn.id = PokemonName::MINIORMETEOR;
-                active_pkmn.recalculate_stats(side_ref, active_index, instructions);
-            }
-        }
-        Abilities::SCHOOLING => {
-            if active_pkmn.hp <= active_pkmn.maxhp / 4
-                && active_pkmn.id == PokemonName::WISHIWASHISCHOOL
-            {
-                instructions.instruction_list.push(Instruction::FormeChange(
-                    FormeChangeInstruction {
-                        side_ref: *side_ref,
-                        pokemon_index: active_index,
-                        name_change: PokemonName::WISHIWASHI as i16 - active_pkmn.id as i16,
-                    },
-                ));
-                active_pkmn.id = PokemonName::WISHIWASHI;
-                active_pkmn.recalculate_stats(side_ref, active_index, instructions);
-            }
-            if active_pkmn.hp > active_pkmn.maxhp / 4 && active_pkmn.id == PokemonName::WISHIWASHI {
-                instructions.instruction_list.push(Instruction::FormeChange(
-                    FormeChangeInstruction {
-                        side_ref: *side_ref,
-                        pokemon_index: active_index,
-                        name_change: PokemonName::WISHIWASHISCHOOL as i16 - active_pkmn.id as i16,
-                    },
-                ));
-                active_pkmn.id = PokemonName::WISHIWASHISCHOOL;
-                active_pkmn.recalculate_stats(side_ref, active_index, instructions);
-            }
-        }
-        Abilities::BADDREAMS => {
-            for (si_ref, sl_ref) in State::get_all_sides_and_slots() {
-                let (pkmn, pkmn_index) = state.get_side(&si_ref).get_active_with_index(&sl_ref);
-                if pkmn.status == PokemonStatus::SLEEP && pkmn.hp > 0 {
-                    let damage_dealt = cmp::min(pkmn.maxhp / 8, pkmn.hp);
-                    instructions
-                        .instruction_list
-                        .push(Instruction::Damage(DamageInstruction {
-                            side_ref: si_ref,
-                            pokemon_index: pkmn_index,
-                            damage_amount: damage_dealt,
-                        }));
-                    pkmn.hp -= damage_dealt;
-                }
-            }
-        }
-        Abilities::SOLARPOWER => {
-            let state_active_weather = state.get_weather();
-            if state_active_weather == Weather::HARSHSUN || state_active_weather == Weather::SUN {
-                let active_pkmn = state.get_side(side_ref).get_active(slot_ref);
-                let damage_dealt =
-                    cmp::min(active_pkmn.maxhp / 8, active_pkmn.maxhp - active_pkmn.hp);
-                if damage_dealt > 0 {
-                    instructions
-                        .instruction_list
-                        .push(Instruction::Damage(DamageInstruction {
+
+    if !neutralizing_gas_active || active_pkmn.item == Items::ABILITYSHIELD {
+        match active_pkmn.ability {
+            Abilities::HUNGERSWITCH => {
+                if active_pkmn.id == PokemonName::MORPEKO && !active_pkmn.terastallized {
+                    instructions.instruction_list.push(Instruction::FormeChange(
+                        FormeChangeInstruction {
                             side_ref: *side_ref,
                             pokemon_index: active_index,
-                            damage_amount: damage_dealt,
-                        }));
-                    active_pkmn.hp -= damage_dealt;
-                }
-            }
-        }
-        Abilities::ICEBODY => {
-            let state_active_weather = state.get_weather();
-            if state_active_weather == Weather::HAIL {
-                let active_pkmn = state.get_side(side_ref).get_active(slot_ref);
-                let health_recovered =
-                    cmp::min(active_pkmn.maxhp / 16, active_pkmn.maxhp - active_pkmn.hp);
-                if health_recovered > 0 {
-                    instructions
-                        .instruction_list
-                        .push(Instruction::Heal(HealInstruction {
+                            name_change: PokemonName::MORPEKOHANGRY as i16 - active_pkmn.id as i16,
+                        },
+                    ));
+                    active_pkmn.id = PokemonName::MORPEKOHANGRY;
+                } else if active_pkmn.id == PokemonName::MORPEKOHANGRY && !active_pkmn.terastallized
+                {
+                    instructions.instruction_list.push(Instruction::FormeChange(
+                        FormeChangeInstruction {
                             side_ref: *side_ref,
                             pokemon_index: active_index,
-                            heal_amount: health_recovered,
-                        }));
-                    active_pkmn.hp += health_recovered;
+                            name_change: PokemonName::MORPEKO as i16 - active_pkmn.id as i16,
+                        },
+                    ));
+                    active_pkmn.id = PokemonName::MORPEKO;
                 }
             }
-        }
-        Abilities::POISONHEAL => {
-            if active_pkmn.hp < active_pkmn.maxhp
-                && (active_pkmn.status == PokemonStatus::POISON
-                    || active_pkmn.status == PokemonStatus::TOXIC)
-            {
-                let heal_amount =
-                    cmp::min(active_pkmn.maxhp / 8, active_pkmn.maxhp - active_pkmn.hp);
-                let ins = Instruction::Heal(HealInstruction {
-                    side_ref: *side_ref,
-                    pokemon_index: active_index,
-                    heal_amount,
-                });
-                active_pkmn.hp += heal_amount;
-                instructions.instruction_list.push(ins);
-            }
-        }
-        Abilities::SPEEDBOOST => {
-            let attacking_slot = state.get_side(side_ref).get_slot(slot_ref);
-            if attacking_slot.speed_boost < 6 {
-                let ins = Instruction::Boost(BoostInstruction {
-                    side_ref: *side_ref,
-                    slot_ref: *slot_ref,
-                    stat: PokemonBoostableStat::Speed,
-                    amount: 1,
-                });
-                attacking_slot.speed_boost += 1;
-                instructions.instruction_list.push(ins);
-            }
-        }
-        Abilities::RAINDISH => {
-            let state_active_weather = state.get_weather();
-            if state_active_weather == Weather::RAIN || state_active_weather == Weather::HEAVYRAIN {
-                let active_pkmn = state.get_side(side_ref).get_active(slot_ref);
-                let health_recovered =
-                    cmp::min(active_pkmn.maxhp / 16, active_pkmn.maxhp - active_pkmn.hp);
-                if health_recovered > 0 {
-                    instructions
-                        .instruction_list
-                        .push(Instruction::Heal(HealInstruction {
+            Abilities::SHIELDSDOWN => {
+                if active_pkmn.hp <= active_pkmn.maxhp / 2
+                    && active_pkmn.id == PokemonName::MINIORMETEOR
+                {
+                    instructions.instruction_list.push(Instruction::FormeChange(
+                        FormeChangeInstruction {
                             side_ref: *side_ref,
                             pokemon_index: active_index,
-                            heal_amount: health_recovered,
-                        }));
-                    active_pkmn.hp += health_recovered;
+                            name_change: PokemonName::MINIOR as i16 - active_pkmn.id as i16,
+                        },
+                    ));
+                    active_pkmn.id = PokemonName::MINIOR;
+                    active_pkmn.recalculate_stats(side_ref, active_index, instructions);
+                }
+                if active_pkmn.hp > active_pkmn.maxhp / 2
+                    && active_pkmn.id != PokemonName::MINIORMETEOR
+                {
+                    instructions.instruction_list.push(Instruction::FormeChange(
+                        FormeChangeInstruction {
+                            side_ref: *side_ref,
+                            pokemon_index: active_index,
+                            name_change: PokemonName::MINIORMETEOR as i16 - active_pkmn.id as i16,
+                        },
+                    ));
+                    active_pkmn.id = PokemonName::MINIORMETEOR;
+                    active_pkmn.recalculate_stats(side_ref, active_index, instructions);
                 }
             }
-        }
-        Abilities::DRYSKIN => {
-            let state_active_weather = state.get_weather();
-            if state_active_weather == Weather::RAIN {
-                let active_pkmn = state.get_side(side_ref).get_active(slot_ref);
-                if active_pkmn.hp < active_pkmn.maxhp {
+            Abilities::SCHOOLING => {
+                if active_pkmn.hp <= active_pkmn.maxhp / 4
+                    && active_pkmn.id == PokemonName::WISHIWASHISCHOOL
+                {
+                    instructions.instruction_list.push(Instruction::FormeChange(
+                        FormeChangeInstruction {
+                            side_ref: *side_ref,
+                            pokemon_index: active_index,
+                            name_change: PokemonName::WISHIWASHI as i16 - active_pkmn.id as i16,
+                        },
+                    ));
+                    active_pkmn.id = PokemonName::WISHIWASHI;
+                    active_pkmn.recalculate_stats(side_ref, active_index, instructions);
+                }
+                if active_pkmn.hp > active_pkmn.maxhp / 4
+                    && active_pkmn.id == PokemonName::WISHIWASHI
+                {
+                    instructions.instruction_list.push(Instruction::FormeChange(
+                        FormeChangeInstruction {
+                            side_ref: *side_ref,
+                            pokemon_index: active_index,
+                            name_change: PokemonName::WISHIWASHISCHOOL as i16
+                                - active_pkmn.id as i16,
+                        },
+                    ));
+                    active_pkmn.id = PokemonName::WISHIWASHISCHOOL;
+                    active_pkmn.recalculate_stats(side_ref, active_index, instructions);
+                }
+            }
+            Abilities::BADDREAMS => {
+                for (si_ref, sl_ref) in State::get_all_sides_and_slots() {
+                    let (pkmn, pkmn_index) = state.get_side(&si_ref).get_active_with_index(&sl_ref);
+                    if pkmn.status == PokemonStatus::SLEEP && pkmn.hp > 0 {
+                        let damage_dealt = cmp::min(pkmn.maxhp / 8, pkmn.hp);
+                        instructions.instruction_list.push(Instruction::Damage(
+                            DamageInstruction {
+                                side_ref: si_ref,
+                                pokemon_index: pkmn_index,
+                                damage_amount: damage_dealt,
+                            },
+                        ));
+                        pkmn.hp -= damage_dealt;
+                    }
+                }
+            }
+            Abilities::SOLARPOWER => {
+                let state_active_weather = state.get_weather();
+                if state_active_weather == Weather::HARSHSUN || state_active_weather == Weather::SUN
+                {
+                    let active_pkmn = state.get_side(side_ref).get_active(slot_ref);
+                    let damage_dealt =
+                        cmp::min(active_pkmn.maxhp / 8, active_pkmn.maxhp - active_pkmn.hp);
+                    if damage_dealt > 0 {
+                        instructions.instruction_list.push(Instruction::Damage(
+                            DamageInstruction {
+                                side_ref: *side_ref,
+                                pokemon_index: active_index,
+                                damage_amount: damage_dealt,
+                            },
+                        ));
+                        active_pkmn.hp -= damage_dealt;
+                    }
+                }
+            }
+            Abilities::ICEBODY => {
+                let state_active_weather = state.get_weather();
+                if state_active_weather == Weather::HAIL {
+                    let active_pkmn = state.get_side(side_ref).get_active(slot_ref);
+                    let health_recovered =
+                        cmp::min(active_pkmn.maxhp / 16, active_pkmn.maxhp - active_pkmn.hp);
+                    if health_recovered > 0 {
+                        instructions
+                            .instruction_list
+                            .push(Instruction::Heal(HealInstruction {
+                                side_ref: *side_ref,
+                                pokemon_index: active_index,
+                                heal_amount: health_recovered,
+                            }));
+                        active_pkmn.hp += health_recovered;
+                    }
+                }
+            }
+            Abilities::POISONHEAL => {
+                if active_pkmn.hp < active_pkmn.maxhp
+                    && (active_pkmn.status == PokemonStatus::POISON
+                        || active_pkmn.status == PokemonStatus::TOXIC)
+                {
                     let heal_amount =
                         cmp::min(active_pkmn.maxhp / 8, active_pkmn.maxhp - active_pkmn.hp);
                     let ins = Instruction::Heal(HealInstruction {
-                        side_ref: side_ref.clone(),
+                        side_ref: *side_ref,
                         pokemon_index: active_index,
                         heal_amount,
                     });
@@ -1452,33 +1428,85 @@ pub fn ability_end_of_turn(
                     instructions.instruction_list.push(ins);
                 }
             }
-        }
-        Abilities::HYDRATION if active_pkmn.status != PokemonStatus::NONE => {
-            let state_active_weather = state.get_weather();
-            if state_active_weather == Weather::RAIN || state_active_weather == Weather::HEAVYRAIN {
-                let attacking_side = state.get_side(side_ref);
-                add_remove_status_instructions(
-                    instructions,
-                    active_index,
-                    *side_ref,
-                    attacking_side,
-                );
+            Abilities::SPEEDBOOST => {
+                let attacking_slot = state.get_side(side_ref).get_slot(slot_ref);
+                if attacking_slot.speed_boost < 6 {
+                    let ins = Instruction::Boost(BoostInstruction {
+                        side_ref: *side_ref,
+                        slot_ref: *slot_ref,
+                        stat: PokemonBoostableStat::Speed,
+                        amount: 1,
+                    });
+                    attacking_slot.speed_boost += 1;
+                    instructions.instruction_list.push(ins);
+                }
             }
-        }
-        // Shed skin only has a 1/3 chance of activating at the end of the turn
-        // but I'm not going to branch on that here
-        Abilities::SHEDSKIN => {
-            if active_pkmn.status != PokemonStatus::NONE {
-                let attacking_side = state.get_side(side_ref);
-                add_remove_status_instructions(
-                    instructions,
-                    active_index,
-                    *side_ref,
-                    attacking_side,
-                );
+            Abilities::RAINDISH => {
+                let state_active_weather = state.get_weather();
+                if state_active_weather == Weather::RAIN
+                    || state_active_weather == Weather::HEAVYRAIN
+                {
+                    let active_pkmn = state.get_side(side_ref).get_active(slot_ref);
+                    let health_recovered =
+                        cmp::min(active_pkmn.maxhp / 16, active_pkmn.maxhp - active_pkmn.hp);
+                    if health_recovered > 0 {
+                        instructions
+                            .instruction_list
+                            .push(Instruction::Heal(HealInstruction {
+                                side_ref: *side_ref,
+                                pokemon_index: active_index,
+                                heal_amount: health_recovered,
+                            }));
+                        active_pkmn.hp += health_recovered;
+                    }
+                }
             }
+            Abilities::DRYSKIN => {
+                let state_active_weather = state.get_weather();
+                if state_active_weather == Weather::RAIN {
+                    let active_pkmn = state.get_side(side_ref).get_active(slot_ref);
+                    if active_pkmn.hp < active_pkmn.maxhp {
+                        let heal_amount =
+                            cmp::min(active_pkmn.maxhp / 8, active_pkmn.maxhp - active_pkmn.hp);
+                        let ins = Instruction::Heal(HealInstruction {
+                            side_ref: side_ref.clone(),
+                            pokemon_index: active_index,
+                            heal_amount,
+                        });
+                        active_pkmn.hp += heal_amount;
+                        instructions.instruction_list.push(ins);
+                    }
+                }
+            }
+            Abilities::HYDRATION if active_pkmn.status != PokemonStatus::NONE => {
+                let state_active_weather = state.get_weather();
+                if state_active_weather == Weather::RAIN
+                    || state_active_weather == Weather::HEAVYRAIN
+                {
+                    let attacking_side = state.get_side(side_ref);
+                    add_remove_status_instructions(
+                        instructions,
+                        active_index,
+                        *side_ref,
+                        attacking_side,
+                    );
+                }
+            }
+            // Shed skin only has a 1/3 chance of activating at the end of the turn
+            // but I'm not going to branch on that here
+            Abilities::SHEDSKIN => {
+                if active_pkmn.status != PokemonStatus::NONE {
+                    let attacking_side = state.get_side(side_ref);
+                    add_remove_status_instructions(
+                        instructions,
+                        active_index,
+                        *side_ref,
+                        attacking_side,
+                    );
+                }
+            }
+            _ => {}
         }
-        _ => {}
     }
 }
 
@@ -1488,15 +1516,16 @@ pub fn ability_on_switch_in(
     slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) {
-    if state.neutralizing_gas_is_active() {
-        return;
-    }
+    let neutralizing_gas_active = state.neutralizing_gas_is_active();
     let defender_ability = state
         .get_side_immutable(&side_ref.get_other_side())
         .get_active_immutable(slot_ref)
         .ability;
     let attacking_side = state.get_side(side_ref);
     let (active_pkmn, active_index) = attacking_side.get_active_with_index(slot_ref);
+    if neutralizing_gas_active && active_pkmn.item != Items::ABILITYSHIELD {
+        return;
+    }
 
     // trace copying an ability needs to happen before the ability check to activate on switch-in
     // e.g. tracing intimidate will activate intimidate
@@ -1980,11 +2009,12 @@ pub fn ability_modify_attack_being_used(
     target_side_ref: &SideReference,
     target_slot_ref: &SlotReference,
 ) {
-    if state.neutralizing_gas_is_active() {
-        return;
-    }
     let attacking_side = state.get_side_immutable(attacking_side_ref);
     let attacking_pkmn = attacking_side.get_active_immutable(attacking_slot_ref);
+    if state.neutralizing_gas_is_active() && attacking_pkmn.item != Items::ABILITYSHIELD {
+        return;
+    }
+
     match attacking_pkmn.ability {
         Abilities::PRANKSTER => {
             if attacker_choice.category == MoveCategory::Status
@@ -2330,9 +2360,7 @@ pub fn ability_modify_attack_against(
     target_side_ref: &SideReference,
     target_slot_ref: &SlotReference,
 ) {
-    if state.neutralizing_gas_is_active() {
-        return;
-    }
+    let neutralizing_gas_active = state.neutralizing_gas_is_active();
     let attacking_side = state.get_side_immutable(attacking_side_ref);
     let attacking_pkmn = attacking_side.get_active_immutable(attacking_slot_ref);
     let attacking_pkmn_ability = attacking_pkmn.ability;
@@ -2356,582 +2384,589 @@ pub fn ability_modify_attack_against(
         return;
     }
 
-    match target_pkmn.ability {
-        Abilities::ARMORTAIL => {
-            if !attacker_has_mold_breaker
-                && attacker_choice.priority > 0
-                && attacker_choice.move_choice_target == MoveChoiceTarget::Normal
-            {
-                attacker_choice.remove_all_effects();
+    if !neutralizing_gas_active || target_pkmn.item == Items::ABILITYSHIELD {
+        match target_pkmn.ability {
+            Abilities::ARMORTAIL => {
+                if !attacker_has_mold_breaker
+                    && attacker_choice.priority > 0
+                    && attacker_choice.move_choice_target == MoveChoiceTarget::Normal
+                {
+                    attacker_choice.remove_all_effects();
+                }
             }
-        }
-        Abilities::SOUNDPROOF => {
-            if attacker_choice.flags.sound {
-                attacker_choice.remove_all_effects();
-                attacker_choice.accuracy = 0.0;
+            Abilities::SOUNDPROOF => {
+                if attacker_choice.flags.sound {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.accuracy = 0.0;
+                }
             }
-        }
-        Abilities::POISONPOINT => {
-            if attacker_choice.flags.contact {
-                attacker_choice.add_or_create_secondaries(Secondary {
-                    chance: 33.0,
-                    target: MoveTarget::User,
-                    effect: Effect::Status(PokemonStatus::POISON),
-                })
+            Abilities::POISONPOINT => {
+                if attacker_choice.flags.contact {
+                    attacker_choice.add_or_create_secondaries(Secondary {
+                        chance: 33.0,
+                        target: MoveTarget::User,
+                        effect: Effect::Status(PokemonStatus::POISON),
+                    })
+                }
             }
-        }
-        Abilities::BULLETPROOF => {
-            if attacker_choice.flags.bullet {
-                attacker_choice.remove_all_effects();
-                attacker_choice.accuracy = 0.0;
+            Abilities::BULLETPROOF => {
+                if attacker_choice.flags.bullet {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.accuracy = 0.0;
+                }
             }
-        }
-        Abilities::MULTISCALE => {
-            if target_pkmn.hp == target_pkmn.maxhp {
-                attacker_choice.base_power /= 2.0;
+            Abilities::MULTISCALE => {
+                if target_pkmn.hp == target_pkmn.maxhp {
+                    attacker_choice.base_power /= 2.0;
+                }
             }
-        }
-        Abilities::LIGHTNINGROD => {
-            if attacker_choice.move_type == PokemonType::ELECTRIC {
-                attacker_choice.remove_all_effects();
+            Abilities::LIGHTNINGROD => {
+                if attacker_choice.move_type == PokemonType::ELECTRIC {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.accuracy = 100.0;
+                    attacker_choice.target = MoveTarget::Target;
+                    attacker_choice.boost = Some(Boost {
+                        boosts: StatBoosts {
+                            attack: 0,
+                            defense: 0,
+                            special_attack: 1,
+                            special_defense: 0,
+                            speed: 0,
+                            accuracy: 0,
+                        },
+                        target: MoveTarget::Target,
+                    });
+                    attacker_choice.category = MoveCategory::Status;
+                }
+            }
+            Abilities::EARTHEATER => {
+                if attacker_choice.move_type == PokemonType::GROUND {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.base_power = 0.0;
+                    attacker_choice.heal = Some(Heal {
+                        target: MoveTarget::Target,
+                        amount: 0.25,
+                    });
+                    attacker_choice.category = MoveCategory::Status;
+                }
+            }
+            Abilities::STEAMENGINE => {
+                if attacker_choice.move_type == PokemonType::WATER
+                    || attacker_choice.move_type == PokemonType::FIRE
+                {
+                    attacker_choice.add_or_create_secondaries(Secondary {
+                        chance: 100.0,
+                        target: MoveTarget::Target,
+                        effect: Effect::Boost(StatBoosts {
+                            attack: 0,
+                            defense: 0,
+                            special_attack: 0,
+                            special_defense: 0,
+                            speed: 6,
+                            accuracy: 0,
+                        }),
+                    });
+                }
+            }
+            Abilities::THERMALEXCHANGE => {
+                if attacker_choice.move_type == PokemonType::FIRE {
+                    attacker_choice.add_or_create_secondaries(Secondary {
+                        chance: 100.0,
+                        target: MoveTarget::Target,
+                        effect: Effect::Boost(StatBoosts {
+                            attack: 1,
+                            defense: 0,
+                            special_attack: 0,
+                            special_defense: 0,
+                            speed: 0,
+                            accuracy: 0,
+                        }),
+                    });
+                }
+            }
+            Abilities::WEAKARMOR => {
+                if attacker_choice.category == MoveCategory::Physical {
+                    attacker_choice.add_or_create_secondaries(Secondary {
+                        chance: 100.0,
+                        target: MoveTarget::Target,
+                        effect: Effect::Boost(StatBoosts {
+                            attack: 0,
+                            defense: -1,
+                            special_attack: 0,
+                            special_defense: 0,
+                            speed: 2,
+                            accuracy: 0,
+                        }),
+                    });
+                }
+            }
+            Abilities::QUEENLYMAJESTY => {
+                if attacker_choice.priority > 0 {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.accuracy = 0.0;
+                }
+            }
+            Abilities::SAPSIPPER => {
+                if attacker_choice.move_type == PokemonType::GRASS {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.accuracy = 100.0;
+                    attacker_choice.target = MoveTarget::Target;
+                    attacker_choice.boost = Some(Boost {
+                        boosts: StatBoosts {
+                            attack: 1,
+                            defense: 0,
+                            special_attack: 0,
+                            special_defense: 0,
+                            speed: 0,
+                            accuracy: 0,
+                        },
+                        target: MoveTarget::Target,
+                    });
+                    attacker_choice.category = MoveCategory::Status;
+                }
+            }
+            Abilities::SHADOWSHIELD => {
+                if target_pkmn.hp == target_pkmn.maxhp {
+                    attacker_choice.base_power /= 2.0;
+                }
+            }
+            Abilities::NOGUARD => {
                 attacker_choice.accuracy = 100.0;
-                attacker_choice.target = MoveTarget::Target;
-                attacker_choice.boost = Some(Boost {
-                    boosts: StatBoosts {
-                        attack: 0,
-                        defense: 0,
-                        special_attack: 1,
-                        special_defense: 0,
-                        speed: 0,
-                        accuracy: 0,
-                    },
-                    target: MoveTarget::Target,
-                });
-                attacker_choice.category = MoveCategory::Status;
             }
-        }
-        Abilities::EARTHEATER => {
-            if attacker_choice.move_type == PokemonType::GROUND {
-                attacker_choice.remove_all_effects();
-                attacker_choice.base_power = 0.0;
-                attacker_choice.heal = Some(Heal {
-                    target: MoveTarget::Target,
-                    amount: 0.25,
-                });
-                attacker_choice.category = MoveCategory::Status;
+            Abilities::MARVELSCALE => {
+                if target_pkmn.status != PokemonStatus::NONE
+                    && attacker_choice.category == MoveCategory::Physical
+                {
+                    attacker_choice.base_power /= 1.5;
+                }
             }
-        }
-        Abilities::STEAMENGINE => {
-            if attacker_choice.move_type == PokemonType::WATER
-                || attacker_choice.move_type == PokemonType::FIRE
-            {
-                attacker_choice.add_or_create_secondaries(Secondary {
-                    chance: 100.0,
-                    target: MoveTarget::Target,
-                    effect: Effect::Boost(StatBoosts {
-                        attack: 0,
-                        defense: 0,
-                        special_attack: 0,
-                        special_defense: 0,
-                        speed: 6,
-                        accuracy: 0,
-                    }),
-                });
+            Abilities::EFFECTSPORE => {
+                if attacker_choice.flags.contact {
+                    attacker_choice.add_or_create_secondaries(Secondary {
+                        chance: 9.0,
+                        target: MoveTarget::User,
+                        effect: Effect::Status(PokemonStatus::POISON),
+                    });
+                    attacker_choice.add_or_create_secondaries(Secondary {
+                        chance: 10.0,
+                        target: MoveTarget::User,
+                        effect: Effect::Status(PokemonStatus::PARALYZE),
+                    });
+                    attacker_choice.add_or_create_secondaries(Secondary {
+                        chance: 11.0,
+                        target: MoveTarget::User,
+                        effect: Effect::Status(PokemonStatus::SLEEP),
+                    });
+                }
             }
-        }
-        Abilities::THERMALEXCHANGE => {
-            if attacker_choice.move_type == PokemonType::FIRE {
-                attacker_choice.add_or_create_secondaries(Secondary {
-                    chance: 100.0,
-                    target: MoveTarget::Target,
-                    effect: Effect::Boost(StatBoosts {
-                        attack: 1,
-                        defense: 0,
-                        special_attack: 0,
-                        special_defense: 0,
-                        speed: 0,
-                        accuracy: 0,
-                    }),
-                });
+            Abilities::FLAMEBODY => {
+                if attacker_choice.flags.contact {
+                    attacker_choice.add_or_create_secondaries(Secondary {
+                        chance: 30.0,
+                        target: MoveTarget::User,
+                        effect: Effect::Status(PokemonStatus::BURN),
+                    });
+                }
             }
-        }
-        Abilities::WEAKARMOR => {
-            if attacker_choice.category == MoveCategory::Physical {
-                attacker_choice.add_or_create_secondaries(Secondary {
-                    chance: 100.0,
-                    target: MoveTarget::Target,
-                    effect: Effect::Boost(StatBoosts {
-                        attack: 0,
-                        defense: -1,
-                        special_attack: 0,
-                        special_defense: 0,
-                        speed: 2,
-                        accuracy: 0,
-                    }),
-                });
+            Abilities::GOOEY => {
+                if attacker_choice.flags.contact {
+                    attacker_choice.add_or_create_secondaries(Secondary {
+                        chance: 100.0,
+                        target: MoveTarget::User,
+                        effect: Effect::Boost(StatBoosts {
+                            attack: 0,
+                            defense: 0,
+                            special_attack: 0,
+                            special_defense: 0,
+                            speed: -1,
+                            accuracy: 0,
+                        }),
+                    })
+                }
             }
-        }
-        Abilities::QUEENLYMAJESTY => {
-            if attacker_choice.priority > 0 {
-                attacker_choice.remove_all_effects();
-                attacker_choice.accuracy = 0.0;
+            Abilities::MOTORDRIVE => {
+                if attacker_choice.move_type == PokemonType::ELECTRIC {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.accuracy = 100.0;
+                    attacker_choice.target = MoveTarget::Target;
+                    attacker_choice.boost = Some(Boost {
+                        boosts: StatBoosts {
+                            attack: 0,
+                            defense: 0,
+                            special_attack: 0,
+                            special_defense: 0,
+                            speed: 1,
+                            accuracy: 0,
+                        },
+                        target: MoveTarget::Target,
+                    });
+                    attacker_choice.category = MoveCategory::Status;
+                }
             }
-        }
-        Abilities::SAPSIPPER => {
-            if attacker_choice.move_type == PokemonType::GRASS {
-                attacker_choice.remove_all_effects();
-                attacker_choice.accuracy = 100.0;
-                attacker_choice.target = MoveTarget::Target;
-                attacker_choice.boost = Some(Boost {
-                    boosts: StatBoosts {
-                        attack: 1,
-                        defense: 0,
-                        special_attack: 0,
-                        special_defense: 0,
-                        speed: 0,
-                        accuracy: 0,
-                    },
-                    target: MoveTarget::Target,
-                });
-                attacker_choice.category = MoveCategory::Status;
+            Abilities::WINDRIDER => {
+                if attacker_choice.flags.wind {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.accuracy = 100.0;
+                    attacker_choice.target = MoveTarget::Target;
+                    attacker_choice.boost = Some(Boost {
+                        boosts: StatBoosts {
+                            attack: 1,
+                            defense: 0,
+                            special_attack: 0,
+                            special_defense: 0,
+                            speed: 0,
+                            accuracy: 0,
+                        },
+                        target: MoveTarget::Target,
+                    });
+                    attacker_choice.category = MoveCategory::Status;
+                }
             }
-        }
-        Abilities::SHADOWSHIELD => {
-            if target_pkmn.hp == target_pkmn.maxhp {
-                attacker_choice.base_power /= 2.0;
+            Abilities::SUCTIONCUPS => {
+                attacker_choice.flags.drag = false;
             }
-        }
-        Abilities::NOGUARD => {
-            attacker_choice.accuracy = 100.0;
-        }
-        Abilities::MARVELSCALE => {
-            if target_pkmn.status != PokemonStatus::NONE
-                && attacker_choice.category == MoveCategory::Physical
-            {
-                attacker_choice.base_power /= 1.5;
+            Abilities::WONDERGUARD => {
+                if attacker_choice.category != MoveCategory::Status
+                    && type_effectiveness_modifier(&attacker_choice.move_type, &target_pkmn) <= 1.0
+                {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.base_power = 0.0;
+                }
             }
-        }
-        Abilities::EFFECTSPORE => {
-            if attacker_choice.flags.contact {
-                attacker_choice.add_or_create_secondaries(Secondary {
-                    chance: 9.0,
-                    target: MoveTarget::User,
-                    effect: Effect::Status(PokemonStatus::POISON),
-                });
-                attacker_choice.add_or_create_secondaries(Secondary {
-                    chance: 10.0,
-                    target: MoveTarget::User,
-                    effect: Effect::Status(PokemonStatus::PARALYZE),
-                });
-                attacker_choice.add_or_create_secondaries(Secondary {
-                    chance: 11.0,
-                    target: MoveTarget::User,
-                    effect: Effect::Status(PokemonStatus::SLEEP),
-                });
+            Abilities::FAIRYAURA => {
+                if attacker_choice.move_type == PokemonType::FAIRY {
+                    attacker_choice.base_power *= 1.33;
+                }
             }
-        }
-        Abilities::FLAMEBODY => {
-            if attacker_choice.flags.contact {
-                attacker_choice.add_or_create_secondaries(Secondary {
-                    chance: 30.0,
-                    target: MoveTarget::User,
-                    effect: Effect::Status(PokemonStatus::BURN),
-                });
+            Abilities::LEVITATE => {
+                if attacker_choice.move_type == PokemonType::GROUND
+                    && attacker_choice.target == MoveTarget::Target
+                    && attacker_choice.move_id != Choices::THOUSANDARROWS
+                {
+                    attacker_choice.base_power = 0.0;
+                }
             }
-        }
-        Abilities::GOOEY => {
-            if attacker_choice.flags.contact {
-                attacker_choice.add_or_create_secondaries(Secondary {
-                    chance: 100.0,
-                    target: MoveTarget::User,
-                    effect: Effect::Boost(StatBoosts {
-                        attack: 0,
-                        defense: 0,
-                        special_attack: 0,
-                        special_defense: 0,
-                        speed: -1,
-                        accuracy: 0,
-                    }),
-                })
+            Abilities::STATIC => {
+                if attacker_choice.flags.contact {
+                    attacker_choice.add_or_create_secondaries(Secondary {
+                        chance: 30.0,
+                        target: MoveTarget::User,
+                        effect: Effect::Status(PokemonStatus::PARALYZE),
+                    })
+                }
             }
-        }
-        Abilities::MOTORDRIVE => {
-            if attacker_choice.move_type == PokemonType::ELECTRIC {
-                attacker_choice.remove_all_effects();
-                attacker_choice.accuracy = 100.0;
-                attacker_choice.target = MoveTarget::Target;
-                attacker_choice.boost = Some(Boost {
-                    boosts: StatBoosts {
-                        attack: 0,
-                        defense: 0,
-                        special_attack: 0,
-                        special_defense: 0,
-                        speed: 1,
-                        accuracy: 0,
-                    },
-                    target: MoveTarget::Target,
-                });
-                attacker_choice.category = MoveCategory::Status;
+            Abilities::WONDERSKIN => {
+                if attacker_choice.category == MoveCategory::Status
+                    && attacker_choice.accuracy > 50.0
+                {
+                    attacker_choice.accuracy = 50.0;
+                }
             }
-        }
-        Abilities::WINDRIDER => {
-            if attacker_choice.flags.wind {
-                attacker_choice.remove_all_effects();
-                attacker_choice.accuracy = 100.0;
-                attacker_choice.target = MoveTarget::Target;
-                attacker_choice.boost = Some(Boost {
-                    boosts: StatBoosts {
-                        attack: 1,
-                        defense: 0,
-                        special_attack: 0,
-                        special_defense: 0,
-                        speed: 0,
-                        accuracy: 0,
-                    },
-                    target: MoveTarget::Target,
-                });
-                attacker_choice.category = MoveCategory::Status;
+            Abilities::THICKFAT => {
+                if attacker_choice.move_type == PokemonType::FIRE
+                    || attacker_choice.move_type == PokemonType::ICE
+                {
+                    attacker_choice.base_power /= 2.0;
+                }
             }
-        }
-        Abilities::SUCTIONCUPS => {
-            attacker_choice.flags.drag = false;
-        }
-        Abilities::WONDERGUARD => {
-            if attacker_choice.category != MoveCategory::Status
-                && type_effectiveness_modifier(&attacker_choice.move_type, &target_pkmn) <= 1.0
-            {
-                attacker_choice.remove_all_effects();
-                attacker_choice.base_power = 0.0;
+            Abilities::FLASHFIRE => {
+                if attacker_choice.move_type == PokemonType::FIRE {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.volatile_status = Some(VolatileStatus {
+                        target: MoveTarget::Target,
+                        volatile_status: PokemonVolatileStatus::FLASHFIRE,
+                    });
+                }
             }
-        }
-        Abilities::FAIRYAURA => {
-            if attacker_choice.move_type == PokemonType::FAIRY {
-                attacker_choice.base_power *= 1.33;
+            Abilities::WELLBAKEDBODY => {
+                if attacker_choice.move_type == PokemonType::FIRE {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.boost = Some(Boost {
+                        boosts: StatBoosts {
+                            attack: 0,
+                            defense: 2,
+                            special_attack: 0,
+                            special_defense: 0,
+                            speed: 0,
+                            accuracy: 0,
+                        },
+                        target: MoveTarget::Target,
+                    });
+                }
             }
-        }
-        Abilities::LEVITATE => {
-            if attacker_choice.move_type == PokemonType::GROUND
-                && attacker_choice.target == MoveTarget::Target
-                && attacker_choice.move_id != Choices::THOUSANDARROWS
-            {
-                attacker_choice.base_power = 0.0;
+            Abilities::DAZZLING => {
+                if attacker_choice.priority > 0 {
+                    attacker_choice.accuracy = 0.0;
+                }
             }
-        }
-        Abilities::STATIC => {
-            if attacker_choice.flags.contact {
-                attacker_choice.add_or_create_secondaries(Secondary {
-                    chance: 30.0,
-                    target: MoveTarget::User,
-                    effect: Effect::Status(PokemonStatus::PARALYZE),
-                })
+            Abilities::LIQUIDOOZE => {
+                if let Some(drain) = attacker_choice.drain {
+                    attacker_choice.drain = Some(-1.0 * drain);
+                }
             }
-        }
-        Abilities::WONDERSKIN => {
-            if attacker_choice.category == MoveCategory::Status && attacker_choice.accuracy > 50.0 {
-                attacker_choice.accuracy = 50.0;
+            Abilities::PRISMARMOR => {
+                if type_effectiveness_modifier(&attacker_choice.move_type, &target_pkmn) > 1.0 {
+                    attacker_choice.base_power *= 0.75;
+                }
             }
-        }
-        Abilities::THICKFAT => {
-            if attacker_choice.move_type == PokemonType::FIRE
-                || attacker_choice.move_type == PokemonType::ICE
-            {
-                attacker_choice.base_power /= 2.0;
+            Abilities::HEATPROOF => {
+                if attacker_choice.move_type == PokemonType::FIRE {
+                    attacker_choice.base_power *= 0.5;
+                }
             }
-        }
-        Abilities::FLASHFIRE => {
-            if attacker_choice.move_type == PokemonType::FIRE {
-                attacker_choice.remove_all_effects();
-                attacker_choice.volatile_status = Some(VolatileStatus {
-                    target: MoveTarget::Target,
-                    volatile_status: PokemonVolatileStatus::FLASHFIRE,
-                });
-            }
-        }
-        Abilities::WELLBAKEDBODY => {
-            if attacker_choice.move_type == PokemonType::FIRE {
-                attacker_choice.remove_all_effects();
-                attacker_choice.boost = Some(Boost {
-                    boosts: StatBoosts {
-                        attack: 0,
-                        defense: 2,
-                        special_attack: 0,
-                        special_defense: 0,
-                        speed: 0,
-                        accuracy: 0,
-                    },
-                    target: MoveTarget::Target,
-                });
-            }
-        }
-        Abilities::DAZZLING => {
-            if attacker_choice.priority > 0 {
-                attacker_choice.accuracy = 0.0;
-            }
-        }
-        Abilities::LIQUIDOOZE => {
-            if let Some(drain) = attacker_choice.drain {
-                attacker_choice.drain = Some(-1.0 * drain);
-            }
-        }
-        Abilities::PRISMARMOR => {
-            if type_effectiveness_modifier(&attacker_choice.move_type, &target_pkmn) > 1.0 {
-                attacker_choice.base_power *= 0.75;
-            }
-        }
-        Abilities::HEATPROOF => {
-            if attacker_choice.move_type == PokemonType::FIRE {
-                attacker_choice.base_power *= 0.5;
-            }
-        }
-        Abilities::SHIELDDUST => {
-            if let Some(secondaries) = &mut attacker_choice.secondaries {
-                for secondary in secondaries.iter_mut() {
-                    if secondary.target == MoveTarget::Target {
-                        secondary.chance = 0.0;
+            Abilities::SHIELDDUST => {
+                if let Some(secondaries) = &mut attacker_choice.secondaries {
+                    for secondary in secondaries.iter_mut() {
+                        if secondary.target == MoveTarget::Target {
+                            secondary.chance = 0.0;
+                        }
                     }
                 }
             }
-        }
-        Abilities::GRASSPELT => {
-            if state.terrain_is_active(&Terrain::GRASSYTERRAIN)
-                && attacker_choice.category == MoveCategory::Physical
-            {
-                attacker_choice.base_power /= 1.5;
-            }
-        }
-        Abilities::FILTER => {
-            if type_effectiveness_modifier(&attacker_choice.move_type, &target_pkmn) > 1.0 {
-                attacker_choice.base_power *= 0.75;
-            }
-        }
-        Abilities::FURCOAT => {
-            if attacker_choice.category == MoveCategory::Physical {
-                attacker_choice.base_power *= 0.5;
-            }
-        }
-        Abilities::TANGLINGHAIR => {
-            if attacker_choice.flags.contact {
-                attacker_choice.add_or_create_secondaries(Secondary {
-                    chance: 100.0,
-                    target: MoveTarget::User,
-                    effect: Effect::Boost(StatBoosts {
-                        attack: 0,
-                        defense: 0,
-                        special_attack: 0,
-                        special_defense: 0,
-                        speed: -1,
-                        accuracy: 0,
-                    }),
-                })
-            }
-        }
-        Abilities::MAGICBOUNCE => {
-            if attacker_choice.flags.reflectable {
-                attacker_choice.target = MoveTarget::User;
-                if let Some(side_condition) = &mut attacker_choice.side_condition {
-                    if side_condition.target == MoveTarget::Target {
-                        side_condition.target = MoveTarget::User;
-                    }
-                }
-                if let Some(status) = &mut attacker_choice.status {
-                    if status.target == MoveTarget::Target {
-                        status.target = MoveTarget::User;
-                    }
-                }
-                if let Some(volatile_status) = &mut attacker_choice.volatile_status {
-                    if volatile_status.target == MoveTarget::Target {
-                        volatile_status.target = MoveTarget::User;
-                    }
+            Abilities::GRASSPELT => {
+                if state.terrain_is_active(&Terrain::GRASSYTERRAIN)
+                    && attacker_choice.category == MoveCategory::Physical
+                {
+                    attacker_choice.base_power /= 1.5;
                 }
             }
-        }
-        Abilities::STORMDRAIN => {
-            if attacker_choice.move_type == PokemonType::WATER {
-                attacker_choice.remove_all_effects();
-                attacker_choice.accuracy = 100.0;
-                attacker_choice.target = MoveTarget::Target;
-                attacker_choice.boost = Some(Boost {
-                    boosts: StatBoosts {
-                        attack: 0,
-                        defense: 0,
-                        special_attack: 1,
-                        special_defense: 0,
-                        speed: 0,
-                        accuracy: 0,
-                    },
-                    target: MoveTarget::Target,
-                });
-                attacker_choice.category = MoveCategory::Status;
+            Abilities::FILTER => {
+                if type_effectiveness_modifier(&attacker_choice.move_type, &target_pkmn) > 1.0 {
+                    attacker_choice.base_power *= 0.75;
+                }
             }
-        }
-        Abilities::WATERCOMPACTION => {
-            if attacker_choice.move_type == PokemonType::WATER {
-                attacker_choice.add_or_create_secondaries(Secondary {
-                    chance: 100.0,
-                    target: MoveTarget::Target,
-                    effect: Effect::Boost(StatBoosts {
-                        attack: 0,
-                        defense: 2,
-                        special_attack: 0,
-                        special_defense: 0,
-                        speed: 0,
-                        accuracy: 0,
-                    }),
-                });
+            Abilities::FURCOAT => {
+                if attacker_choice.category == MoveCategory::Physical {
+                    attacker_choice.base_power *= 0.5;
+                }
             }
-        }
-        Abilities::JUSTIFIED => {
-            if attacker_choice.move_type == PokemonType::DARK {
-                attacker_choice.add_or_create_secondaries(Secondary {
-                    chance: 100.0,
-                    target: MoveTarget::Target,
-                    effect: Effect::Boost(StatBoosts {
-                        attack: 1,
-                        defense: 0,
-                        special_attack: 0,
-                        special_defense: 0,
-                        speed: 0,
-                        accuracy: 0,
-                    }),
-                })
+            Abilities::TANGLINGHAIR => {
+                if attacker_choice.flags.contact {
+                    attacker_choice.add_or_create_secondaries(Secondary {
+                        chance: 100.0,
+                        target: MoveTarget::User,
+                        effect: Effect::Boost(StatBoosts {
+                            attack: 0,
+                            defense: 0,
+                            special_attack: 0,
+                            special_defense: 0,
+                            speed: -1,
+                            accuracy: 0,
+                        }),
+                    })
+                }
             }
-        }
-        Abilities::ICESCALES => {
-            if attacker_choice.category == MoveCategory::Special {
-                attacker_choice.base_power *= 0.5;
+            Abilities::MAGICBOUNCE => {
+                if attacker_choice.flags.reflectable {
+                    attacker_choice.target = MoveTarget::User;
+                    if let Some(side_condition) = &mut attacker_choice.side_condition {
+                        if side_condition.target == MoveTarget::Target {
+                            side_condition.target = MoveTarget::User;
+                        }
+                    }
+                    if let Some(status) = &mut attacker_choice.status {
+                        if status.target == MoveTarget::Target {
+                            status.target = MoveTarget::User;
+                        }
+                    }
+                    if let Some(volatile_status) = &mut attacker_choice.volatile_status {
+                        if volatile_status.target == MoveTarget::Target {
+                            volatile_status.target = MoveTarget::User;
+                        }
+                    }
+                }
             }
-        }
-        Abilities::WATERABSORB => {
-            if attacker_choice.move_type == PokemonType::WATER {
-                attacker_choice.remove_all_effects();
-                attacker_choice.base_power = 0.0;
-                attacker_choice.heal = Some(Heal {
-                    target: MoveTarget::Target,
-                    amount: 0.25,
-                });
-                attacker_choice.category = MoveCategory::Status;
+            Abilities::STORMDRAIN => {
+                if attacker_choice.move_type == PokemonType::WATER {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.accuracy = 100.0;
+                    attacker_choice.target = MoveTarget::Target;
+                    attacker_choice.boost = Some(Boost {
+                        boosts: StatBoosts {
+                            attack: 0,
+                            defense: 0,
+                            special_attack: 1,
+                            special_defense: 0,
+                            speed: 0,
+                            accuracy: 0,
+                        },
+                        target: MoveTarget::Target,
+                    });
+                    attacker_choice.category = MoveCategory::Status;
+                }
             }
-        }
-        Abilities::DRYSKIN => {
-            if attacker_choice.move_type == PokemonType::WATER {
-                attacker_choice.remove_all_effects();
-                attacker_choice.base_power = 0.0;
-                attacker_choice.heal = Some(Heal {
-                    target: MoveTarget::Target,
-                    amount: 0.25,
-                });
-                attacker_choice.category = MoveCategory::Status;
-            } else if attacker_choice.move_type == PokemonType::FIRE {
-                attacker_choice.base_power *= 1.25;
+            Abilities::WATERCOMPACTION => {
+                if attacker_choice.move_type == PokemonType::WATER {
+                    attacker_choice.add_or_create_secondaries(Secondary {
+                        chance: 100.0,
+                        target: MoveTarget::Target,
+                        effect: Effect::Boost(StatBoosts {
+                            attack: 0,
+                            defense: 2,
+                            special_attack: 0,
+                            special_defense: 0,
+                            speed: 0,
+                            accuracy: 0,
+                        }),
+                    });
+                }
             }
-        }
-        Abilities::FLUFFY => {
-            if attacker_choice.flags.contact {
-                attacker_choice.base_power *= 0.5;
+            Abilities::JUSTIFIED => {
+                if attacker_choice.move_type == PokemonType::DARK {
+                    attacker_choice.add_or_create_secondaries(Secondary {
+                        chance: 100.0,
+                        target: MoveTarget::Target,
+                        effect: Effect::Boost(StatBoosts {
+                            attack: 1,
+                            defense: 0,
+                            special_attack: 0,
+                            special_defense: 0,
+                            speed: 0,
+                            accuracy: 0,
+                        }),
+                    })
+                }
             }
-            if attacker_choice.move_type == PokemonType::FIRE {
-                attacker_choice.base_power *= 2.0;
+            Abilities::ICESCALES => {
+                if attacker_choice.category == MoveCategory::Special {
+                    attacker_choice.base_power *= 0.5;
+                }
             }
-        }
-        Abilities::PUNKROCK => {
-            if attacker_choice.flags.sound {
-                attacker_choice.base_power /= 2.0;
+            Abilities::WATERABSORB => {
+                if attacker_choice.move_type == PokemonType::WATER {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.base_power = 0.0;
+                    attacker_choice.heal = Some(Heal {
+                        target: MoveTarget::Target,
+                        amount: 0.25,
+                    });
+                    attacker_choice.category = MoveCategory::Status;
+                }
             }
-        }
-        Abilities::DAMP => {
-            if [
-                Choices::SELFDESTRUCT,
-                Choices::EXPLOSION,
-                Choices::MINDBLOWN,
-                Choices::MISTYEXPLOSION,
-            ]
-            .contains(&attacker_choice.move_id)
-            {
-                attacker_choice.accuracy = 0.0;
-                attacker_choice.heal = None;
+            Abilities::DRYSKIN => {
+                if attacker_choice.move_type == PokemonType::WATER {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.base_power = 0.0;
+                    attacker_choice.heal = Some(Heal {
+                        target: MoveTarget::Target,
+                        amount: 0.25,
+                    });
+                    attacker_choice.category = MoveCategory::Status;
+                } else if attacker_choice.move_type == PokemonType::FIRE {
+                    attacker_choice.base_power *= 1.25;
+                }
             }
-        }
-        Abilities::VOLTABSORB => {
-            let activate = attacker_choice.move_type == PokemonType::ELECTRIC;
-            if activate {
-                attacker_choice.remove_all_effects();
-                attacker_choice.accuracy = 100.0;
-                attacker_choice.base_power = 0.0;
-                attacker_choice.heal = Some(Heal {
-                    target: MoveTarget::Target,
-                    amount: 0.25,
-                });
-                attacker_choice.category = MoveCategory::Status;
+            Abilities::FLUFFY => {
+                if attacker_choice.flags.contact {
+                    attacker_choice.base_power *= 0.5;
+                }
+                if attacker_choice.move_type == PokemonType::FIRE {
+                    attacker_choice.base_power *= 2.0;
+                }
             }
-        }
-        Abilities::SOLIDROCK => {
-            if type_effectiveness_modifier(&attacker_choice.move_type, &target_pkmn) > 1.0 {
-                attacker_choice.base_power *= 0.75;
+            Abilities::PUNKROCK => {
+                if attacker_choice.flags.sound {
+                    attacker_choice.base_power /= 2.0;
+                }
             }
-        }
-        Abilities::OVERCOAT => {
-            if attacker_choice.flags.powder {
-                attacker_choice.remove_all_effects();
-                attacker_choice.accuracy = 0.0
-            }
-        }
-        Abilities::GOODASGOLD => {
-            // This engine doesn't distinguish "targetting other pkmn" versus "targetting the side"
-            // Thankfully it is a short list of moves that target the opponent side
-            if attacker_choice.category == MoveCategory::Status
-                && attacker_choice.target == MoveTarget::Target
-                && ![
-                    Choices::STEALTHROCK,
-                    Choices::STICKYWEB,
-                    Choices::TOXICSPIKES,
-                    Choices::SPIKES,
+            Abilities::DAMP => {
+                if [
+                    Choices::SELFDESTRUCT,
+                    Choices::EXPLOSION,
+                    Choices::MINDBLOWN,
+                    Choices::MISTYEXPLOSION,
                 ]
                 .contains(&attacker_choice.move_id)
-            {
-                attacker_choice.remove_all_effects();
+                {
+                    attacker_choice.accuracy = 0.0;
+                    attacker_choice.heal = None;
+                }
             }
-        }
-        Abilities::RATTLED => {
-            if attacker_choice.move_type == PokemonType::BUG
-                || attacker_choice.move_type == PokemonType::DARK
-                || attacker_choice.move_type == PokemonType::GHOST
-            {
-                attacker_choice.add_or_create_secondaries(Secondary {
-                    chance: 100.0,
-                    target: MoveTarget::Target,
-                    effect: Effect::Boost(StatBoosts {
-                        attack: 0,
-                        defense: 0,
-                        special_attack: 0,
-                        special_defense: 0,
-                        speed: 1,
-                        accuracy: 0,
-                    }),
-                });
+            Abilities::VOLTABSORB => {
+                let activate = attacker_choice.move_type == PokemonType::ELECTRIC;
+                if activate {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.accuracy = 100.0;
+                    attacker_choice.base_power = 0.0;
+                    attacker_choice.heal = Some(Heal {
+                        target: MoveTarget::Target,
+                        amount: 0.25,
+                    });
+                    attacker_choice.category = MoveCategory::Status;
+                }
             }
-        }
-        Abilities::WATERBUBBLE => {
-            if attacker_choice.move_type == PokemonType::FIRE {
-                attacker_choice.base_power /= 2.0;
+            Abilities::SOLIDROCK => {
+                if type_effectiveness_modifier(&attacker_choice.move_type, &target_pkmn) > 1.0 {
+                    attacker_choice.base_power *= 0.75;
+                }
             }
-        }
-        Abilities::PURIFYINGSALT => {
-            if attacker_choice.move_type == PokemonType::GHOST {
-                attacker_choice.base_power /= 2.0;
+            Abilities::OVERCOAT => {
+                if attacker_choice.flags.powder {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.accuracy = 0.0
+                }
             }
+            Abilities::GOODASGOLD => {
+                // This engine doesn't distinguish "targetting other pkmn" versus "targetting the side"
+                // Thankfully it is a short list of moves that target the opponent side
+                if attacker_choice.category == MoveCategory::Status
+                    && attacker_choice.target == MoveTarget::Target
+                    && ![
+                        Choices::STEALTHROCK,
+                        Choices::STICKYWEB,
+                        Choices::TOXICSPIKES,
+                        Choices::SPIKES,
+                    ]
+                    .contains(&attacker_choice.move_id)
+                {
+                    attacker_choice.remove_all_effects();
+                }
+            }
+            Abilities::RATTLED => {
+                if attacker_choice.move_type == PokemonType::BUG
+                    || attacker_choice.move_type == PokemonType::DARK
+                    || attacker_choice.move_type == PokemonType::GHOST
+                {
+                    attacker_choice.add_or_create_secondaries(Secondary {
+                        chance: 100.0,
+                        target: MoveTarget::Target,
+                        effect: Effect::Boost(StatBoosts {
+                            attack: 0,
+                            defense: 0,
+                            special_attack: 0,
+                            special_defense: 0,
+                            speed: 1,
+                            accuracy: 0,
+                        }),
+                    });
+                }
+            }
+            Abilities::WATERBUBBLE => {
+                if attacker_choice.move_type == PokemonType::FIRE {
+                    attacker_choice.base_power /= 2.0;
+                }
+            }
+            Abilities::PURIFYINGSALT => {
+                if attacker_choice.move_type == PokemonType::GHOST {
+                    attacker_choice.base_power /= 2.0;
+                }
+            }
+            _ => {}
         }
-        _ => {}
     }
-    match target_ally.ability {
-        Abilities::QUEENLYMAJESTY | Abilities::DAZZLING | Abilities::ARMORTAIL => {
-            if !attacker_has_mold_breaker
-                && attacker_choice.priority > 0
-                && attacker_choice.move_choice_target == MoveChoiceTarget::Normal
-            {
-                attacker_choice.remove_all_effects();
-                attacker_choice.accuracy = 0.0;
+
+    if !neutralizing_gas_active || target_ally.item == Items::ABILITYSHIELD {
+        match target_ally.ability {
+            Abilities::QUEENLYMAJESTY | Abilities::DAZZLING | Abilities::ARMORTAIL => {
+                if !attacker_has_mold_breaker
+                    && attacker_choice.priority > 0
+                    && attacker_choice.move_choice_target == MoveChoiceTarget::Normal
+                {
+                    attacker_choice.remove_all_effects();
+                    attacker_choice.accuracy = 0.0;
+                }
             }
+            _ => {}
         }
-        _ => {}
     }
 }

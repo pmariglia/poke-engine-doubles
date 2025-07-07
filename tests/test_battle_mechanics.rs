@@ -4909,3 +4909,34 @@ fn test_fainted_followme_does_not_redirect() {
     }];
     assert_eq!(expected_instructions, vec_of_instructions);
 }
+
+#[test]
+fn test_abilityshield_prevents_neutralizinggas() {
+    let mut state = State::default();
+    state.side_one.pokemon.p0.item = Items::ABILITYSHIELD;
+    state.side_one.pokemon.p0.ability = Abilities::GALVANIZE;
+    state.side_one.pokemon.p1.ability = Abilities::NEUTRALIZINGGAS;
+    state.side_two.pokemon.p0.types.0 = PokemonType::GROUND;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::TACKLE, // should be rendered ineffective against the ground type
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}

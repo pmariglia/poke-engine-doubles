@@ -251,6 +251,62 @@ fn test_basic_switching() {
 }
 
 #[test]
+fn test_switching_with_volatile_status_durations() {
+    let mut state = State::default();
+    state.side_one.slot_a.volatile_status_durations.confusion = 1;
+    state.side_one.slot_a.volatile_status_durations.protect = 1;
+    state.side_one.slot_a.volatile_status_durations.encore = 2;
+    state.side_one.slot_a.volatile_status_durations.taunt = 3;
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::Switch(PokemonIndex::P2),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::ChangeVolatileStatusDuration(ChangeVolatileStatusDurationInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                volatile_status: PokemonVolatileStatus::CONFUSION,
+                amount: -1,
+            }),
+            Instruction::ChangeVolatileStatusDuration(ChangeVolatileStatusDurationInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                volatile_status: PokemonVolatileStatus::PROTECT,
+                amount: -1,
+            }),
+            Instruction::ChangeVolatileStatusDuration(ChangeVolatileStatusDurationInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                volatile_status: PokemonVolatileStatus::TAUNT,
+                amount: -3,
+            }),
+            Instruction::ChangeVolatileStatusDuration(ChangeVolatileStatusDurationInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                volatile_status: PokemonVolatileStatus::ENCORE,
+                amount: -2,
+            }),
+            Instruction::Switch(SwitchInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                previous_index: PokemonIndex::P0,
+                next_index: PokemonIndex::P2,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_switching_in_terrain_activates_seed() {
     let mut state = State::default();
     state.terrain.terrain_type = Terrain::ELECTRICTERRAIN;

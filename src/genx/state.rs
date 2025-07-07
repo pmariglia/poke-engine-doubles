@@ -1599,6 +1599,52 @@ impl State {
         // Clean up by re-setting the volatile statuses
         let slot = side.get_slot(slot_ref);
         slot.volatile_statuses = volatile_statuses;
+
+        // reset volatile status durations to 0
+        if slot.volatile_status_durations.confusion > 0 {
+            instructions.push(Instruction::ChangeVolatileStatusDuration(
+                ChangeVolatileStatusDurationInstruction {
+                    side_ref: *side_ref,
+                    slot_ref: *slot_ref,
+                    volatile_status: PokemonVolatileStatus::CONFUSION,
+                    amount: -1 * slot.volatile_status_durations.confusion,
+                },
+            ));
+            slot.volatile_status_durations.confusion = 0;
+        }
+        if slot.volatile_status_durations.protect > 0 {
+            instructions.push(Instruction::ChangeVolatileStatusDuration(
+                ChangeVolatileStatusDurationInstruction {
+                    side_ref: *side_ref,
+                    slot_ref: *slot_ref,
+                    volatile_status: PokemonVolatileStatus::PROTECT,
+                    amount: -1 * slot.volatile_status_durations.protect,
+                },
+            ));
+            slot.volatile_status_durations.protect = 0;
+        }
+        if slot.volatile_status_durations.taunt > 0 {
+            instructions.push(Instruction::ChangeVolatileStatusDuration(
+                ChangeVolatileStatusDurationInstruction {
+                    side_ref: *side_ref,
+                    slot_ref: *slot_ref,
+                    volatile_status: PokemonVolatileStatus::TAUNT,
+                    amount: -1 * slot.volatile_status_durations.taunt,
+                },
+            ));
+            slot.volatile_status_durations.taunt = 0;
+        }
+        if slot.volatile_status_durations.encore > 0 {
+            instructions.push(Instruction::ChangeVolatileStatusDuration(
+                ChangeVolatileStatusDurationInstruction {
+                    side_ref: *side_ref,
+                    slot_ref: *slot_ref,
+                    volatile_status: PokemonVolatileStatus::ENCORE,
+                    amount: -1 * slot.volatile_status_durations.encore,
+                },
+            ));
+            slot.volatile_status_durations.encore = 0;
+        }
     }
 
     pub fn terrain_is_active(&self, terrain: &Terrain) -> bool {

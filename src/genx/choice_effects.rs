@@ -1,6 +1,8 @@
 use super::abilities::Abilities;
 use super::damage_calc::type_effectiveness_modifier;
-use super::generate_instructions::{add_remove_status_instructions, get_boost_instruction};
+use super::generate_instructions::{
+    add_remove_status_instructions, get_boost_instruction, get_instructions_from_heal,
+};
 use super::state::{PokemonVolatileStatus, Terrain, Weather};
 use crate::choices::{
     Boost, Choice, Choices, Effect, Heal, MoveCategory, MoveTarget, Secondary, StatBoosts,
@@ -1275,6 +1277,78 @@ pub fn choice_special_effect(
 ) {
     let attacking_side = state.get_side(attacking_side_ref);
     match choice.move_id {
+        Choices::LIFEDEW => {
+            get_instructions_from_heal(
+                state,
+                &Heal {
+                    target: MoveTarget::Target,
+                    amount: 0.25,
+                },
+                attacking_side_ref,
+                attacking_slot_ref,
+                attacking_side_ref,
+                attacking_slot_ref,
+                instructions,
+            );
+            get_instructions_from_heal(
+                state,
+                &Heal {
+                    target: MoveTarget::Target,
+                    amount: 0.25,
+                },
+                attacking_side_ref,
+                attacking_slot_ref,
+                attacking_side_ref,
+                &attacking_slot_ref.get_other_slot(),
+                instructions,
+            );
+        }
+        Choices::JUNGLEHEALING | Choices::LUNARBLESSING => {
+            if attacking_side.pokemon[attacking_side.slot_a.active_index].status
+                != PokemonStatus::NONE
+            {
+                add_remove_status_instructions(
+                    instructions,
+                    attacking_side.slot_a.active_index,
+                    *attacking_side_ref,
+                    attacking_side,
+                );
+            }
+            if attacking_side.pokemon[attacking_side.slot_b.active_index].status
+                != PokemonStatus::NONE
+            {
+                add_remove_status_instructions(
+                    instructions,
+                    attacking_side.slot_b.active_index,
+                    *attacking_side_ref,
+                    attacking_side,
+                );
+            }
+            get_instructions_from_heal(
+                state,
+                &Heal {
+                    target: MoveTarget::Target,
+                    amount: 0.25,
+                },
+                attacking_side_ref,
+                attacking_slot_ref,
+                attacking_side_ref,
+                attacking_slot_ref,
+                instructions,
+            );
+            get_instructions_from_heal(
+                state,
+                &Heal {
+                    target: MoveTarget::Target,
+                    amount: 0.25,
+                },
+                attacking_side_ref,
+                attacking_slot_ref,
+                attacking_side_ref,
+                &attacking_slot_ref.get_other_slot(),
+                instructions,
+            );
+        }
         Choices::POLLENPUFF => {
             if attacking_side_ref == target_side_ref {
                 choice.category = MoveCategory::Status;

@@ -3940,6 +3940,166 @@ fn test_mid_turn_priority_change() {
 }
 
 #[test]
+fn test_lifedew_heals_both_pkmn_on_your_side() {
+    let mut state = State::default();
+    state.side_one.pokemon.p0.hp = 50;
+    state.side_one.pokemon.p1.hp = 50;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::LIFEDEW,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Heal(HealInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                heal_amount: 25,
+            }),
+            Instruction::Heal(HealInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P1,
+                heal_amount: 25,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_lifedew_does_not_overheal() {
+    let mut state = State::default();
+    state.side_one.pokemon.p0.hp = 50;
+    state.side_one.pokemon.p1.hp = 80;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::LIFEDEW,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Heal(HealInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                heal_amount: 25,
+            }),
+            Instruction::Heal(HealInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P1,
+                heal_amount: 20,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_lifedew_heals_single_ally() {
+    let mut state = State::default();
+    state.side_one.pokemon.p0.hp = 50;
+    state.side_one.pokemon.p1.hp = 100;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::LIFEDEW,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![Instruction::Heal(HealInstruction {
+            side_ref: SideReference::SideOne,
+            pokemon_index: PokemonIndex::P0,
+            heal_amount: 25,
+        })],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_junglehealing_heals_and_removes_status() {
+    let mut state = State::default();
+    state.side_one.pokemon.p0.hp = 50;
+    state.side_one.pokemon.p0.status = PokemonStatus::BURN;
+    state.side_one.pokemon.p1.hp = 50;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::JUNGLEHEALING,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::ChangeStatus(ChangeStatusInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                old_status: PokemonStatus::BURN,
+                new_status: PokemonStatus::NONE,
+            }),
+            Instruction::Heal(HealInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                heal_amount: 25,
+            }),
+            Instruction::Heal(HealInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P1,
+                heal_amount: 25,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_teraform_zero_removes_weather() {
     let mut state = State::default();
     state.side_one.pokemon.p0.tera_type = PokemonType::STELLAR;

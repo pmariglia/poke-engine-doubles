@@ -7390,6 +7390,7 @@ lazy_static! {
                 ..Default::default()
             },
         );
+        // junglehealing heal implemented elsewhere
         moves.insert(
             Choices::JUNGLEHEALING,
             Choice {
@@ -7400,10 +7401,6 @@ lazy_static! {
                     heal: true,
                     ..Default::default()
                 },
-                heal: Some(Heal {
-                    target: MoveTarget::User,
-                    amount: 0.25,
-                }),
                 ..Default::default()
             },
         );
@@ -7754,6 +7751,7 @@ lazy_static! {
                 ..Default::default()
             },
         );
+        // lifedew heal implemented elsewhere
         moves.insert(
             Choices::LIFEDEW,
             Choice {
@@ -7764,10 +7762,6 @@ lazy_static! {
                     heal: true,
                     ..Default::default()
                 },
-                heal: Some(Heal {
-                    target: MoveTarget::User,
-                    amount: 0.25,
-                }),
                 ..Default::default()
             },
         );
@@ -7943,6 +7937,7 @@ lazy_static! {
                 ..Default::default()
             },
         );
+        // lunarblessing heal implemented elsewhere
         moves.insert(
             Choices::LUNARBLESSING,
             Choice {
@@ -7953,10 +7948,6 @@ lazy_static! {
                     heal: true,
                     ..Default::default()
                 },
-                heal: Some(Heal {
-                    target: MoveTarget::User,
-                    amount: 0.25,
-                }),
                 ..Default::default()
             },
         );

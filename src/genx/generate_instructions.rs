@@ -1110,7 +1110,7 @@ fn get_instructions_from_secondaries(
     return_instruction_list
 }
 
-fn get_instructions_from_heal(
+pub fn get_instructions_from_heal(
     state: &mut State,
     heal: &Heal,
     attacking_side_reference: &SideReference,

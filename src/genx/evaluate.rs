@@ -53,7 +53,7 @@ const SPIKES: f32 = -7.0;
 const TOXIC_SPIKES: f32 = -7.0;
 const STICKY_WEB: f32 = -25.0;
 
-const FASTER_THAN_OPPONENT: f32 = 20.0;
+const FASTER_THAN_OPPONENT: f32 = 5.0;
 
 fn evaluate_poison(pokemon: &Pokemon, base_score: f32) -> f32 {
     match pokemon.ability {
@@ -232,9 +232,9 @@ pub fn evaluate(state: &State) -> f32 {
                 .side_two
                 .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
         {
-            score += FASTER_THAN_OPPONENT;
+            score += FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
         } else {
-            score -= FASTER_THAN_OPPONENT;
+            score -= FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
         }
         // s1a slower than s2b
         if state
@@ -244,9 +244,9 @@ pub fn evaluate(state: &State) -> f32 {
                 .side_two
                 .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
         {
-            score += FASTER_THAN_OPPONENT;
+            score += FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
         } else {
-            score -= FASTER_THAN_OPPONENT;
+            score -= FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
         }
         // s1b slower than s2a
         if state
@@ -256,9 +256,9 @@ pub fn evaluate(state: &State) -> f32 {
                 .side_two
                 .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
         {
-            score += FASTER_THAN_OPPONENT;
+            score += FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
         } else {
-            score -= FASTER_THAN_OPPONENT;
+            score -= FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
         }
         // s1b slower than s2b
         if state
@@ -268,9 +268,9 @@ pub fn evaluate(state: &State) -> f32 {
                 .side_two
                 .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
         {
-            score += FASTER_THAN_OPPONENT;
+            score += FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
         } else {
-            score -= FASTER_THAN_OPPONENT;
+            score -= FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
         }
 
     // trickroom not active - it is better to be faster

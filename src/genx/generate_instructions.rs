@@ -1681,7 +1681,7 @@ fn move_has_no_effect(
 
     if choice.flags.powder
         && choice.target == MoveTarget::Target
-        && target.has_type(&PokemonType::GRASS)
+        && (target.has_type(&PokemonType::GRASS) || target.item == Items::SAFETYGOGGLES)
     {
         return true;
     }

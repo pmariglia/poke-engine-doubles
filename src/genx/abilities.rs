@@ -2966,6 +2966,9 @@ pub fn ability_modify_attack_against(
                     attacker_choice.accuracy = 0.0;
                 }
             }
+            Abilities::FRIENDGUARD => {
+                attacker_choice.base_power *= 0.75;
+            }
             _ => {}
         }
     }

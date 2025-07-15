@@ -2328,7 +2328,7 @@ pub fn generate_instructions_from_move(
     state_instructions_vec.push((incoming_instructions, remaining_to_move));
 
     let len = choices.len();
-    for (i, (mut current_choice, current_target_side, current_target_slot)) in
+    for (i, (current_choice, current_target_side, current_target_slot)) in
         choices.into_iter().enumerate()
     {
         let mut next_state_instructions_vec = Vec::with_capacity(4);
@@ -2337,7 +2337,7 @@ pub fn generate_instructions_from_move(
         for (state_instruction, remaining_moves) in state_instructions_vec {
             run_move(
                 state,
-                &mut current_choice,
+                &mut current_choice.clone(),
                 defender_choice,
                 attacking_side,
                 attacking_slot,

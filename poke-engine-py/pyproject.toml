@@ -7,6 +7,6 @@ requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "poke-engine"
-version = "0.0.42"
+name = "poke-engine-doubles"
+version = "0.0.0"
 readme = "readme.md"

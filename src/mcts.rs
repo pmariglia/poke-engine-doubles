@@ -414,3 +414,35 @@ pub fn perform_mcts(
 
     result
 }
+
+pub fn _analyze_leaf_node_depths(root_node: &Node) {
+    let mut depth_counts: HashMap<usize, usize> = HashMap::new();
+
+    fn collect_leaf_depths(node: &Node, depth_counts: &mut HashMap<usize, usize>) {
+        // A leaf node is one with no children
+        if node.children.is_empty() {
+            *depth_counts.entry(node.depth).or_insert(0) += 1;
+        } else {
+            // Recursively traverse all children
+            for child_vector in node.children.values() {
+                for child in child_vector {
+                    collect_leaf_depths(child, depth_counts);
+                }
+            }
+        }
+    }
+
+    collect_leaf_depths(root_node, &mut depth_counts);
+
+    // Print results sorted by depth
+    let mut depths: Vec<_> = depth_counts.keys().collect();
+    depths.sort();
+
+    println!("Leaf node count by depth:");
+    for &depth in depths {
+        println!("Depth {}: {} leaf nodes", depth, depth_counts[&depth]);
+    }
+
+    let total_leaves: usize = depth_counts.values().sum();
+    println!("Total leaf nodes: {}", total_leaves);
+}

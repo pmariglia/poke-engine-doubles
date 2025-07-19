@@ -9,7 +9,7 @@ use rand::thread_rng;
 use std::collections::HashMap;
 use std::time::Duration;
 
-const PRUNE_ITERVAL: i64 = 100_000_000; // How many iterations before pruning the tree
+const PRUNE_ITERVAL: u32 = 100_000_000; // How many iterations before pruning the tree
 const PRUNE_THRESHOLD: f32 = 0.33; // Threshold for pruning based on visit counts
 
 fn sigmoid(x: f32) -> f32 {
@@ -23,7 +23,7 @@ pub struct Node {
     pub depth: usize,
     pub parent: *mut Node,
     pub children: HashMap<(usize, usize), Vec<Node>>,
-    pub times_visited: i64,
+    pub times_visited: u32,
 
     // represents the instructions & s1/s2 moves that led to this node from the parent
     pub instructions: StateInstructions,
@@ -225,11 +225,11 @@ impl Node {
 pub struct MoveNode {
     pub move_choice: (MoveChoice, MoveChoice),
     pub total_score: f32,
-    pub visits: i64,
+    pub visits: u32,
 }
 
 impl MoveNode {
-    pub fn ucb1(&self, parent_visits: i64) -> f32 {
+    pub fn ucb1(&self, parent_visits: u32) -> f32 {
         if self.visits == 0 {
             return f32::INFINITY;
         }
@@ -247,7 +247,7 @@ impl MoveNode {
 pub struct MctsSideResult {
     pub move_choice: (MoveChoice, MoveChoice),
     pub total_score: f32,
-    pub visits: i64,
+    pub visits: u32,
 }
 
 impl MctsSideResult {
@@ -263,7 +263,7 @@ impl MctsSideResult {
 pub struct MctsResult {
     pub s1: Vec<MctsSideResult>,
     pub s2: Vec<MctsSideResult>,
-    pub iteration_count: i64,
+    pub iteration_count: u32,
 }
 
 fn prune_tree(root_node: &mut Node) {
@@ -271,7 +271,7 @@ fn prune_tree(root_node: &mut Node) {
         return;
     }
 
-    let mut s1_with_indices: Vec<(usize, i64)> = root_node
+    let mut s1_with_indices: Vec<(usize, u32)> = root_node
         .s1_options
         .iter()
         .enumerate()
@@ -295,7 +295,7 @@ fn prune_tree(root_node: &mut Node) {
         root_node.s1_options.remove(*idx);
     }
 
-    let mut s2_with_indices: Vec<(usize, i64)> = root_node
+    let mut s2_with_indices: Vec<(usize, u32)> = root_node
         .s2_options
         .iter()
         .enumerate()

@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 const PRUNE_ITERVAL: u32 = 100_000_000; // How many iterations before pruning the tree
-const PRUNE_THRESHOLD: f32 = 0.33; // Threshold for pruning based on visit counts
+const PRUNE_KEEP_COUNT: usize = 15; // Threshold for pruning based on visit counts
 
 fn sigmoid(x: f32) -> f32 {
     // Tuned so that ~400 points is very close to 1.0
@@ -99,10 +99,6 @@ impl Node {
     }
 
     pub unsafe fn selection(&mut self, state: &mut State) -> (*mut Node, usize, usize) {
-        if self.times_visited > 0 && self.times_visited % PRUNE_ITERVAL == 0 {
-            prune_tree(self);
-        }
-
         let return_node = self as *mut Node;
 
         let s1_mc_index = self.maximize_ucb_for_side(&self.s1_options);
@@ -267,7 +263,9 @@ pub struct MctsResult {
 }
 
 fn prune_tree(root_node: &mut Node) {
-    if root_node.s1_options.len() < 15 || root_node.s2_options.len() < 15 {
+    if root_node.s1_options.len() <= PRUNE_KEEP_COUNT
+        || root_node.s2_options.len() <= PRUNE_KEEP_COUNT
+    {
         return;
     }
 
@@ -279,11 +277,10 @@ fn prune_tree(root_node: &mut Node) {
         .collect();
     s1_with_indices.sort_by_key(|&(_, visits)| visits);
 
-    let s1_prune_count = (s1_with_indices.len() as f32 * PRUNE_THRESHOLD).ceil() as usize;
     let mut s1_removed_set: std::collections::HashSet<usize> = std::collections::HashSet::new();
     let mut s1_indices_to_remove: Vec<usize> = s1_with_indices
         .iter()
-        .take(s1_prune_count)
+        .take(s1_with_indices.len() - PRUNE_KEEP_COUNT)
         .map(|&(idx, _)| {
             s1_removed_set.insert(idx);
             idx
@@ -303,11 +300,10 @@ fn prune_tree(root_node: &mut Node) {
         .collect();
     s2_with_indices.sort_by_key(|&(_, visits)| visits);
 
-    let s2_prune_count = (s2_with_indices.len() as f32 * PRUNE_THRESHOLD).ceil() as usize;
     let mut s2_removed_set: std::collections::HashSet<usize> = std::collections::HashSet::new();
     let mut s2_indices_to_remove: Vec<usize> = s2_with_indices
         .iter()
-        .take(s2_prune_count)
+        .take(s2_with_indices.len() - PRUNE_KEEP_COUNT)
         .map(|&(idx, _)| {
             s2_removed_set.insert(idx);
             idx
@@ -348,6 +344,15 @@ fn prune_tree(root_node: &mut Node) {
             .children
             .insert((new_s1_idx, new_s2_idx), children);
     }
+
+    // Recalculate times visited for the root node
+    // calculate it by summing the visits of all CHILDREN
+    root_node.times_visited = root_node
+        .children
+        .values()
+        .flatten()
+        .map(|child| child.times_visited)
+        .sum();
 }
 
 fn do_mcts(root_node: &mut Node, state: &mut State, root_eval: &f32) {
@@ -371,6 +376,10 @@ pub fn perform_mcts(
     while start_time.elapsed() < max_time {
         for _ in 0..1000 {
             do_mcts(&mut root_node, state, &root_eval);
+        }
+
+        if root_node.times_visited == PRUNE_ITERVAL {
+            prune_tree(&mut root_node);
         }
 
         /*

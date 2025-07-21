@@ -45,7 +45,7 @@ const REFLECT: f32 = 20.0;
 const LIGHT_SCREEN: f32 = 20.0;
 const AURORA_VEIL: f32 = 40.0;
 const SAFE_GUARD: f32 = 5.0;
-const TAILWIND: f32 = 15.0;
+const TAILWIND: f32 = 5.0;
 const HEALING_WISH: f32 = 30.0;
 
 const STEALTH_ROCK: f32 = -10.0;

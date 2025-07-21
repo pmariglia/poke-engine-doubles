@@ -17,6 +17,8 @@ use core::panic;
 use std::collections::HashSet;
 use std::str::FromStr;
 
+const CHOICE_ITEMS: [Items; 3] = [Items::CHOICEBAND, Items::CHOICESPECS, Items::CHOICESCARF];
+
 fn common_pkmn_stat_calc(stat: u16, ev: u16, level: u16) -> u16 {
     // 31 IV always used
     ((2 * stat + 31 + (ev / 4)) * level) / 100
@@ -588,36 +590,37 @@ impl Pokemon {
         taunted: bool,
         can_tera: bool,
     ) {
+        let has_choice_item = CHOICE_ITEMS.contains(&self.item);
+        let cannot_use_status_moves = self.item == Items::ASSAULTVEST || taunted;
+
         let mut iter = self.moves.into_iter();
         while let Some(p) = iter.next() {
             if !p.disabled && p.pp > 0 {
-                match last_used_move {
-                    LastUsedMove::Move(last_used_move) => {
-                        if encored && last_used_move != &iter.pokemon_move_index {
-                            continue;
-                        } else if disabled && last_used_move == &iter.pokemon_move_index {
-                            continue;
-                        } else if (self.moves[last_used_move].id == Choices::BLOODMOON
-                            || self.moves[last_used_move].id == Choices::GIGATONHAMMER)
-                            && &iter.pokemon_move_index == last_used_move
-                        {
-                            continue;
-                        }
+                let current_move = &self.moves[&iter.pokemon_move_index];
+
+                // disqualifying conditions for a move
+                let should_skip = match last_used_move {
+                    LastUsedMove::Move(last_used_move_index) => {
+                        // encore: must use the last used move
+                        (encored && last_used_move_index != &iter.pokemon_move_index) ||
+                            // disable: cannot use the last used move
+                            (disabled && last_used_move_index == &iter.pokemon_move_index) ||
+                            // choice items: locked into last used move
+                            (has_choice_item && last_used_move_index != &iter.pokemon_move_index) ||
+                            // bloodmoon/gigatonhammer: cannot use consecutively
+                            ((self.moves[last_used_move_index].id == Choices::BLOODMOON ||
+                                self.moves[last_used_move_index].id == Choices::GIGATONHAMMER) &&
+                                &iter.pokemon_move_index == last_used_move_index)
                     }
-                    _ => {
-                        // there are some situations where you switched out and got encored into
-                        // a move from a different pokemon because you also have that move.
-                        // just assume nothing is locked in this case
-                    }
-                }
-                if (self.item == Items::ASSAULTVEST || taunted)
-                    && self.moves[&iter.pokemon_move_index].choice.category == MoveCategory::Status
-                {
+                    _ => false,
+                } || (cannot_use_status_moves
+                    && current_move.choice.category == MoveCategory::Status);
+
+                if should_skip {
                     continue;
                 }
 
-                let move_choice = &self.moves[&iter.pokemon_move_index].choice;
-
+                let move_choice = &current_move.choice;
                 // Handle move targeting based on MoveChoiceTarget
                 match move_choice.move_choice_target {
                     MoveChoiceTarget::Normal if move_choice.target == MoveTarget::Target => {

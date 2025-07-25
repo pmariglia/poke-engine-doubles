@@ -3155,93 +3155,70 @@ fn modify_choice_before_move(
     }
 }
 
+fn speed_comparison(speed: i16, best_speed: i16, trick_room_active: bool) -> bool {
+    if trick_room_active {
+        speed <= best_speed
+    } else {
+        speed >= best_speed
+    }
+}
+
 fn next_to_move(
     state: &State,
     need_to_move: &Vec<RemainingToMove>,
 ) -> (SideReference, SlotReference, usize, i8) {
-    // General Pesudocode:
-    // Get switches. If > 0 switches, filter down to only switches
-    // If 1 switch, return that one
-    // If >1 switch, return switch with highest speed
-    // No need to check pursuit because its gone
-    //
-    // Otherwise:
-    // Get highest priority move, filter down to only moves with that priority
-    // If 1 move, return that one
-    // If >1 move, return highest speed
+    let mut best_index = 0;
+    let mut best_speed = 0;
+    let mut best_priority = -10;
+    let mut found_switch = false;
 
-    // Eventually put custap berry in, but don't bother on first pass
-    // Also eventually Speed Ties???? Fuck that
-
-    // 1. loop through and find switches
-    //    at the same time, get the highest priority moves
-    let mut ret_index = 0;
-    let mut max_priority = -10;
-    let mut effective_speeds = Vec::with_capacity(4);
-    let mut effective_priorities = Vec::with_capacity(4);
-    let mut switch_indices = Vec::with_capacity(4);
-    let mut max_priority_indices = Vec::with_capacity(4);
+    // Single pass to find the best move
     for (index, remaining_to_move) in need_to_move.iter().enumerate() {
-        effective_speeds.push(get_effective_speed(
+        let is_switch = remaining_to_move.choice.category == MoveCategory::Switch;
+        let speed = get_effective_speed(
             state,
             &remaining_to_move.side_ref,
             &remaining_to_move.slot_ref,
-        ));
-        let this_priority = get_effective_priority(
-            state,
-            &remaining_to_move.side_ref,
-            &remaining_to_move.slot_ref,
-            &remaining_to_move.choice,
         );
-        effective_priorities.push(this_priority);
-        if remaining_to_move.choice.category == MoveCategory::Switch {
-            switch_indices.push(index);
-        }
-        if this_priority > max_priority {
-            max_priority = this_priority;
-            max_priority_indices.clear();
-            max_priority_indices.push(index);
-        } else if this_priority == max_priority {
-            max_priority_indices.push(index);
-        }
-    }
-    if switch_indices.len() > 0 {
-        let (mut side_ref, mut slot_ref) = (SideReference::SideOne, SlotReference::SlotA);
-        let mut max_speed = 0;
-        for index in switch_indices {
-            if effective_speeds[index] > max_speed {
-                max_speed = effective_speeds[index];
-                (side_ref, slot_ref) = (need_to_move[index].side_ref, need_to_move[index].slot_ref);
-                ret_index = index;
+        let priority = if is_switch {
+            10
+        } else {
+            get_effective_priority(
+                state,
+                &remaining_to_move.side_ref,
+                &remaining_to_move.slot_ref,
+                &remaining_to_move.choice,
+            )
+        };
+
+        let is_better = if found_switch && !is_switch {
+            false // we already found a switch, non-switches can't be better
+        } else if !found_switch && is_switch {
+            true // first switch we found
+        } else {
+            // same category, compare priority then speed
+            priority > best_priority
+                || (priority == best_priority
+                    && speed_comparison(speed, best_speed, state.trick_room.active))
+        };
+
+        if is_better {
+            best_index = index;
+            best_speed = speed;
+            best_priority = priority;
+            if is_switch {
+                found_switch = true;
             }
         }
-        return (side_ref, slot_ref, ret_index, max_priority);
     }
 
-    // 2. Since we didn't find any switches, find the highest effective speed
-    //    from the highest priority moves
-    let (mut side_ref, mut slot_ref) = (SideReference::SideOne, SlotReference::SlotA);
-    if state.trick_room.active {
-        let mut max_speed = i16::MAX;
-        for index in max_priority_indices {
-            if effective_speeds[index] <= max_speed {
-                max_speed = effective_speeds[index];
-                (side_ref, slot_ref) = (need_to_move[index].side_ref, need_to_move[index].slot_ref);
-                ret_index = index;
-            }
-        }
-        (side_ref, slot_ref, ret_index, max_priority)
-    } else {
-        let mut max_speed = 0;
-        for index in max_priority_indices {
-            if effective_speeds[index] >= max_speed {
-                max_speed = effective_speeds[index];
-                (side_ref, slot_ref) = (need_to_move[index].side_ref, need_to_move[index].slot_ref);
-                ret_index = index;
-            }
-        }
-        (side_ref, slot_ref, ret_index, max_priority)
-    }
+    let best_move = &need_to_move[best_index];
+    (
+        best_move.side_ref,
+        best_move.slot_ref,
+        best_index,
+        best_priority,
+    )
 }
 
 fn get_active_protosynthesis(slot: &SideSlot) -> Option<PokemonVolatileStatus> {

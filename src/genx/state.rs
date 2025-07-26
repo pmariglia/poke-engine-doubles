@@ -557,21 +557,36 @@ impl Pokemon {
     fn add_moves_from_opponent_targets(
         &self,
         vec: &mut Vec<MoveChoice>,
-        opponent_targets: &Vec<(SlotReference, SideReference)>,
+        opponent_side_ref: SideReference,
+        opponent_slot_a_can_target: bool,
+        opponent_slot_b_can_target: bool,
         pkmn_move_index: PokemonMoveIndex,
         can_tera: bool,
     ) {
-        for (target_slot, target_side) in opponent_targets.iter() {
+        if opponent_slot_a_can_target {
             vec.push(MoveChoice::Move(
-                *target_slot,
-                *target_side,
+                SlotReference::SlotA,
+                opponent_side_ref,
                 pkmn_move_index,
             ));
-
             if can_tera {
                 vec.push(MoveChoice::MoveTera(
-                    *target_slot,
-                    *target_side,
+                    SlotReference::SlotA,
+                    opponent_side_ref,
+                    pkmn_move_index,
+                ));
+            }
+        }
+        if opponent_slot_b_can_target {
+            vec.push(MoveChoice::Move(
+                SlotReference::SlotB,
+                opponent_side_ref,
+                pkmn_move_index,
+            ));
+            if can_tera {
+                vec.push(MoveChoice::MoveTera(
+                    SlotReference::SlotB,
+                    opponent_side_ref,
                     pkmn_move_index,
                 ));
             }
@@ -584,7 +599,7 @@ impl Pokemon {
         slot_ref: &SlotReference,
         last_used_move: &LastUsedMove,
         vec: &mut Vec<MoveChoice>,
-        opponent_targets: &Vec<(SlotReference, SideReference)>,
+        opponent_targets: (bool, bool),
         move_choice: &Choice,
         pokemon_move_index: PokemonMoveIndex,
         partner_alive: bool,
@@ -603,7 +618,9 @@ impl Pokemon {
             Choices::FAKEOUT | Choices::FIRSTIMPRESSION => match last_used_move {
                 LastUsedMove::Switch(_) => self.add_moves_from_opponent_targets(
                     vec,
-                    opponent_targets,
+                    side_ref.get_other_side(),
+                    opponent_targets.0,
+                    opponent_targets.1,
                     pokemon_move_index,
                     can_tera,
                 ),
@@ -640,7 +657,9 @@ impl Pokemon {
                 }
                 self.add_moves_from_opponent_targets(
                     vec,
-                    opponent_targets,
+                    side_ref.get_other_side(),
+                    opponent_targets.0,
+                    opponent_targets.1,
                     pokemon_move_index,
                     can_tera,
                 )
@@ -648,7 +667,9 @@ impl Pokemon {
             // default: only try to target opponents with single-target moves
             _ => self.add_moves_from_opponent_targets(
                 vec,
-                opponent_targets,
+                side_ref.get_other_side(),
+                opponent_targets.0,
+                opponent_targets.1,
                 pokemon_move_index,
                 can_tera,
             ),
@@ -661,7 +682,7 @@ impl Pokemon {
         slot_ref: &SlotReference,
         vec: &mut Vec<MoveChoice>,
         last_used_move: &LastUsedMove,
-        opponent_targets: &Vec<(SlotReference, SideReference)>,
+        opponent_targets: (bool, bool),
         partner_alive: bool,
         encored: bool,
         disabled: bool,
@@ -1309,15 +1330,15 @@ impl State {
                 .volatile_statuses
                 .contains(&PokemonVolatileStatus::TAUNT);
 
-            let mut other_side_targets = Vec::with_capacity(2);
+            let mut targets_opponent_slot_a = false;
+            let mut targets_opponent_slot_b = false;
 
-            // todo: try a feature where you completely disable targetting your partner with normal moves
             let partner_alive = side.get_active_immutable(&slot_ref.get_other_slot()).hp > 0;
             if opponent_active_a.hp > 0 {
-                other_side_targets.push((SlotReference::SlotA, side_ref.get_other_side()));
+                targets_opponent_slot_a = true;
             }
             if opponent_active_b.hp > 0 {
-                other_side_targets.push((SlotReference::SlotB, side_ref.get_other_side()));
+                targets_opponent_slot_b = true;
             }
 
             side.get_active_immutable(&slot_ref).add_available_moves(
@@ -1325,7 +1346,7 @@ impl State {
                 &slot_ref,
                 slot_options,
                 &slot.last_used_move,
-                &other_side_targets,
+                (targets_opponent_slot_a, targets_opponent_slot_b),
                 partner_alive,
                 encored,
                 disabled,

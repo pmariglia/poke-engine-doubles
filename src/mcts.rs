@@ -45,7 +45,7 @@ impl Node {
         let s1_options_vec = s1_options
             .drain(..)
             .map(|x| MoveNode {
-                move_choice: x.clone(),
+                move_choice: x,
                 total_score: 0.0,
                 visits: 0,
             })
@@ -53,7 +53,7 @@ impl Node {
         let s2_options_vec = s2_options
             .drain(..)
             .map(|x| MoveNode {
-                move_choice: x.clone(),
+                move_choice: x,
                 total_score: 0.0,
                 visits: 0,
             })

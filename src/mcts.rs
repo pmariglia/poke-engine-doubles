@@ -1,6 +1,6 @@
 use crate::engine::evaluate::evaluate;
 use crate::engine::generate_instructions::generate_instructions_from_move_pair;
-use crate::engine::state::MoveChoice;
+use crate::engine::state::{MoveChoice, MoveOptions};
 use crate::instruction::StateInstructions;
 use crate::state::State;
 use rand::distributions::WeightedIndex;
@@ -39,11 +39,11 @@ pub struct Node {
 impl Node {
     fn new(
         depth: usize,
-        s1_options: Vec<(MoveChoice, MoveChoice)>,
-        s2_options: Vec<(MoveChoice, MoveChoice)>,
+        s1_options: &mut Vec<(MoveChoice, MoveChoice)>,
+        s2_options: &mut Vec<(MoveChoice, MoveChoice)>,
     ) -> Node {
         let s1_options_vec = s1_options
-            .iter()
+            .drain(..)
             .map(|x| MoveNode {
                 move_choice: x.clone(),
                 total_score: 0.0,
@@ -51,7 +51,7 @@ impl Node {
             })
             .collect();
         let s2_options_vec = s2_options
-            .iter()
+            .drain(..)
             .map(|x| MoveNode {
                 move_choice: x.clone(),
                 total_score: 0.0,
@@ -132,6 +132,7 @@ impl Node {
         state: &mut State,
         s1_move_index: usize,
         s2_move_index: usize,
+        move_options: &mut MoveOptions,
     ) -> *mut Node {
         if self.depth >= 4 {
             return self as *mut Node;
@@ -157,7 +158,7 @@ impl Node {
         let mut this_pair_vec = Vec::with_capacity(new_instructions.len());
         for state_instructions in new_instructions.drain(..) {
             state.apply_instructions(&state_instructions.instruction_list);
-            let (s1_options, s2_options) = state.get_all_options();
+            state.get_all_options(move_options);
             state.reverse_instructions(&state_instructions.instruction_list);
 
             let new_depth = if state_instructions.end_of_turn_triggered {
@@ -166,7 +167,11 @@ impl Node {
                 self.depth
             };
 
-            let mut new_node = Node::new(new_depth, s1_options, s2_options);
+            let mut new_node = Node::new(
+                new_depth,
+                &mut move_options.side_one_combined_options,
+                &mut move_options.side_two_combined_options,
+            );
             new_node.parent = self;
             new_node.instructions = state_instructions;
             new_node.s1_choice = s1_move_index;
@@ -355,27 +360,33 @@ fn prune_tree(root_node: &mut Node) {
         .sum();
 }
 
-fn do_mcts(root_node: &mut Node, state: &mut State, root_eval: &f32) {
+fn do_mcts(
+    root_node: &mut Node,
+    state: &mut State,
+    root_eval: &f32,
+    move_options: &mut MoveOptions,
+) {
     let (mut new_node, s1_move, s2_move) = unsafe { root_node.selection(state) };
-    new_node = unsafe { (*new_node).expand(state, s1_move, s2_move) };
+    new_node = unsafe { (*new_node).expand(state, s1_move, s2_move, move_options) };
     let rollout_result = unsafe { (*new_node).rollout(state, root_eval) };
     unsafe { (*new_node).backpropagate(rollout_result, state) }
 }
 
 pub fn perform_mcts(
     state: &mut State,
-    side_one_options: Vec<(MoveChoice, MoveChoice)>,
-    side_two_options: Vec<(MoveChoice, MoveChoice)>,
+    mut side_one_options: Vec<(MoveChoice, MoveChoice)>,
+    mut side_two_options: Vec<(MoveChoice, MoveChoice)>,
     max_time: Duration,
 ) -> MctsResult {
-    let mut root_node = Node::new(0, side_one_options, side_two_options);
+    let mut root_node = Node::new(0, &mut side_one_options, &mut side_two_options);
     root_node.root = true;
 
+    let mut combined_options = MoveOptions::new();
     let root_eval = evaluate(state);
     let start_time = std::time::Instant::now();
     while start_time.elapsed() < max_time {
         for _ in 0..1000 {
-            do_mcts(&mut root_node, state, &root_eval);
+            do_mcts(&mut root_node, state, &root_eval, &mut combined_options);
         }
 
         if root_node.times_visited == PRUNE_ITERVAL {

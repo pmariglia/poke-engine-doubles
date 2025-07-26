@@ -1,5 +1,5 @@
 use poke_engine::choices::{Choices, MOVES};
-use poke_engine::engine::state::{MoveChoice, PokemonVolatileStatus};
+use poke_engine::engine::state::{MoveChoice, MoveOptions, PokemonVolatileStatus};
 use poke_engine::state::{
     LastUsedMove, Move, PokemonIndex, PokemonMoveIndex, PokemonMoves, SideReference, SlotReference,
     State,
@@ -54,13 +54,14 @@ fn test_basic_move_generation() {
         pp: 32,
         choice: Default::default(),
     };
-    let (s1_options, s2_options) = state.get_all_options();
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
     // 15 moves choices per side:
     // 3 targets for each move ^ 2 pokemon = 9 choices where both active use a move
     // 3 targets for a move with 1 switch  = 6 choices where one active uses a move and the other switches
     // 9 + 6 = 15 total choices per side
-    assert_eq!(8, s1_options.len());
-    assert_eq!(8, s2_options.len());
+    assert_eq!(8, move_options.side_one_combined_options.len());
+    assert_eq!(8, move_options.side_two_combined_options.len());
 }
 
 #[test]
@@ -88,8 +89,9 @@ fn test_spread_move_does_not_result_in_multiple_move_choices() {
         pp: 32,
         choice: MOVES.get(&Choices::SURF).unwrap().clone(),
     };
-    let (s1_options, _s2_options) = state.get_all_options();
-    assert_eq!(1, s1_options.len());
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
+    assert_eq!(1, move_options.side_one_combined_options.len());
 }
 
 #[test]
@@ -117,8 +119,9 @@ fn test_spikes_only_has_one_target() {
         pp: 32,
         choice: MOVES.get(&Choices::SURF).unwrap().clone(),
     };
-    let (s1_options, _s2_options) = state.get_all_options();
-    assert_eq!(1, s1_options.len());
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
+    assert_eq!(1, move_options.side_one_combined_options.len());
 }
 
 #[test]
@@ -159,9 +162,10 @@ fn test_cannot_target_fainted_pkmn() {
         pp: 32,
         choice: Default::default(),
     };
-    let (s1_options, _s2_options) = state.get_all_options();
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
     // 2 targets for each pkmn on side 1 with no switches is 4 total move choice pairs
-    assert_eq!(1, s1_options.len());
+    assert_eq!(1, move_options.side_one_combined_options.len());
 }
 
 #[test]
@@ -190,7 +194,9 @@ fn test_helping_hand_can_only_target_ally() {
         pp: 32,
         choice: MOVES.get(&Choices::HELPINGHAND).unwrap().clone(),
     };
-    let (s1_options, _s2_options) = state.get_all_options();
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
+    // 2 targets for each pkmn on side 1 with no switches is 4 total move choice pairs
 
     // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![(
@@ -202,7 +208,7 @@ fn test_helping_hand_can_only_target_ally() {
         MoveChoice::None,
     )];
 
-    assert_eq!(expected_s1_options, s1_options);
+    assert_eq!(expected_s1_options, move_options.side_one_combined_options);
 }
 
 #[test]
@@ -231,7 +237,8 @@ fn test_self_boosting_move_only_has_1_target() {
         pp: 32,
         choice: MOVES.get(&Choices::QUIVERDANCE).unwrap().clone(),
     };
-    let (s1_options, _s2_options) = state.get_all_options();
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
 
     // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![(
@@ -243,7 +250,7 @@ fn test_self_boosting_move_only_has_1_target() {
         MoveChoice::None,
     )];
 
-    assert_eq!(expected_s1_options, s1_options);
+    assert_eq!(expected_s1_options, move_options.side_one_combined_options);
 }
 
 #[test]
@@ -285,7 +292,8 @@ fn test_disabled_pkmn_cannot_use_last_used_move() {
         pp: 32,
         choice: MOVES.get(&Choices::QUIVERDANCE).unwrap().clone(),
     };
-    let (s1_options, _s2_options) = state.get_all_options();
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
 
     // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![(
@@ -297,7 +305,7 @@ fn test_disabled_pkmn_cannot_use_last_used_move() {
         MoveChoice::None,
     )];
 
-    assert_eq!(expected_s1_options, s1_options);
+    assert_eq!(expected_s1_options, move_options.side_one_combined_options);
 }
 
 #[test]
@@ -333,12 +341,13 @@ fn test_disabled_with_one_moves_gives_no_move() {
         pp: 32,
         choice: MOVES.get(&Choices::QUIVERDANCE).unwrap().clone(),
     };
-    let (s1_options, _s2_options) = state.get_all_options();
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
 
     // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![(MoveChoice::None, MoveChoice::None)];
 
-    assert_eq!(expected_s1_options, s1_options);
+    assert_eq!(expected_s1_options, move_options.side_one_combined_options);
 }
 
 #[test]
@@ -397,12 +406,13 @@ fn test_encored_and_disabled_means_no_moves() {
         pp: 32,
         choice: MOVES.get(&Choices::SPLASH).unwrap().clone(),
     };
-    let (s1_options, _s2_options) = state.get_all_options();
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
 
     // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![(MoveChoice::None, MoveChoice::None)];
 
-    assert_eq!(expected_s1_options, s1_options);
+    assert_eq!(expected_s1_options, move_options.side_one_combined_options);
 }
 
 #[test]
@@ -431,7 +441,8 @@ fn test_pollenpuff_can_target_ally_and_opponents() {
         pp: 32,
         choice: MOVES.get(&Choices::POLLENPUFF).unwrap().clone(),
     };
-    let (s1_options, _s2_options) = state.get_all_options();
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
 
     // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![
@@ -461,7 +472,7 @@ fn test_pollenpuff_can_target_ally_and_opponents() {
         ),
     ];
 
-    assert_eq!(expected_s1_options, s1_options);
+    assert_eq!(expected_s1_options, move_options.side_one_combined_options);
 }
 
 #[test]
@@ -490,7 +501,8 @@ fn test_decorate_can_target_only_ally() {
         pp: 32,
         choice: MOVES.get(&Choices::DECORATE).unwrap().clone(),
     };
-    let (s1_options, _s2_options) = state.get_all_options();
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
 
     // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![(
@@ -502,7 +514,7 @@ fn test_decorate_can_target_only_ally() {
         MoveChoice::None,
     )];
 
-    assert_eq!(expected_s1_options, s1_options);
+    assert_eq!(expected_s1_options, move_options.side_one_combined_options);
 }
 
 #[test]
@@ -531,7 +543,8 @@ fn test_fakeout_is_an_option_when_just_switching_in() {
         pp: 32,
         choice: MOVES.get(&Choices::FAKEOUT).unwrap().clone(),
     };
-    let (s1_options, _s2_options) = state.get_all_options();
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
 
     // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![
@@ -553,7 +566,7 @@ fn test_fakeout_is_an_option_when_just_switching_in() {
         ),
     ];
 
-    assert_eq!(expected_s1_options, s1_options);
+    assert_eq!(expected_s1_options, move_options.side_one_combined_options);
 }
 
 #[test]
@@ -582,10 +595,11 @@ fn test_fakeout_is_not_an_option_when_already_on_the_field() {
         pp: 32,
         choice: MOVES.get(&Choices::FAKEOUT).unwrap().clone(),
     };
-    let (s1_options, _s2_options) = state.get_all_options();
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
 
     // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![(MoveChoice::None, MoveChoice::None)];
 
-    assert_eq!(expected_s1_options, s1_options);
+    assert_eq!(expected_s1_options, move_options.side_one_combined_options);
 }

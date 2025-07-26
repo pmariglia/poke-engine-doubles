@@ -43,6 +43,84 @@ fn multiply_boost(boost_num: i8, stat_value: i16) -> i16 {
     }
 }
 
+pub struct MoveOptions {
+    pub side_one_slot_a_options: Vec<MoveChoice>,
+    pub side_one_slot_b_options: Vec<MoveChoice>,
+    pub side_two_slot_a_options: Vec<MoveChoice>,
+    pub side_two_slot_b_options: Vec<MoveChoice>,
+    pub side_one_combined_options: Vec<(MoveChoice, MoveChoice)>,
+    pub side_two_combined_options: Vec<(MoveChoice, MoveChoice)>,
+}
+
+impl MoveOptions {
+    pub fn new() -> MoveOptions {
+        MoveOptions {
+            side_one_slot_a_options: Vec::with_capacity(9),
+            side_one_slot_b_options: Vec::with_capacity(9),
+            side_two_slot_a_options: Vec::with_capacity(9),
+            side_two_slot_b_options: Vec::with_capacity(9),
+            side_one_combined_options: Vec::with_capacity(81),
+            side_two_combined_options: Vec::with_capacity(81),
+        }
+    }
+    pub fn combine_slot_options(&mut self) {
+        MoveOptions::combine_side_slot_options(
+            &mut self.side_one_slot_a_options,
+            &mut self.side_one_slot_b_options,
+            &mut self.side_one_combined_options,
+        );
+        MoveOptions::combine_side_slot_options(
+            &mut self.side_two_slot_a_options,
+            &mut self.side_two_slot_b_options,
+            &mut self.side_two_combined_options,
+        );
+    }
+    pub fn combine_side_slot_options(
+        slot_a_options: &mut Vec<MoveChoice>,
+        slot_b_options: &mut Vec<MoveChoice>,
+        combined_options: &mut Vec<(MoveChoice, MoveChoice)>,
+    ) {
+        let capacity = slot_a_options.len() * slot_b_options.len();
+        for slot_a_choice in slot_a_options.iter() {
+            for slot_b_choice in slot_b_options.iter() {
+                // Check if both slots are trying to switch to the same Pokémon
+                if let (MoveChoice::Switch(pkmn_a), MoveChoice::Switch(pkmn_b)) =
+                    (slot_a_choice, slot_b_choice)
+                {
+                    if pkmn_a == pkmn_b {
+                        // Skip this combination - can't switch to the same Pokémon
+                        continue;
+                    }
+                }
+
+                // Check if both slots are trying to terastallize
+                if matches!(slot_a_choice, MoveChoice::MoveTera(_, _, _))
+                    && matches!(slot_b_choice, MoveChoice::MoveTera(_, _, _))
+                {
+                    // Skip this combination - both Pokémon cannot terastallize together
+                    continue;
+                }
+
+                combined_options.push((*slot_a_choice, *slot_b_choice));
+            }
+        }
+
+        // If no valid combined_options exist, add None as fallback
+        if combined_options.is_empty() {
+            if capacity == 1
+                && slot_a_options[0] == slot_b_options[0]
+                && matches!(slot_a_options[0], MoveChoice::Switch(_))
+            {
+                combined_options.push((slot_a_options[0], MoveChoice::None));
+            } else {
+                combined_options.push((MoveChoice::None, MoveChoice::None));
+            }
+        }
+        slot_a_options.clear();
+        slot_b_options.clear();
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum MoveChoice {
     MoveTera(SlotReference, SideReference, PokemonMoveIndex),
@@ -1076,43 +1154,59 @@ impl State {
             return (s1_options, s2_options);
         }
 
-        let (mut s1_options, mut s2_options) = self.get_all_options();
+        let mut move_options = MoveOptions::new();
+        self.get_all_options(&mut move_options);
         if self.side_one.slot_a.force_trapped || self.side_one.slot_a.slow_uturn_move {
-            s1_options.retain(|(x, _)| match x {
-                MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
-                MoveChoice::Switch(_) => false,
-                MoveChoice::None => true,
-            });
+            move_options
+                .side_one_combined_options
+                .retain(|(x, _)| match x {
+                    MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
+                    MoveChoice::Switch(_) => false,
+                    MoveChoice::None => true,
+                });
         }
         if self.side_one.slot_b.force_trapped || self.side_one.slot_b.slow_uturn_move {
-            s1_options.retain(|(_, x)| match x {
-                MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
-                MoveChoice::Switch(_) => false,
-                MoveChoice::None => true,
-            });
+            move_options
+                .side_one_combined_options
+                .retain(|(_, x)| match x {
+                    MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
+                    MoveChoice::Switch(_) => false,
+                    MoveChoice::None => true,
+                });
         }
 
         if self.side_two.slot_a.force_trapped || self.side_two.slot_a.slow_uturn_move {
-            s2_options.retain(|(x, _)| match x {
-                MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
-                MoveChoice::Switch(_) => false,
-                MoveChoice::None => true,
-            });
+            move_options
+                .side_two_combined_options
+                .retain(|(x, _)| match x {
+                    MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
+                    MoveChoice::Switch(_) => false,
+                    MoveChoice::None => true,
+                });
         }
         if self.side_two.slot_b.force_trapped || self.side_two.slot_b.slow_uturn_move {
-            s2_options.retain(|(_, x)| match x {
-                MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
-                MoveChoice::Switch(_) => false,
-                MoveChoice::None => true,
-            });
+            move_options
+                .side_two_combined_options
+                .retain(|(_, x)| match x {
+                    MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
+                    MoveChoice::Switch(_) => false,
+                    MoveChoice::None => true,
+                });
         }
-        if s1_options.len() == 0 {
-            s1_options.push((MoveChoice::None, MoveChoice::None));
+        if move_options.side_one_combined_options.len() == 0 {
+            move_options
+                .side_one_combined_options
+                .push((MoveChoice::None, MoveChoice::None));
         }
-        if s2_options.len() == 0 {
-            s2_options.push((MoveChoice::None, MoveChoice::None));
+        if move_options.side_two_combined_options.len() == 0 {
+            move_options
+                .side_two_combined_options
+                .push((MoveChoice::None, MoveChoice::None));
         }
-        (s1_options, s2_options)
+        (
+            move_options.side_one_combined_options,
+            move_options.side_two_combined_options,
+        )
     }
 
     fn handle_force_switch_side(
@@ -1245,76 +1339,7 @@ impl State {
         }
     }
 
-    fn combine_slot_options(
-        &self,
-        side_one_slot_a: Vec<MoveChoice>,
-        side_one_slot_b: Vec<MoveChoice>,
-        side_two_slot_a: Vec<MoveChoice>,
-        side_two_slot_b: Vec<MoveChoice>,
-    ) -> (Vec<(MoveChoice, MoveChoice)>, Vec<(MoveChoice, MoveChoice)>) {
-        let side_one_combinations =
-            self.combine_side_slot_options(side_one_slot_a, side_one_slot_b);
-        let side_two_combinations =
-            self.combine_side_slot_options(side_two_slot_a, side_two_slot_b);
-
-        (side_one_combinations, side_two_combinations)
-    }
-
-    fn combine_side_slot_options(
-        &self,
-        slot_a_options: Vec<MoveChoice>,
-        slot_b_options: Vec<MoveChoice>,
-    ) -> Vec<(MoveChoice, MoveChoice)> {
-        let capacity = slot_a_options.len() * slot_b_options.len();
-        let mut combinations = Vec::with_capacity(capacity);
-
-        for slot_a_choice in &slot_a_options {
-            for slot_b_choice in &slot_b_options {
-                // Check if both slots are trying to switch to the same Pokémon
-                if let (MoveChoice::Switch(pkmn_a), MoveChoice::Switch(pkmn_b)) =
-                    (slot_a_choice, slot_b_choice)
-                {
-                    if pkmn_a == pkmn_b {
-                        // Skip this combination - can't switch to the same Pokémon
-                        continue;
-                    }
-                }
-
-                // Check if both slots are trying to terastallize
-                if matches!(slot_a_choice, MoveChoice::MoveTera(_, _, _))
-                    && matches!(slot_b_choice, MoveChoice::MoveTera(_, _, _))
-                {
-                    // Skip this combination - both Pokémon cannot terastallize together
-                    continue;
-                }
-
-                combinations.push((*slot_a_choice, *slot_b_choice));
-            }
-        }
-
-        // If no valid combinations exist, add None as fallback
-        if combinations.is_empty() {
-            if capacity == 1
-                && slot_a_options[0] == slot_b_options[0]
-                && matches!(slot_a_options[0], MoveChoice::Switch(_))
-            {
-                combinations.push((slot_a_options[0], MoveChoice::None));
-            } else {
-                combinations.push((MoveChoice::None, MoveChoice::None));
-            }
-        }
-
-        combinations
-    }
-
-    pub fn get_all_options(
-        &self,
-    ) -> (Vec<(MoveChoice, MoveChoice)>, Vec<(MoveChoice, MoveChoice)>) {
-        let mut side_one_slot_a_options: Vec<MoveChoice> = Vec::with_capacity(9);
-        let mut side_one_slot_b_options: Vec<MoveChoice> = Vec::with_capacity(9);
-        let mut side_two_slot_a_options: Vec<MoveChoice> = Vec::with_capacity(9);
-        let mut side_two_slot_b_options: Vec<MoveChoice> = Vec::with_capacity(9);
-
+    pub fn get_all_options(&self, move_options: &mut MoveOptions) {
         // Get active pokemon references
         let side_one_active_a = self.side_one.get_active_immutable(&SlotReference::SlotA);
         let side_one_active_b = self.side_one.get_active_immutable(&SlotReference::SlotB);
@@ -1330,46 +1355,38 @@ impl State {
         // Handle external force switches first
         if side_one_slot_a_force_switch || side_one_slot_b_force_switch {
             self.handle_force_switch_side(
-                &mut side_one_slot_a_options,
-                &mut side_one_slot_b_options,
+                &mut move_options.side_one_slot_a_options,
+                &mut move_options.side_one_slot_b_options,
                 side_one_slot_a_force_switch,
                 side_one_slot_b_force_switch,
                 &self.side_one,
             );
             // Handle side two's saved moves or None
             self.handle_opponent_during_force_switch(
-                &mut side_two_slot_a_options,
-                &mut side_two_slot_b_options,
+                &mut move_options.side_two_slot_a_options,
+                &mut move_options.side_two_slot_b_options,
                 &self.side_two,
             );
-            return self.combine_slot_options(
-                side_one_slot_a_options,
-                side_one_slot_b_options,
-                side_two_slot_a_options,
-                side_two_slot_b_options,
-            );
+            move_options.combine_slot_options();
+            return;
         }
 
         if side_two_slot_a_force_switch || side_two_slot_b_force_switch {
             self.handle_force_switch_side(
-                &mut side_two_slot_a_options,
-                &mut side_two_slot_b_options,
+                &mut move_options.side_two_slot_a_options,
+                &mut move_options.side_two_slot_b_options,
                 side_two_slot_a_force_switch,
                 side_two_slot_b_force_switch,
                 &self.side_two,
             );
             // Handle side one's saved moves or None
             self.handle_opponent_during_force_switch(
-                &mut side_one_slot_a_options,
-                &mut side_one_slot_b_options,
+                &mut move_options.side_one_slot_a_options,
+                &mut move_options.side_one_slot_b_options,
                 &self.side_one,
             );
-            return self.combine_slot_options(
-                side_one_slot_a_options,
-                side_one_slot_b_options,
-                side_two_slot_a_options,
-                side_two_slot_b_options,
-            );
+            move_options.combine_slot_options();
+            return;
         }
 
         let side_one_alive_reserve = self.side_one.get_alive_pkmn_indices();
@@ -1390,42 +1407,38 @@ impl State {
         {
             if side_one_slot_a_fainted || side_one_slot_b_fainted {
                 self.handle_fainted_switches(
-                    &mut side_one_slot_a_options,
-                    &mut side_one_slot_b_options,
+                    &mut move_options.side_one_slot_a_options,
+                    &mut move_options.side_one_slot_b_options,
                     side_one_slot_a_fainted,
                     side_one_slot_b_fainted,
                     &self.side_one,
                 );
             } else {
-                side_one_slot_a_options.push(MoveChoice::None);
-                side_one_slot_b_options.push(MoveChoice::None);
+                move_options.side_one_slot_a_options.push(MoveChoice::None);
+                move_options.side_one_slot_b_options.push(MoveChoice::None);
             }
 
             if side_two_slot_a_fainted || side_two_slot_b_fainted {
                 self.handle_fainted_switches(
-                    &mut side_two_slot_a_options,
-                    &mut side_two_slot_b_options,
+                    &mut move_options.side_two_slot_a_options,
+                    &mut move_options.side_two_slot_b_options,
                     side_two_slot_a_fainted,
                     side_two_slot_b_fainted,
                     &self.side_two,
                 );
             } else {
-                side_two_slot_a_options.push(MoveChoice::None);
-                side_two_slot_b_options.push(MoveChoice::None);
+                move_options.side_two_slot_a_options.push(MoveChoice::None);
+                move_options.side_two_slot_b_options.push(MoveChoice::None);
             }
 
-            return self.combine_slot_options(
-                side_one_slot_a_options,
-                side_one_slot_b_options,
-                side_two_slot_a_options,
-                side_two_slot_b_options,
-            );
+            move_options.combine_slot_options();
+            return;
         }
 
         // Handle normal turn options for side one
         if !side_one_slot_a_fainted {
             self.handle_slot_normal_options(
-                &mut side_one_slot_a_options,
+                &mut move_options.side_one_slot_a_options,
                 SlotReference::SlotA,
                 &self.side_one,
                 SideReference::SideOne,
@@ -1437,7 +1450,7 @@ impl State {
 
         if !side_one_slot_b_fainted {
             self.handle_slot_normal_options(
-                &mut side_one_slot_b_options,
+                &mut move_options.side_one_slot_b_options,
                 SlotReference::SlotB,
                 &self.side_one,
                 SideReference::SideOne,
@@ -1450,7 +1463,7 @@ impl State {
         // Handle normal turn options for side two
         if !side_two_slot_a_fainted {
             self.handle_slot_normal_options(
-                &mut side_two_slot_a_options,
+                &mut move_options.side_two_slot_a_options,
                 SlotReference::SlotA,
                 &self.side_two,
                 SideReference::SideTwo,
@@ -1462,7 +1475,7 @@ impl State {
 
         if !side_two_slot_b_fainted {
             self.handle_slot_normal_options(
-                &mut side_two_slot_b_options,
+                &mut move_options.side_two_slot_b_options,
                 SlotReference::SlotB,
                 &self.side_two,
                 SideReference::SideTwo,
@@ -1473,25 +1486,20 @@ impl State {
         }
 
         // Ensure each slot has at least one option
-        if side_one_slot_a_options.is_empty() {
-            side_one_slot_a_options.push(MoveChoice::None);
+        if move_options.side_one_slot_a_options.is_empty() {
+            move_options.side_one_slot_a_options.push(MoveChoice::None);
         }
-        if side_one_slot_b_options.is_empty() {
-            side_one_slot_b_options.push(MoveChoice::None);
+        if move_options.side_one_slot_b_options.is_empty() {
+            move_options.side_one_slot_b_options.push(MoveChoice::None);
         }
-        if side_two_slot_a_options.is_empty() {
-            side_two_slot_a_options.push(MoveChoice::None);
+        if move_options.side_two_slot_a_options.is_empty() {
+            move_options.side_two_slot_a_options.push(MoveChoice::None);
         }
-        if side_two_slot_b_options.is_empty() {
-            side_two_slot_b_options.push(MoveChoice::None);
+        if move_options.side_two_slot_b_options.is_empty() {
+            move_options.side_two_slot_b_options.push(MoveChoice::None);
         }
 
-        self.combine_slot_options(
-            side_one_slot_a_options,
-            side_one_slot_b_options,
-            side_two_slot_a_options,
-            side_two_slot_b_options,
-        )
+        move_options.combine_slot_options();
     }
 
     pub fn reset_toxic_count(

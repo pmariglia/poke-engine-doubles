@@ -1421,6 +1421,18 @@ impl Side {
             PokemonSideCondition::WideGuard => self.side_conditions.wide_guard += amount,
         }
     }
+    pub fn has_alive_reserve_pkmn(&self) -> bool {
+        let mut iter = self.pokemon.into_iter();
+        while let Some(p) = iter.next() {
+            if p.hp > 0
+                && iter.pokemon_index != self.slot_a.active_index
+                && iter.pokemon_index != self.slot_b.active_index
+            {
+                return true;
+            }
+        }
+        false
+    }
     pub fn get_alive_pkmn_indices(&self) -> Vec<PokemonIndex> {
         let mut vec = Vec::with_capacity(6);
         let mut iter = self.pokemon.into_iter();

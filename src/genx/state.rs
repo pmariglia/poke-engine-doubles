@@ -1389,8 +1389,8 @@ impl State {
             return;
         }
 
-        let side_one_alive_reserve = self.side_one.get_alive_pkmn_indices();
-        let side_two_alive_reserve = self.side_two.get_alive_pkmn_indices();
+        let side_one_has_alive_reserve = self.side_one.has_alive_reserve_pkmn();
+        let side_two_has_alive_reserve = self.side_two.has_alive_reserve_pkmn();
 
         // Check for fainting force switches
         let side_one_slot_a_fainted = side_one_active_a.hp <= 0;
@@ -1400,10 +1400,8 @@ impl State {
 
         // Handle forced fainting switches where there is something
         // to switch to in the back
-        if ((side_one_slot_a_fainted || side_one_slot_b_fainted)
-            && side_one_alive_reserve.len() > 0)
-            || ((side_two_slot_a_fainted || side_two_slot_b_fainted)
-                && side_two_alive_reserve.len() > 0)
+        if ((side_one_slot_a_fainted || side_one_slot_b_fainted) && side_one_has_alive_reserve)
+            || ((side_two_slot_a_fainted || side_two_slot_b_fainted) && side_two_has_alive_reserve)
         {
             if side_one_slot_a_fainted || side_one_slot_b_fainted {
                 self.handle_fainted_switches(

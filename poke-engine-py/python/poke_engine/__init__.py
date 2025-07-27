@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from .state import (
+# noinspection PyUnresolvedReferences
+from ._poke_engine import (
     State,
     Side,
     SideSlot,
@@ -8,13 +9,9 @@ from .state import (
     VolatileStatusDurations,
     Pokemon,
     Move,
-)
-
-# noinspection PyUnresolvedReferences
-from ._poke_engine import (
-    gi as _gi,
-    calculate_damage as _calculate_damage,
-    mcts as _mcts,
+    generate_instructions,
+    calculate_damage,
+    mcts,
 )
 
 
@@ -62,7 +59,7 @@ class MctsResult:
                     total_score=i.total_score,
                     visits=i.visits,
                 )
-                for i in rust_result.s1
+                for i in rust_result.side_one
             ],
             side_two=[
                 MctsSideResult(
@@ -70,17 +67,10 @@ class MctsResult:
                     total_score=i.total_score,
                     visits=i.visits,
                 )
-                for i in rust_result.s2
+                for i in rust_result.side_two
             ],
             total_visits=rust_result.iteration_count,
         )
-
-
-def generate_instructions(state: State, side_one_move: str, side_two_move: str):
-    """
-    TODO
-    """
-    return _gi(state._into_rust_obj(), side_one_move, side_two_move)
 
 
 def monte_carlo_tree_search(state: State, duration_ms: int = 1000) -> MctsResult:
@@ -94,58 +84,4 @@ def monte_carlo_tree_search(state: State, duration_ms: int = 1000) -> MctsResult
     :return: the result of the search
     :rtype: MctsResult
     """
-    return MctsResult._from_rust(_mcts(state._into_rust_obj(), duration_ms))
-
-
-def calculate_damage(
-    pkmn_state: State,
-    attacking_side: str,
-    attacking_slot: str,
-    target_side: str,
-    target_slot: str,
-    attacker_move: str,
-    target_move: str,
-) -> list[int]:
-    """
-    Calculate the damage rolls for two moves
-
-    :param pkmn_state
-    :type pkmn_state: State
-    :param attacking_side
-    :type attacking_side: str
-    :param attacking_slot
-    :type attacking_slot: str
-    :param target_side
-    :type target_side: str
-    :param target_slot
-    :type target_slot: str
-    :param attacker_move
-    :type attacker_move: str
-    :param target_move
-    :type target_move: str
-    :return: (list[int], list[int]) - the damage rolls for the two moves
-    """
-    return _calculate_damage(
-        pkmn_state._into_rust_obj(),
-        attacking_side,
-        attacking_slot,
-        target_side,
-        target_slot,
-        attacker_move,
-        target_move,
-    )
-
-
-__all__ = [
-    "State",
-    "Side",
-    "SideSlot",
-    "SideConditions",
-    "Pokemon",
-    "Move",
-    "MctsResult",
-    "MctsSideResult",
-    "generate_instructions",
-    "monte_carlo_tree_search",
-    "calculate_damage",
-]
+    return MctsResult._from_rust(mcts(state, duration_ms))

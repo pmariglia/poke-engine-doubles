@@ -20,10 +20,7 @@ fmt:
 gen9:
 	cargo build --release --features gen9,terastallization --no-default-features
 
-pytest:
-	. venv/bin/activate && pytest --rootdir=poke-engine-py/python poke-engine-py/python/tests
-
-test: pytest
+test:
 	cargo test --no-default-features --features "terastallization"
 	cargo test --no-default-features --features "gen9"
 

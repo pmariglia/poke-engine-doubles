@@ -12,6 +12,8 @@ use std::time::Duration;
 const PRUNE_ITERVAL: u32 = 100_000_000; // How many iterations before pruning the tree
 const PRUNE_KEEP_COUNT: usize = 15; // Threshold for pruning based on visit counts
 
+const MIN_VISITS_BEFORE_SELECTION: usize = 50;
+
 fn sigmoid(x: f32) -> f32 {
     // Tuned so that ~400 points is very close to 1.0
     1.0 / (1.0 + (-0.0062 * x).exp())
@@ -101,8 +103,20 @@ impl Node {
     pub unsafe fn selection(&mut self, state: &mut State) -> (*mut Node, usize, usize) {
         let return_node = self as *mut Node;
 
-        let s1_mc_index = self.maximize_ucb_for_side(&self.s1_options);
-        let s2_mc_index = self.maximize_ucb_for_side(&self.s2_options);
+        let times_visited_usize = self.times_visited as usize;
+        let s1_mc_index =
+            if self.s1_options.len() * MIN_VISITS_BEFORE_SELECTION > times_visited_usize {
+                times_visited_usize % self.s1_options.len()
+            } else {
+                self.maximize_ucb_for_side(&self.s1_options)
+            };
+        let s2_mc_index =
+            if self.s2_options.len() * MIN_VISITS_BEFORE_SELECTION > times_visited_usize {
+                times_visited_usize % self.s2_options.len()
+            } else {
+                self.maximize_ucb_for_side(&self.s2_options)
+            };
+
         let child_vector = self.children.get_mut(&(s1_mc_index, s2_mc_index));
         match child_vector {
             Some(child_vector) => {

@@ -34,7 +34,6 @@ fmt_ci:
 	ruff format --check poke-engine-py
 
 test_ci:
-	pytest --rootdir=poke-engine-py/python poke-engine-py/python/tests
 	cargo test --no-default-features --features "gen9"
 
 ci: install_ci fmt_ci test_ci

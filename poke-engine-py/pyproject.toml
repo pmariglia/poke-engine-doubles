@@ -8,5 +8,5 @@ build-backend = "maturin"
 
 [project]
 name = "poke-engine-doubles"
-version = "0.0.0"
+version = "0.0.2"
 readme = "readme.md"

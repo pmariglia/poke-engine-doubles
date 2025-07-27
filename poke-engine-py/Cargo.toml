@@ -13,4 +13,4 @@ pyo3 = { version = "0.22.5", features = ["extension-module"] }
 poke-engine = { path = "../" }
 
 [features]
-default = ["poke-engine/gen9"]
+default = ["poke-engine/terastallization"]

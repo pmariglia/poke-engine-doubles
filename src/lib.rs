@@ -124,4 +124,4 @@ macro_rules! define_enum_with_from_str {
     };
 }
 
-assert_unique_feature!("gen2", "gen3", "gen4", "gen5", "gen6", "gen7", "gen8", "gen9");
+assert_unique_feature!("gen9");

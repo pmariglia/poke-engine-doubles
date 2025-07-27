@@ -1,7 +1,7 @@
 [package]
 name = "poke_engine"
 edition = "2021"
-version = "0.0.42"
+version = "0.0.1"
 
 [lib]
 name = "poke_engine"
@@ -13,4 +13,4 @@ pyo3 = { version = "0.22.5", features = ["extension-module"] }
 poke-engine = { path = "../" }
 
 [features]
-default = ["poke-engine/gen4"]
+default = ["poke-engine/gen9"]

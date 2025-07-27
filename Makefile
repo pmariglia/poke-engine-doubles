@@ -34,6 +34,6 @@ fmt_ci:
 	ruff format --check poke-engine-py
 
 test_ci:
-	cargo test --no-default-features --features "gen9"
+	cargo test --no-default-features --features "terastallization"
 
 ci: install_ci fmt_ci test_ci

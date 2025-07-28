@@ -2,9 +2,8 @@ use super::abilities::Abilities;
 use super::items::Items;
 use super::state::PokemonVolatileStatus;
 use crate::choices::MoveCategory;
-use crate::state::{
-    Pokemon, PokemonBoostableStat, PokemonStatus, Side, SideSlot, SlotReference, State,
-};
+use crate::engine::generate_instructions::get_effective_speed;
+use crate::state::{Pokemon, PokemonStatus, Side, SideReference, SideSlot, SlotReference, State};
 
 const POKEMON_ALIVE: f32 = 30.0;
 const POKEMON_HP: f32 = 100.0;
@@ -222,106 +221,37 @@ pub fn evaluate(state: &State) -> f32 {
         score -= USED_TERA;
     }
 
-    // trickroom active - it is better to be slower
-    if state.trick_room.active {
-        // s1a slower than s2a
-        if state
-            .side_one
-            .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
-            < state
-                .side_two
-                .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
-        {
-            score += FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
-        } else {
-            score -= FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
-        }
-        // s1a slower than s2b
-        if state
-            .side_one
-            .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
-            < state
-                .side_two
-                .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
-        {
-            score += FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
-        } else {
-            score -= FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
-        }
-        // s1b slower than s2a
-        if state
-            .side_one
-            .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
-            < state
-                .side_two
-                .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
-        {
-            score += FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
-        } else {
-            score -= FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
-        }
-        // s1b slower than s2b
-        if state
-            .side_one
-            .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
-            < state
-                .side_two
-                .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
-        {
-            score += FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
-        } else {
-            score -= FASTER_THAN_OPPONENT * (4.0 / state.trick_room.turns_remaining as f32);
-        }
+    let s1a_speed = get_effective_speed(state, &SideReference::SideOne, &SlotReference::SlotA);
+    let s1b_speed = get_effective_speed(state, &SideReference::SideOne, &SlotReference::SlotB);
+    let s2a_speed = get_effective_speed(state, &SideReference::SideTwo, &SlotReference::SlotA);
+    let s2b_speed = get_effective_speed(state, &SideReference::SideTwo, &SlotReference::SlotB);
 
-    // trickroom not active - it is better to be faster
+    let faster_than_multiplier = if state.trick_room.active {
+        // in trick room, slower pokemon are favored
+        // but the value is diminished by the number of turns remaining
+        4.0 / state.trick_room.turns_remaining as f32
     } else {
-        // s1a faster than s2a
-        if state
-            .side_one
-            .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
-            > state
-                .side_two
-                .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
-        {
-            score += FASTER_THAN_OPPONENT;
+        1.0
+    };
+
+    let comparisons = [
+        (s1a_speed, s2a_speed),
+        (s1a_speed, s2b_speed),
+        (s1b_speed, s2a_speed),
+        (s1b_speed, s2b_speed),
+    ];
+
+    for (s1, s2) in comparisons {
+        let s1_is_faster = if state.trick_room.active {
+            s1 < s2 // slower is better in trick room
         } else {
-            score -= FASTER_THAN_OPPONENT;
-        }
-        // s1a slower than s2b
-        if state
-            .side_one
-            .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
-            > state
-                .side_two
-                .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
-        {
-            score += FASTER_THAN_OPPONENT;
+            s1 > s2 // faster is better otherwise
+        };
+
+        if s1_is_faster {
+            score += FASTER_THAN_OPPONENT * faster_than_multiplier;
         } else {
-            score -= FASTER_THAN_OPPONENT;
-        }
-        // s1b slower than s2a
-        if state
-            .side_one
-            .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
-            > state
-                .side_two
-                .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Speed)
-        {
-            score += FASTER_THAN_OPPONENT;
-        } else {
-            score -= FASTER_THAN_OPPONENT;
-        }
-        // s1b slower than s2b
-        if state
-            .side_one
-            .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
-            > state
-                .side_two
-                .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Speed)
-        {
-            score += FASTER_THAN_OPPONENT;
-        } else {
-            score -= FASTER_THAN_OPPONENT;
+            score -= FASTER_THAN_OPPONENT * faster_than_multiplier;
         }
     }
 

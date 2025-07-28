@@ -3032,7 +3032,7 @@ fn combine_duplicate_instructions(
     }
 }
 
-fn get_effective_speed(
+pub fn get_effective_speed(
     state: &State,
     side_reference: &SideReference,
     slot_reference: &SlotReference,

@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.0.6](https://github.com/pmariglia/poke-engine-doubles/releases/tag/v0.0.6) - 2025-07-31
+
+### Refactor
+
+- Evaluation considers other speed modifies when looking at who is faster - ([602d1a9](https://github.com/pmariglia/poke-engine-doubles/commit/602d1a9e0ceb65d2aa2f42e4b2983c4ada3e3de7))
+
+- Python bindings a little less sucky - ([794c77b](https://github.com/pmariglia/poke-engine-doubles/commit/794c77bf7c75b33823b189d7d2471b39ddfa3cd2))
+
 ## [v0.0.5](https://github.com/pmariglia/poke-engine-doubles/releases/tag/v0.0.5) - 2025-07-27
 
 ### Performance

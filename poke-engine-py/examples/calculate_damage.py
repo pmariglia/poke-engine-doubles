@@ -2,7 +2,7 @@ from poke_engine import calculate_damage
 
 from example_state import state
 
-rolls = calculate_damage(
+max_damage, max_crit_damage = calculate_damage(
     state,
     "1",
     "a",
@@ -12,4 +12,5 @@ rolls = calculate_damage(
     "tackle",
 )
 
-print(rolls)
+print(f"Max damage: {max_damage}")
+print(f"Max crit damage: {max_crit_damage}")

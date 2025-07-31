@@ -36,24 +36,6 @@ fn movechoice_to_string(
 
 #[derive(Clone)]
 #[pyclass(name = "State", module = "poke_engine", get_all)]
-#[doc = "
-Represents a Pokemon battle state
-
-:param side_one: The first side of the battle
-:type side_one: Side
-:param side_two: The second side of the battle
-:type side_two: Side
-:param weather: The current weather condition
-:type weather: str
-:param weather_turns_remaining: The number of turns remaining for the current weather condition
-:type weather_turns_remaining: int
-:param terrain: The current terrain condition
-:type terrain: str
-:param terrain_turns_remaining: The number of turns remaining for the current terrain condition
-:type terrain_turns_remaining: int
-:param trick_room: Whether Trick Room is active
-:type trick_room: bool
-"]
 pub struct PyState {
     pub side_one: PySide,
     pub side_two: PySide,
@@ -170,18 +152,6 @@ impl PyState {
 
 #[derive(Clone)]
 #[pyclass(name = "Side", module = "poke_engine", get_all)]
-#[doc = "
-Represents one side in a Pokemon battle.
-
-:param pokemon: List of up to 6 Pokemon on this side
-:type pokemon: list[Pokemon]
-:param side_conditions: Side conditions affecting this side
-:type side_conditions: SideConditions
-:param slot_a: Slot A for active Pokemon
-:type slot_a: SideSlot
-:param slot_b: Slot B for active Pokemon
-:type slot_b: SideSlot
-"]
 pub struct PySide {
     pub pokemon: [PyPokemon; 6],
     pub side_conditions: PySideConditions,
@@ -261,50 +231,6 @@ impl PySide {
 
 #[derive(Clone)]
 #[pyclass(name = "SideSlot", module = "poke_engine", get_all)]
-#[doc = "
-Represents a slot for an active Pokemon.
-
-:param active_index: Index of the active Pokemon
-:type active_index: str
-:param baton_passing: Whether Baton Pass is active
-:type baton_passing: bool
-:param shed_tailing: Whether Shed Tail is active
-:type shed_tailing: bool
-:param volatile_status_durations: Durations for volatile statuses
-:type volatile_status_durations: VolatileStatusDurations
-:param wish: Wish status (turns, HP)
-:type wish: tuple[int, int]
-:param future_sight: Future Sight status (turns, target)
-:type future_sight: tuple[int, str]
-:param force_switch: Whether forced to switch
-:type force_switch: bool
-:param force_trapped: Whether trapped
-:type force_trapped: bool
-:param slow_uturn_move: Whether slow U-turn is active
-:type slow_uturn_move: bool
-:param volatile_statuses: Set of volatile status names
-:type volatile_statuses: set[str]
-:param substitute_health: Substitute HP
-:type substitute_health: int
-:param attack_boost: Attack boost
-:type attack_boost: int
-:param defense_boost: Defense boost
-:type defense_boost: int
-:param special_attack_boost: Special Attack boost
-:type special_attack_boost: int
-:param special_defense_boost: Special Defense boost
-:type special_defense_boost: int
-:param speed_boost: Speed boost
-:type speed_boost: int
-:param accuracy_boost: Accuracy boost
-:type accuracy_boost: int
-:param evasion_boost: Evasion boost
-:type evasion_boost: int
-:param last_used_move: Last used move
-:type last_used_move: str
-:param switch_out_move_second_saved_move: Saved move for switch out
-:type switch_out_move_second_saved_move: str
-"]
 pub struct PySideSlot {
     active_index: String,
     baton_passing: bool,
@@ -475,24 +401,6 @@ impl PySideSlot {
 
 #[derive(Clone)]
 #[pyclass(name = "VolatileStatusDurations", module = "poke_engine", get_all)]
-#[doc = "
-Durations for volatile statuses on a SideSlot.
-
-:param confusion: Confusion turns remaining
-:type confusion: int
-:param encore: Encore turns remaining
-:type encore: int
-:param lockedmove: Locked move turns remaining
-:type lockedmove: int
-:param protect: Protect turns remaining
-:type protect: int
-:param slowstart: Slow Start turns remaining
-:type slowstart: int
-:param taunt: Taunt turns remaining
-:type taunt: int
-:param yawn: Yawn turns remaining
-:type yawn: int
-"]
 pub struct PyVolatileStatusDurations {
     pub confusion: i8,
     pub encore: i8,
@@ -566,48 +474,6 @@ impl PyVolatileStatusDurations {
 
 #[derive(Clone)]
 #[pyclass(name = "SideConditions", module = "poke_engine", get_all)]
-#[doc = "
-Side conditions affecting a Side.
-
-:param aurora_veil: Aurora Veil turns remaining
-:type aurora_veil: int
-:param crafty_shield: Crafty Shield turns remaining
-:type crafty_shield: int
-:param healing_wish: Healing Wish turns remaining
-:type healing_wish: int
-:param light_screen: Light Screen turns remaining
-:type light_screen: int
-:param lucky_chant: Lucky Chant turns remaining
-:type lucky_chant: int
-:param lunar_dance: Lunar Dance turns remaining
-:type lunar_dance: int
-:param mat_block: Mat Block turns remaining
-:type mat_block: int
-:param mist: Mist turns remaining
-:type mist: int
-:param protect: Protect turns remaining
-:type protect: int
-:param quick_guard: Quick Guard turns remaining
-:type quick_guard: int
-:param reflect: Reflect turns remaining
-:type reflect: int
-:param safeguard: Safeguard turns remaining
-:type safeguard: int
-:param spikes: Number of Spikes layers
-:type spikes: int
-:param stealth_rock: Stealth Rock present
-:type stealth_rock: int
-:param sticky_web: Sticky Web present
-:type sticky_web: int
-:param tailwind: Tailwind turns remaining
-:type tailwind: int
-:param toxic_count: Toxic counter
-:type toxic_count: int
-:param toxic_spikes: Number of Toxic Spikes layers
-:type toxic_spikes: int
-:param wide_guard: Wide Guard turns remaining
-:type wide_guard: int
-"]
 pub struct PySideConditions {
     pub aurora_veil: i8,
     pub crafty_shield: i8,
@@ -753,56 +619,6 @@ impl PySideConditions {
 
 #[derive(Clone)]
 #[pyclass(name = "Pokemon", module = "poke_engine", get_all)]
-#[doc = "
-Represents a Pokemon with all its battle properties.
-
-:param id: Pokemon name
-:type id: str
-:param level: Pokemon level
-:type level: int
-:param types: Current types
-:type types: tuple[str, str]
-:param base_types: Base types. Different from types if the Pokemon had its types changed by a move or ability.
-:type base_types: tuple[str, str]
-:param hp: Current HP
-:type hp: int
-:param maxhp: Maximum HP
-:type maxhp: int
-:param ability: Current ability
-:type ability: str
-:param base_ability: Base ability. Different from ability if the Pokemon had its ability changed by a move or ability.
-:type base_ability: str
-:param item: Held item
-:type item: str
-:param nature: Nature
-:type nature: str
-:param evs: Effort values
-:type evs: tuple[int, int, int, int, int, int]
-:param attack: Attack stat
-:type attack: int
-:param defense: Defense stat
-:type defense: int
-:param special_attack: Special Attack stat
-:type special_attack: int
-:param special_defense: Special Defense stat
-:type special_defense: int
-:param speed: Speed stat
-:type speed: int
-:param status: Status condition
-:type status: str
-:param rest_turns: Rest turns remaining. Decrements from 2.
-:type rest_turns: int
-:param sleep_turns: Turns spent asleep. Increments from 0.
-:type sleep_turns: int
-:param weight_kg: Weight in kilograms
-:type weight_kg: float
-:param terastallized: if the Pokemon is terastallized
-:type terastallized: bool
-:param tera_type: Tera type
-:type tera_type: str
-:param moves: List of moves
-:type moves: list[Move]
-"]
 pub struct PyPokemon {
     pub id: String,
     pub level: i8,
@@ -1013,16 +829,6 @@ impl PyPokemon {
 
 #[derive(Clone)]
 #[pyclass(name = "Move", module = "poke_engine", get_all)]
-#[doc = "
-Represents a Pokemon move.
-
-:param id: Move name
-:type id: str
-:param disabled: Whether the move is disabled
-:type disabled: bool
-:param pp: Remaining PP
-:type pp: int
-"]
 pub struct PyMove {
     pub id: String,
     pub disabled: bool,
@@ -1331,7 +1137,7 @@ fn calculate_damage(
 }
 
 #[pymodule]
-#[pyo3(name = "_poke_engine")]
+#[pyo3(name = "poke_engine")]
 fn py_poke_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(calculate_damage, m)?)?;
     m.add_function(wrap_pyfunction!(generate_instructions, m)?)?;

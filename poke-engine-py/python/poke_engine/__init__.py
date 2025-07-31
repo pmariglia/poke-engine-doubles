@@ -1,18 +1,35 @@
 from dataclasses import dataclass
+from enum import StrEnum
 
-# noinspection PyUnresolvedReferences
-from ._poke_engine import (
-    State,
-    Side,
-    SideSlot,
-    SideConditions,
-    VolatileStatusDurations,
-    Pokemon,
-    Move,
-    generate_instructions,
-    calculate_damage,
-    mcts,
-)
+from .poke_engine import *
+
+
+class Weather(StrEnum):
+    NONE = "none"
+    SUN = "sun"
+    RAIN = "rain"
+    SAND = "sand"
+    HAIL = "hail"
+    SNOW = "snow"
+    HARSH_SUN = "harshsun"
+    HEAVY_RAIN = "heavyrain"
+
+
+class Terrain(StrEnum):
+    NONE = "none"
+    GRASSY = "grassyterrain"
+    ELECTRIC = "electricterrain"
+    MISTY = "mistyterrain"
+    PSYCHIC = "psychicterrain"
+
+
+class PokemonIndex(StrEnum):
+    P0 = "0"
+    P1 = "1"
+    P2 = "2"
+    P3 = "3"
+    P4 = "4"
+    P5 = "5"
 
 
 @dataclass

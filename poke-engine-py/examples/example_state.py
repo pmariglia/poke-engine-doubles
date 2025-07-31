@@ -4,15 +4,16 @@ from poke_engine import (
     SideSlot,
     Move,
     Pokemon,
+    PokemonIndex,
 )
 
 state = State(
     side_one=Side(
         slot_a=SideSlot(
-            active_index="0",
+            active_index=PokemonIndex.P0,
         ),
         slot_b=SideSlot(
-            active_index="1",
+            active_index=PokemonIndex.P1,
         ),
         pokemon=[
             Pokemon(

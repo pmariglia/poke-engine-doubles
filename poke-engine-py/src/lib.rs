@@ -161,15 +161,9 @@ pub struct PySide {
 
 impl From<Side> for PySide {
     fn from(other: Side) -> Self {
+        let pokemon = other.pokemon.pkmn.map(|pokemon| pokemon.into());
         PySide {
-            pokemon: [
-                PyPokemon::from(other.pokemon.p0),
-                PyPokemon::from(other.pokemon.p1),
-                PyPokemon::from(other.pokemon.p2),
-                PyPokemon::from(other.pokemon.p3),
-                PyPokemon::from(other.pokemon.p4),
-                PyPokemon::from(other.pokemon.p5),
-            ],
+            pokemon,
             side_conditions: PySideConditions::from(other.side_conditions),
             slot_a: PySideSlot::from(other.slot_a),
             slot_b: PySideSlot::from(other.slot_b),
@@ -181,12 +175,14 @@ impl Into<Side> for PySide {
     fn into(self) -> Side {
         Side {
             pokemon: SidePokemon {
-                p0: self.pokemon[0].clone().into(),
-                p1: self.pokemon[1].clone().into(),
-                p2: self.pokemon[2].clone().into(),
-                p3: self.pokemon[3].clone().into(),
-                p4: self.pokemon[4].clone().into(),
-                p5: self.pokemon[5].clone().into(),
+                pkmn: [
+                    self.pokemon[0].clone().into(),
+                    self.pokemon[1].clone().into(),
+                    self.pokemon[2].clone().into(),
+                    self.pokemon[3].clone().into(),
+                    self.pokemon[4].clone().into(),
+                    self.pokemon[5].clone().into(),
+                ],
             },
             side_conditions: self.side_conditions.into(),
             slot_a: self.slot_a.into(),

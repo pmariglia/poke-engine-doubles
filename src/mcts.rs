@@ -34,16 +34,30 @@ pub struct Node {
 
     // represents the total score and number of visits for this node
     // de-coupled for s1 and s2
-    pub s1_options: Vec<MoveNode>,
-    pub s2_options: Vec<MoveNode>,
+    pub s1_options: *mut Vec<MoveNode>,
+    pub s2_options: *mut Vec<MoveNode>,
 }
 
 impl Node {
-    fn new(
-        depth: u8,
+    fn new(depth: u8) -> Node {
+        Node {
+            root: false,
+            depth,
+            parent: std::ptr::null_mut(),
+            instructions: StateInstructions::default(),
+            times_visited: 0,
+            children: HashMap::new(),
+            s1_choice: 0,
+            s2_choice: 0,
+            s1_options: std::ptr::null_mut(),
+            s2_options: std::ptr::null_mut(),
+        }
+    }
+    unsafe fn populate(
+        &mut self,
         s1_options: &mut Vec<(MoveChoice, MoveChoice)>,
         s2_options: &mut Vec<(MoveChoice, MoveChoice)>,
-    ) -> Node {
+    ) {
         let s1_options_vec = s1_options
             .drain(..)
             .map(|x| MoveNode {
@@ -61,18 +75,8 @@ impl Node {
             })
             .collect();
 
-        Node {
-            root: false,
-            depth,
-            parent: std::ptr::null_mut(),
-            instructions: StateInstructions::default(),
-            times_visited: 0,
-            children: HashMap::new(),
-            s1_choice: 0,
-            s2_choice: 0,
-            s1_options: s1_options_vec,
-            s2_options: s2_options_vec,
-        }
+        self.s1_options = Box::into_raw(Box::new(s1_options_vec));
+        self.s2_options = Box::into_raw(Box::new(s2_options_vec));
     }
 
     unsafe fn should_branch_on_damage(&self) -> bool {
@@ -81,7 +85,7 @@ impl Node {
         }
 
         // if there aren't many options left, branch on damage if we're one node below the root
-        if (*self.parent).root && (self.s1_options.len() < 20 || self.s2_options.len() < 20) {
+        if (*self.parent).root && ((*self.s1_options).len() < 20 || (*self.s2_options).len() < 20) {
             return true;
         }
         false
@@ -100,21 +104,32 @@ impl Node {
         choice
     }
 
-    pub unsafe fn selection(&mut self, state: &mut State) -> (*mut Node, usize, usize) {
+    pub unsafe fn selection(
+        &mut self,
+        state: &mut State,
+        move_options: &mut MoveOptions,
+    ) -> (*mut Node, usize, usize) {
         let return_node = self as *mut Node;
+        if self.s1_options.is_null() {
+            state.get_all_options(move_options);
+            self.populate(
+                &mut move_options.side_one_combined_options,
+                &mut move_options.side_two_combined_options,
+            );
+        }
 
         let times_visited_usize = self.times_visited as usize;
         let s1_mc_index =
-            if self.s1_options.len() * MIN_VISITS_BEFORE_SELECTION > times_visited_usize {
-                times_visited_usize % self.s1_options.len()
+            if (*self.s1_options).len() * MIN_VISITS_BEFORE_SELECTION > times_visited_usize {
+                times_visited_usize % (*self.s1_options).len()
             } else {
-                self.maximize_ucb_for_side(&self.s1_options)
+                self.maximize_ucb_for_side(&(*self.s1_options))
             };
         let s2_mc_index =
-            if self.s2_options.len() * MIN_VISITS_BEFORE_SELECTION > times_visited_usize {
-                times_visited_usize % self.s2_options.len()
+            if (*self.s2_options).len() * MIN_VISITS_BEFORE_SELECTION > times_visited_usize {
+                times_visited_usize % (*self.s2_options).len()
             } else {
-                self.maximize_ucb_for_side(&self.s2_options)
+                self.maximize_ucb_for_side(&(*self.s2_options))
             };
 
         let child_vector = self.children.get_mut(&(s1_mc_index, s2_mc_index));
@@ -123,7 +138,7 @@ impl Node {
                 let child_vec_ptr = child_vector as *mut Vec<Node>;
                 let chosen_child = self.sample_node(child_vec_ptr);
                 state.apply_instructions(&(*chosen_child).instructions.instruction_list);
-                (*chosen_child).selection(state)
+                (*chosen_child).selection(state, move_options)
             }
             None => (return_node, s1_mc_index, s2_mc_index),
         }
@@ -146,13 +161,12 @@ impl Node {
         state: &mut State,
         s1_move_index: usize,
         s2_move_index: usize,
-        move_options: &mut MoveOptions,
     ) -> *mut Node {
         if self.depth >= 4 {
             return self as *mut Node;
         }
-        let s1_move = &self.s1_options[s1_move_index].move_choice;
-        let s2_move = &self.s2_options[s2_move_index].move_choice;
+        let s1_move = &(*self.s1_options)[s1_move_index].move_choice;
+        let s2_move = &(*self.s2_options)[s2_move_index].move_choice;
         // if the battle is over or both moves are none there is no need to expand
         if (state.battle_is_over() != 0.0 && !self.root)
             || (s1_move == &(MoveChoice::None, MoveChoice::None)
@@ -171,21 +185,13 @@ impl Node {
         );
         let mut this_pair_vec = Vec::with_capacity(new_instructions.len());
         for state_instructions in new_instructions.drain(..) {
-            state.apply_instructions(&state_instructions.instruction_list);
-            state.get_all_options(move_options);
-            state.reverse_instructions(&state_instructions.instruction_list);
-
             let new_depth = if state_instructions.end_of_turn_triggered {
                 self.depth + 1
             } else {
                 self.depth
             };
 
-            let mut new_node = Node::new(
-                new_depth,
-                &mut move_options.side_one_combined_options,
-                &mut move_options.side_two_combined_options,
-            );
+            let mut new_node = Node::new(new_depth);
             new_node.parent = self;
             new_node.instructions = state_instructions;
             new_node.s1_choice = s1_move_index as u16;
@@ -209,11 +215,11 @@ impl Node {
             return;
         }
 
-        let parent_s1_movenode = &mut (*self.parent).s1_options[self.s1_choice as usize];
+        let parent_s1_movenode = &mut (*(*self.parent).s1_options)[self.s1_choice as usize];
         parent_s1_movenode.total_score += score;
         parent_s1_movenode.visits += 1;
 
-        let parent_s2_movenode = &mut (*self.parent).s2_options[self.s2_choice as usize];
+        let parent_s2_movenode = &mut (*(*self.parent).s2_options)[self.s2_choice as usize];
         parent_s2_movenode.total_score += 1.0 - score;
         parent_s2_movenode.visits += 1;
 
@@ -281,15 +287,14 @@ pub struct MctsResult {
     pub iteration_count: u32,
 }
 
-fn prune_tree(root_node: &mut Node) {
-    if root_node.s1_options.len() <= PRUNE_KEEP_COUNT
-        || root_node.s2_options.len() <= PRUNE_KEEP_COUNT
+unsafe fn prune_tree(root_node: &mut Node) {
+    if (*root_node.s1_options).len() <= PRUNE_KEEP_COUNT
+        || (*root_node.s2_options).len() <= PRUNE_KEEP_COUNT
     {
         return;
     }
 
-    let mut s1_with_indices: Vec<(usize, u32)> = root_node
-        .s1_options
+    let mut s1_with_indices: Vec<(usize, u32)> = (*root_node.s1_options)
         .iter()
         .enumerate()
         .map(|(idx, move_node)| (idx, move_node.visits))
@@ -308,11 +313,10 @@ fn prune_tree(root_node: &mut Node) {
 
     s1_indices_to_remove.sort();
     for idx in s1_indices_to_remove.iter().rev() {
-        root_node.s1_options.remove(*idx);
+        (*root_node.s1_options).remove(*idx);
     }
 
-    let mut s2_with_indices: Vec<(usize, u32)> = root_node
-        .s2_options
+    let mut s2_with_indices: Vec<(usize, u32)> = (*root_node.s2_options)
         .iter()
         .enumerate()
         .map(|(idx, move_node)| (idx, move_node.visits))
@@ -330,7 +334,7 @@ fn prune_tree(root_node: &mut Node) {
         .collect();
     s2_indices_to_remove.sort();
     for idx in s2_indices_to_remove.iter().rev() {
-        root_node.s2_options.remove(*idx);
+        (*root_node.s2_options).remove(*idx);
     }
 
     // Remove children from HashMap where either s1 or s2 index was pruned, and remap remaining keys
@@ -380,8 +384,8 @@ fn do_mcts(
     root_eval: &f32,
     move_options: &mut MoveOptions,
 ) {
-    let (mut new_node, s1_move, s2_move) = unsafe { root_node.selection(state) };
-    new_node = unsafe { (*new_node).expand(state, s1_move, s2_move, move_options) };
+    let (mut new_node, s1_move, s2_move) = unsafe { root_node.selection(state, move_options) };
+    new_node = unsafe { (*new_node).expand(state, s1_move, s2_move) };
     let rollout_result = unsafe { (*new_node).rollout(state, root_eval) };
     unsafe { (*new_node).backpropagate(rollout_result, state) }
 }
@@ -392,7 +396,10 @@ pub fn perform_mcts(
     mut side_two_options: Vec<(MoveChoice, MoveChoice)>,
     max_time: Duration,
 ) -> MctsResult {
-    let mut root_node = Node::new(0, &mut side_one_options, &mut side_two_options);
+    let mut root_node = Node::new(0);
+    unsafe {
+        root_node.populate(&mut side_one_options, &mut side_two_options);
+    }
     root_node.root = true;
 
     let mut combined_options = MoveOptions::new();
@@ -404,7 +411,9 @@ pub fn perform_mcts(
         }
 
         if root_node.times_visited == PRUNE_ITERVAL {
-            prune_tree(&mut root_node);
+            unsafe {
+                prune_tree(&mut root_node);
+            }
         }
 
         /*
@@ -424,26 +433,26 @@ pub fn perform_mcts(
         }
     }
 
-    let result = MctsResult {
-        s1: root_node
-            .s1_options
-            .iter()
-            .map(|v| MctsSideResult {
-                move_choice: v.move_choice.clone(),
-                total_score: v.total_score,
-                visits: v.visits,
-            })
-            .collect(),
-        s2: root_node
-            .s2_options
-            .iter()
-            .map(|v| MctsSideResult {
-                move_choice: v.move_choice.clone(),
-                total_score: v.total_score,
-                visits: v.visits,
-            })
-            .collect(),
-        iteration_count: root_node.times_visited,
+    let result = unsafe {
+        MctsResult {
+            s1: (*root_node.s1_options)
+                .iter()
+                .map(|v| MctsSideResult {
+                    move_choice: v.move_choice.clone(),
+                    total_score: v.total_score,
+                    visits: v.visits,
+                })
+                .collect(),
+            s2: (*root_node.s2_options)
+                .iter()
+                .map(|v| MctsSideResult {
+                    move_choice: v.move_choice.clone(),
+                    total_score: v.total_score,
+                    visits: v.visits,
+                })
+                .collect(),
+            iteration_count: root_node.times_visited,
+        }
     };
 
     result

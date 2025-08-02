@@ -1311,6 +1311,12 @@ impl Side {
             SlotReference::SlotB => &mut self.slot_b,
         }
     }
+    pub fn get_both_slots(&mut self, slot: &SlotReference) -> (&mut SideSlot, &mut SideSlot) {
+        match slot {
+            SlotReference::SlotA => (&mut self.slot_a, &mut self.slot_b),
+            SlotReference::SlotB => (&mut self.slot_b, &mut self.slot_a),
+        }
+    }
     pub fn get_slot_immutable(&self, slot: &SlotReference) -> &SideSlot {
         match slot {
             SlotReference::SlotA => &self.slot_a,

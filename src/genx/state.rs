@@ -305,6 +305,8 @@ define_enum_with_from_str! {
         BOUNCE,
         BURNINGBULWARK,
         CHARGE,
+        COMMANDED,
+        COMMANDING,
         CONFUSION,
         CURSE,
         DEFENSECURL,
@@ -1314,7 +1316,10 @@ impl State {
 
         if slot
             .volatile_statuses
-            .contains(&PokemonVolatileStatus::MUSTRECHARGE)
+            .contains(&PokemonVolatileStatus::COMMANDING)
+            || slot
+                .volatile_statuses
+                .contains(&PokemonVolatileStatus::MUSTRECHARGE)
         {
             slot_options.push(MoveChoice::None);
         } else if let Some(mv_index) = side.active_is_charging_move(slot_ref) {

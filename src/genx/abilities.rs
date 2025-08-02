@@ -11,7 +11,8 @@ use crate::instruction::{
     ApplyVolatileStatusInstruction, BoostInstruction, ChangeAbilityInstruction,
     ChangeItemInstruction, ChangeSideConditionInstruction, ChangeStatusInstruction, ChangeTerrain,
     ChangeType, ChangeVolatileStatusDurationInstruction, ChangeWeather, DamageInstruction,
-    FormeChangeInstruction, HealInstruction, Instruction, StateInstructions,
+    FormeChangeInstruction, HealInstruction, Instruction, RemoveVolatileStatusInstruction,
+    StateInstructions,
 };
 use crate::pokemon::PokemonName;
 use crate::state::{
@@ -434,6 +435,69 @@ fn mold_breaker_ignores(ability: &Abilities) -> bool {
         | Abilities::FAIRYAURA
         | Abilities::DARKAURA => true,
         _ => false,
+    }
+}
+
+pub fn commander_activating(
+    state: &mut State,
+    attacking_side_ref: &SideReference,
+    commander_slot_ref: &SlotReference,
+    instructions: &mut StateInstructions,
+) {
+    let side = state.get_side(attacking_side_ref);
+    let (commander_slot, commanded_slot) = side.get_both_slots(commander_slot_ref);
+    if commander_slot
+        .volatile_statuses
+        .contains(&PokemonVolatileStatus::COMMANDING)
+        || commanded_slot
+            .volatile_statuses
+            .contains(&PokemonVolatileStatus::COMMANDED)
+    {
+        return;
+    }
+    commander_slot
+        .volatile_statuses
+        .insert(PokemonVolatileStatus::COMMANDING);
+    commanded_slot
+        .volatile_statuses
+        .insert(PokemonVolatileStatus::COMMANDED);
+    instructions
+        .instruction_list
+        .push(Instruction::ApplyVolatileStatus(
+            ApplyVolatileStatusInstruction {
+                side_ref: *attacking_side_ref,
+                slot_ref: commander_slot_ref.get_other_slot(),
+                volatile_status: PokemonVolatileStatus::COMMANDED,
+            },
+        ));
+    instructions
+        .instruction_list
+        .push(Instruction::ApplyVolatileStatus(
+            ApplyVolatileStatusInstruction {
+                side_ref: *attacking_side_ref,
+                slot_ref: *commander_slot_ref,
+                volatile_status: PokemonVolatileStatus::COMMANDING,
+            },
+        ));
+
+    for boost in [
+        PokemonBoostableStat::Attack,
+        PokemonBoostableStat::Defense,
+        PokemonBoostableStat::SpecialAttack,
+        PokemonBoostableStat::SpecialDefense,
+        PokemonBoostableStat::Speed,
+    ] {
+        if let Some(boost_instruction) = get_boost_instruction(
+            state.get_side(attacking_side_ref),
+            &boost,
+            &2,
+            attacking_side_ref,
+            attacking_side_ref,
+            &commander_slot_ref.get_other_slot(),
+        ) {
+            state.apply_one_instruction(&boost_instruction);
+            instructions.instruction_list.push(boost_instruction);
+        }
     }
 }
 
@@ -1135,6 +1199,28 @@ pub fn ability_after_damage_hit(
             _ => {}
         }
     }
+
+    // Fainting when ally was commanding removes that ally's commanding volatile
+    let target_side = state.get_side(target_side_ref);
+    let target_pkmn_has_fainted = target_side.get_active_immutable(target_slot_ref).hp == 0;
+    let target_ally_slot = target_side.get_slot(&target_slot_ref.get_other_slot());
+    let target_ally_is_commanding = target_ally_slot
+        .volatile_statuses
+        .contains(&PokemonVolatileStatus::COMMANDING);
+    if target_ally_is_commanding && damage_dealt > 0 && target_pkmn_has_fainted {
+        target_ally_slot
+            .volatile_statuses
+            .remove(&PokemonVolatileStatus::COMMANDING);
+        instructions
+            .instruction_list
+            .push(Instruction::RemoveVolatileStatus(
+                RemoveVolatileStatusInstruction {
+                    side_ref: *target_side_ref,
+                    slot_ref: target_slot_ref.get_other_slot(),
+                    volatile_status: PokemonVolatileStatus::COMMANDING,
+                },
+            ))
+    }
 }
 
 pub fn ability_on_switch_out(
@@ -1543,6 +1629,14 @@ pub fn ability_on_switch_in(
     }
 
     match active_pkmn.ability {
+        Abilities::COMMANDER => {
+            let active_pkmn_ally = state
+                .get_side(side_ref)
+                .get_active_immutable(&slot_ref.get_other_slot());
+            if active_pkmn_ally.id == PokemonName::DONDOZO {
+                commander_activating(state, side_ref, slot_ref, instructions);
+            }
+        }
         Abilities::ICEFACE if active_pkmn.id == PokemonName::EISCUENOICE => {
             let state_active_weather = state.get_weather();
             if state_active_weather == Weather::HAIL || state_active_weather == Weather::SNOW {

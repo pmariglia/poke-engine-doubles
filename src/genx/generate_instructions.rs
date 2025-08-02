@@ -1,7 +1,7 @@
 use super::abilities::{
     ability_after_damage_hit, ability_before_move, ability_change_type, ability_end_of_turn,
     ability_modify_attack_against, ability_modify_attack_being_used, ability_on_switch_in,
-    ability_on_switch_out, Abilities,
+    ability_on_switch_out, commander_activating, Abilities,
 };
 use super::choice_effects::{
     charge_choice_to_volatile, choice_after_damage_hit, choice_before_move, choice_change_type,
@@ -501,6 +501,24 @@ fn generate_instructions_from_switch(
 
     ability_on_switch_in(state, &switching_side_ref, &slot_ref, incoming_instructions);
     item_on_switch_in(state, &switching_side_ref, &slot_ref, incoming_instructions);
+
+    // switching in as dondozo when ally has commander
+    let neutralizing_gas_active = state.neutralizing_gas_is_active();
+    let side = state.get_side_immutable(&switching_side_ref);
+    let active = side.get_active_immutable(slot_ref);
+    if active.id == PokemonName::DONDOZO {
+        let active_ally = side.get_active_immutable(&slot_ref.get_other_slot());
+        if active_ally.ability == Abilities::COMMANDER
+            && (!neutralizing_gas_active || active_ally.item == Items::ABILITYSHIELD)
+        {
+            commander_activating(
+                state,
+                &switching_side_ref,
+                &slot_ref.get_other_slot(),
+                incoming_instructions,
+            )
+        }
+    }
 
     state.reverse_instructions(&incoming_instructions.instruction_list);
 }
@@ -1708,6 +1726,16 @@ fn move_has_no_effect(
     {
         return true;
     }
+
+    if state
+        .get_side_immutable(target_side_ref)
+        .get_slot_immutable(target_slot_ref)
+        .volatile_statuses
+        .contains(&PokemonVolatileStatus::COMMANDING)
+    {
+        return true;
+    }
+
     false
 }
 
@@ -1747,6 +1775,12 @@ fn cannot_use_move(
             }
             _ => {}
         }
+    }
+    if attacking_slot
+        .volatile_statuses
+        .contains(&PokemonVolatileStatus::COMMANDING)
+    {
+        return true;
     }
     if attacking_slot
         .volatile_statuses

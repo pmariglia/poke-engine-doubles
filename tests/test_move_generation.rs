@@ -240,7 +240,6 @@ fn test_self_boosting_move_only_has_1_target() {
     let mut move_options = MoveOptions::new();
     state.get_all_options(&mut move_options);
 
-    // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![(
         MoveChoice::Move(
             SlotReference::SlotA,
@@ -295,7 +294,6 @@ fn test_disabled_pkmn_cannot_use_last_used_move() {
     let mut move_options = MoveOptions::new();
     state.get_all_options(&mut move_options);
 
-    // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![(
         MoveChoice::Move(
             SlotReference::SlotA,
@@ -344,7 +342,6 @@ fn test_disabled_with_one_moves_gives_no_move() {
     let mut move_options = MoveOptions::new();
     state.get_all_options(&mut move_options);
 
-    // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![(MoveChoice::None, MoveChoice::None)];
 
     assert_eq!(expected_s1_options, move_options.side_one_combined_options);
@@ -409,7 +406,6 @@ fn test_encored_and_disabled_means_no_moves() {
     let mut move_options = MoveOptions::new();
     state.get_all_options(&mut move_options);
 
-    // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![(MoveChoice::None, MoveChoice::None)];
 
     assert_eq!(expected_s1_options, move_options.side_one_combined_options);
@@ -444,7 +440,6 @@ fn test_pollenpuff_can_target_ally_and_opponents() {
     let mut move_options = MoveOptions::new();
     state.get_all_options(&mut move_options);
 
-    // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![
         (
             MoveChoice::Move(
@@ -504,7 +499,6 @@ fn test_decorate_can_target_only_ally() {
     let mut move_options = MoveOptions::new();
     state.get_all_options(&mut move_options);
 
-    // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![(
         MoveChoice::Move(
             SlotReference::SlotB,
@@ -546,7 +540,6 @@ fn test_fakeout_is_an_option_when_just_switching_in() {
     let mut move_options = MoveOptions::new();
     state.get_all_options(&mut move_options);
 
-    // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![
         (
             MoveChoice::Move(
@@ -598,8 +591,138 @@ fn test_fakeout_is_not_an_option_when_already_on_the_field() {
     let mut move_options = MoveOptions::new();
     state.get_all_options(&mut move_options);
 
-    // Helping Hand can only target the ally, so there should be only one option for s1 slot a
     let expected_s1_options = vec![(MoveChoice::None, MoveChoice::None)];
 
+    assert_eq!(expected_s1_options, move_options.side_one_combined_options);
+}
+
+#[test]
+fn test_commanding_pkmn_cannot_select_any_moves() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[5].terastallized = true;
+    state.side_one.pokemon.pkmn[5].hp = 0;
+    state.side_one.pokemon.pkmn[4].hp = 0;
+    state.side_one.pokemon.pkmn[3].hp = 0;
+    state.side_one.pokemon.pkmn[2].hp = 0;
+    state.side_two.pokemon.pkmn[5].terastallized = true;
+    state.side_two.pokemon.pkmn[5].hp = 0;
+    state.side_two.pokemon.pkmn[4].hp = 0;
+    state.side_two.pokemon.pkmn[3].hp = 0;
+    state.side_two.pokemon.pkmn[2].hp = 0;
+
+    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
+
+    // only have 1 move for side_one.pokemon.pkmn[0]
+    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+
+    state
+        .side_one
+        .slot_a
+        .volatile_statuses
+        .insert(PokemonVolatileStatus::COMMANDING);
+
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
+
+    // cannot select any moves when commanding
+    let expected_s1_options = vec![(MoveChoice::None, MoveChoice::None)];
+    assert_eq!(expected_s1_options, move_options.side_one_combined_options);
+}
+
+#[test]
+fn test_commanding_pkmn_cannot_switch() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[5].terastallized = true;
+    state.side_one.pokemon.pkmn[5].hp = 0;
+    state.side_one.pokemon.pkmn[4].hp = 0;
+    state.side_one.pokemon.pkmn[3].hp = 0;
+    state.side_one.pokemon.pkmn[2].hp = 100;
+    state.side_two.pokemon.pkmn[5].terastallized = true;
+    state.side_two.pokemon.pkmn[5].hp = 0;
+    state.side_two.pokemon.pkmn[4].hp = 0;
+    state.side_two.pokemon.pkmn[3].hp = 0;
+    state.side_two.pokemon.pkmn[2].hp = 0;
+
+    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
+
+    // only have 1 move for side_one.pokemon.pkmn[0]
+    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+    state.side_one.pokemon.pkmn[1].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+
+    state
+        .side_one
+        .slot_a
+        .volatile_statuses
+        .insert(PokemonVolatileStatus::COMMANDING);
+
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
+
+    // make sure none of the slot A options are anything but `none`
+    for (move_choice, _) in move_options.side_one_combined_options.iter() {
+        assert_eq!(MoveChoice::None, *move_choice);
+    }
+}
+
+#[test]
+fn test_fainted_commanding_pkmn_must_switch() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[5].terastallized = true;
+    state.side_one.pokemon.pkmn[5].hp = 0;
+    state.side_one.pokemon.pkmn[4].hp = 0;
+    state.side_one.pokemon.pkmn[3].hp = 0;
+    state.side_one.pokemon.pkmn[2].hp = 100;
+    state.side_one.pokemon.pkmn[0].hp = 0;
+    state.side_two.pokemon.pkmn[5].terastallized = true;
+    state.side_two.pokemon.pkmn[5].hp = 0;
+    state.side_two.pokemon.pkmn[4].hp = 0;
+    state.side_two.pokemon.pkmn[3].hp = 0;
+    state.side_two.pokemon.pkmn[2].hp = 0;
+
+    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
+
+    // only have 1 move for side_one.pokemon.pkmn[0]
+    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+
+    state
+        .side_one
+        .slot_a
+        .volatile_statuses
+        .insert(PokemonVolatileStatus::COMMANDING);
+
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
+
+    // fainted commanding pokemon must switch
+    let expected_s1_options = vec![(MoveChoice::Switch(PokemonIndex::P2), MoveChoice::None)];
     assert_eq!(expected_s1_options, move_options.side_one_combined_options);
 }

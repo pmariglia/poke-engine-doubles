@@ -5230,6 +5230,627 @@ fn test_fainted_followme_does_not_redirect() {
 }
 
 #[test]
+fn test_commander_switch_in_when_dondozo_is_on_the_field() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].id = PokemonName::DONDOZO;
+    state.side_one.pokemon.pkmn[2].id = PokemonName::TATSUGIRI;
+    state.side_one.pokemon.pkmn[2].ability = Abilities::COMMANDER;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::Switch(PokemonIndex::P2),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Switch(SwitchInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                previous_index: PokemonIndex::P1,
+                next_index: PokemonIndex::P2,
+            }),
+            Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                volatile_status: PokemonVolatileStatus::COMMANDED,
+            }),
+            Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                volatile_status: PokemonVolatileStatus::COMMANDING,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Attack,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Defense,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::SpecialAttack,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::SpecialDefense,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Speed,
+                amount: 2,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_neutralizinggas_prevents_commander_for_tatsu_switchin() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].id = PokemonName::DONDOZO;
+    state.side_one.pokemon.pkmn[2].id = PokemonName::TATSUGIRI;
+    state.side_one.pokemon.pkmn[2].ability = Abilities::COMMANDER;
+    state.side_two.pokemon.pkmn[0].ability = Abilities::NEUTRALIZINGGAS;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::Switch(PokemonIndex::P2),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![Instruction::Switch(SwitchInstruction {
+            side_ref: SideReference::SideOne,
+            slot_ref: SlotReference::SlotB,
+            previous_index: PokemonIndex::P1,
+            next_index: PokemonIndex::P2,
+        })],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_commander_switch_in_when_one_stat_cannot_be_boosted_twice() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].id = PokemonName::DONDOZO;
+    state.side_one.slot_a.attack_boost = 5;
+    state.side_one.pokemon.pkmn[2].id = PokemonName::TATSUGIRI;
+    state.side_one.pokemon.pkmn[2].ability = Abilities::COMMANDER;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::TACKLE,
+            move_choice: MoveChoice::Switch(PokemonIndex::P2),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Switch(SwitchInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                previous_index: PokemonIndex::P1,
+                next_index: PokemonIndex::P2,
+            }),
+            Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                volatile_status: PokemonVolatileStatus::COMMANDED,
+            }),
+            Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                volatile_status: PokemonVolatileStatus::COMMANDING,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Attack,
+                amount: 1,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Defense,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::SpecialAttack,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::SpecialDefense,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Speed,
+                amount: 2,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_dondozo_switch_in_when_tatsugiri_is_on_the_field() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.side_one.pokemon.pkmn[2].id = PokemonName::DONDOZO;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::TACKLE,
+            move_choice: MoveChoice::Switch(PokemonIndex::P2),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Switch(SwitchInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                previous_index: PokemonIndex::P1,
+                next_index: PokemonIndex::P2,
+            }),
+            Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                volatile_status: PokemonVolatileStatus::COMMANDED,
+            }),
+            Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                volatile_status: PokemonVolatileStatus::COMMANDING,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::Attack,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::Defense,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::SpecialAttack,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::SpecialDefense,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::Speed,
+                amount: 2,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_neutralizinggas_prevents_commander_when_dondozo_switches_in() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.side_one.pokemon.pkmn[2].id = PokemonName::DONDOZO;
+    state.side_two.pokemon.pkmn[0].ability = Abilities::NEUTRALIZINGGAS;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::Switch(PokemonIndex::P2),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![Instruction::Switch(SwitchInstruction {
+            side_ref: SideReference::SideOne,
+            slot_ref: SlotReference::SlotB,
+            previous_index: PokemonIndex::P1,
+            next_index: PokemonIndex::P2,
+        })],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_neutralizinggas_nullified_by_abilityshield_for_commander() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.side_one.pokemon.pkmn[0].item = Items::ABILITYSHIELD;
+    state.side_one.pokemon.pkmn[2].id = PokemonName::DONDOZO;
+    state.side_two.pokemon.pkmn[0].ability = Abilities::NEUTRALIZINGGAS;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::Switch(PokemonIndex::P2),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Switch(SwitchInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                previous_index: PokemonIndex::P1,
+                next_index: PokemonIndex::P2,
+            }),
+            Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                volatile_status: PokemonVolatileStatus::COMMANDED,
+            }),
+            Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                volatile_status: PokemonVolatileStatus::COMMANDING,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::Attack,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::Defense,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::SpecialAttack,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::SpecialDefense,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::Speed,
+                amount: 2,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_move_executed_on_commanding_fails() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state
+        .side_one
+        .slot_a
+        .volatile_statuses
+        .insert(PokemonVolatileStatus::COMMANDING);
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::TACKLE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_commanding_pokemon_cannot_use_move() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state
+        .side_one
+        .slot_a
+        .volatile_statuses
+        .insert(PokemonVolatileStatus::COMMANDING);
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::TACKLE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::TACKLE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_fainting_commanded_pokemon_removes_commanding_from_ally() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.side_one.pokemon.pkmn[1].id = PokemonName::DONDOZO;
+    state.side_one.pokemon.pkmn[1].hp = 1;
+    state
+        .side_one
+        .slot_a
+        .volatile_statuses
+        .insert(PokemonVolatileStatus::COMMANDING);
+    state
+        .side_one
+        .slot_b
+        .volatile_statuses
+        .insert(PokemonVolatileStatus::COMMANDED);
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::TACKLE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P1,
+                damage_amount: 1,
+            }),
+            Instruction::RemoveVolatileStatus(RemoveVolatileStatusInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                volatile_status: PokemonVolatileStatus::COMMANDING,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_orderup_boost_with_commanded_pkmn() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.side_one.pokemon.pkmn[0].id = PokemonName::TATSUGIRI;
+    state.side_one.pokemon.pkmn[1].id = PokemonName::DONDOZO;
+    state
+        .side_one
+        .slot_a
+        .volatile_statuses
+        .insert(PokemonVolatileStatus::COMMANDING);
+    state
+        .side_one
+        .slot_b
+        .volatile_statuses
+        .insert(PokemonVolatileStatus::COMMANDED);
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::ORDERUP,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P1,
+                damage_amount: 63,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::Attack,
+                amount: 1,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_commanding_pkmn_takes_damage_from_poison() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.side_one.pokemon.pkmn[0].id = PokemonName::TATSUGIRI;
+    state.side_one.pokemon.pkmn[0].status = PokemonStatus::POISON;
+    state.side_one.pokemon.pkmn[1].id = PokemonName::DONDOZO;
+    state
+        .side_one
+        .slot_a
+        .volatile_statuses
+        .insert(PokemonVolatileStatus::COMMANDING);
+    state
+        .side_one
+        .slot_b
+        .volatile_statuses
+        .insert(PokemonVolatileStatus::COMMANDED);
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![Instruction::Damage(DamageInstruction {
+            side_ref: SideReference::SideOne,
+            pokemon_index: PokemonIndex::P0,
+            damage_amount: 12,
+        })],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_fainted_commanding_pokemon_switching_out() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].hp = 0;
+    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.side_one.pokemon.pkmn[0].base_ability = Abilities::COMMANDER;
+    state.side_one.pokemon.pkmn[0].id = PokemonName::TATSUGIRI;
+    state.side_one.pokemon.pkmn[0].status = PokemonStatus::POISON;
+    state.side_one.pokemon.pkmn[1].id = PokemonName::DONDOZO;
+    state
+        .side_one
+        .slot_a
+        .volatile_statuses
+        .insert(PokemonVolatileStatus::COMMANDING);
+    state
+        .side_one
+        .slot_b
+        .volatile_statuses
+        .insert(PokemonVolatileStatus::COMMANDED);
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::Switch(PokemonIndex::P2),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: false,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::RemoveVolatileStatus(RemoveVolatileStatusInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                volatile_status: PokemonVolatileStatus::COMMANDING,
+            }),
+            Instruction::Switch(SwitchInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                previous_index: PokemonIndex::P0,
+                next_index: PokemonIndex::P2,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_abilityshield_prevents_neutralizinggas() {
     let mut state = State::default();
     state.side_one.pokemon.pkmn[0].item = Items::ABILITYSHIELD;

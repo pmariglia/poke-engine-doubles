@@ -22,15 +22,15 @@ fn sigmoid(x: f32) -> f32 {
 #[derive(Debug)]
 pub struct Node {
     pub root: bool,
-    pub depth: usize,
+    pub depth: u8,
     pub parent: *mut Node,
     pub children: HashMap<(usize, usize), Vec<Node>>,
     pub times_visited: u32,
 
     // represents the instructions & s1/s2 moves that led to this node from the parent
     pub instructions: StateInstructions,
-    pub s1_choice: usize,
-    pub s2_choice: usize,
+    pub s1_choice: u16,
+    pub s2_choice: u16,
 
     // represents the total score and number of visits for this node
     // de-coupled for s1 and s2
@@ -40,7 +40,7 @@ pub struct Node {
 
 impl Node {
     fn new(
-        depth: usize,
+        depth: u8,
         s1_options: &mut Vec<(MoveChoice, MoveChoice)>,
         s2_options: &mut Vec<(MoveChoice, MoveChoice)>,
     ) -> Node {
@@ -188,8 +188,8 @@ impl Node {
             );
             new_node.parent = self;
             new_node.instructions = state_instructions;
-            new_node.s1_choice = s1_move_index;
-            new_node.s2_choice = s2_move_index;
+            new_node.s1_choice = s1_move_index as u16;
+            new_node.s2_choice = s2_move_index as u16;
 
             this_pair_vec.push(new_node);
         }
@@ -209,11 +209,11 @@ impl Node {
             return;
         }
 
-        let parent_s1_movenode = &mut (*self.parent).s1_options[self.s1_choice];
+        let parent_s1_movenode = &mut (*self.parent).s1_options[self.s1_choice as usize];
         parent_s1_movenode.total_score += score;
         parent_s1_movenode.visits += 1;
 
-        let parent_s2_movenode = &mut (*self.parent).s2_options[self.s2_choice];
+        let parent_s2_movenode = &mut (*self.parent).s2_options[self.s2_choice as usize];
         parent_s2_movenode.total_score += 1.0 - score;
         parent_s2_movenode.visits += 1;
 
@@ -355,8 +355,8 @@ fn prune_tree(root_node: &mut Node) {
 
         // Update child node references
         for child in &mut children {
-            child.s1_choice = new_s1_idx;
-            child.s2_choice = new_s2_idx;
+            child.s1_choice = new_s1_idx as u16;
+            child.s2_choice = new_s2_idx as u16;
         }
 
         root_node
@@ -455,7 +455,7 @@ pub fn _analyze_leaf_node_depths(root_node: &Node) {
     fn collect_leaf_depths(node: &Node, depth_counts: &mut HashMap<usize, usize>) {
         // A leaf node is one with no children
         if node.children.is_empty() {
-            *depth_counts.entry(node.depth).or_insert(0) += 1;
+            *depth_counts.entry(node.depth as usize).or_insert(0) += 1;
         } else {
             // Recursively traverse all children
             for child_vector in node.children.values() {

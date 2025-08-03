@@ -2808,7 +2808,7 @@ fn run_move(
             new_choice.sleep_talk_move = true;
             let mut sleep_talk_instructions = incoming_instructions.clone();
             sleep_talk_instructions.update_percentage(1.0 / num_choices);
-            generate_instructions_from_move(
+            run_move(
                 state,
                 &mut new_choice,
                 defender_choice,
@@ -2819,6 +2819,7 @@ fn run_move(
                 sleep_talk_instructions,
                 &mut final_instructions,
                 remaining_to_move.clone(),
+                final_run_move,
                 false,
             );
         }

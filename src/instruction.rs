@@ -89,6 +89,7 @@ pub enum Instruction {
     DecrementTrickRoomTurnsRemaining,
     ToggleForceSwitch(ToggleForceSwitchInstruction),
     ToggleTerastallized(ToggleTerastallizedInstruction),
+    IncrementTimesAttacked(IncrementTimesAttackedInstruction),
 }
 
 impl fmt::Debug for Instruction {
@@ -370,6 +371,13 @@ impl fmt::Debug for Instruction {
                     s.side_ref, s.pokemon_index, s.move_index, s.amount
                 )
             }
+            Instruction::IncrementTimesAttacked(s) => {
+                write!(
+                    f,
+                    "IncrementTimesAttacked {:?} {:?}",
+                    s.side_ref, s.pokemon_index
+                )
+            }
             Instruction::ToggleTrickRoom(i) => {
                 write!(
                     f,
@@ -417,6 +425,12 @@ pub struct DecrementPPInstruction {
     pub pokemon_index: PokemonIndex,
     pub move_index: PokemonMoveIndex,
     pub amount: i8,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct IncrementTimesAttackedInstruction {
+    pub side_ref: SideReference,
+    pub pokemon_index: PokemonIndex,
 }
 
 #[derive(Debug, PartialEq, Clone)]

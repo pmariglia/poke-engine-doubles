@@ -890,6 +890,7 @@ pub struct Pokemon {
     pub terastallized: bool,
     pub tera_type: PokemonType,
     pub moves: PokemonMoves,
+    pub times_attacked: u16,
 }
 
 impl Default for Pokemon {
@@ -923,6 +924,7 @@ impl Default for Pokemon {
                 m2: Default::default(),
                 m3: Default::default(),
             },
+            times_attacked: 0,
         }
     }
 }
@@ -979,7 +981,7 @@ impl Pokemon {
             self.evs.0, self.evs.1, self.evs.2, self.evs.3, self.evs.4, self.evs.5
         );
         format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             self.id,
             self.level,
             self.types.0.to_string(),
@@ -1008,6 +1010,7 @@ impl Pokemon {
             self.moves.m3.serialize(),
             self.terastallized,
             self.tera_type.to_string(),
+            self.times_attacked
         )
     }
 
@@ -1061,6 +1064,7 @@ impl Pokemon {
             },
             terastallized: split[26].parse::<bool>().unwrap(),
             tera_type: PokemonType::from_str(split[27]).unwrap(),
+            times_attacked: split[28].parse::<u16>().unwrap(),
         }
     }
 }
@@ -2349,6 +2353,11 @@ impl State {
                 &instruction.move_index,
                 &instruction.amount,
             ),
+            Instruction::IncrementTimesAttacked(instruction) => {
+                let active =
+                    &mut self.get_side(&instruction.side_ref).pokemon[&instruction.pokemon_index];
+                active.times_attacked += 1;
+            }
             Instruction::FormeChange(instruction) => {
                 let active =
                     &mut self.get_side(&instruction.side_ref).pokemon[&instruction.pokemon_index];
@@ -2593,6 +2602,11 @@ impl State {
                 &instruction.move_index,
                 &instruction.amount,
             ),
+            Instruction::IncrementTimesAttacked(instruction) => {
+                let active =
+                    &mut self.get_side(&instruction.side_ref).pokemon[&instruction.pokemon_index];
+                active.times_attacked -= 1;
+            }
             Instruction::FormeChange(instruction) => {
                 let active =
                     &mut self.get_side(&instruction.side_ref).pokemon[instruction.pokemon_index];

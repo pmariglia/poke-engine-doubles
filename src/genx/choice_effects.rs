@@ -12,8 +12,9 @@ use crate::instruction::{
     ApplyVolatileStatusInstruction, BoostInstruction, ChangeItemInstruction,
     ChangeSideConditionInstruction, ChangeStatusInstruction, ChangeSubsituteHealthInstruction,
     ChangeTerrain, ChangeType, ChangeWeather, ChangeWishInstruction, DamageInstruction,
-    HealInstruction, Instruction, RemoveVolatileStatusInstruction, SetSleepTurnsInstruction,
-    StateInstructions, ToggleTrickRoomInstruction,
+    HealInstruction, IncrementTimesAttackedInstruction, Instruction,
+    RemoveVolatileStatusInstruction, SetSleepTurnsInstruction, StateInstructions,
+    ToggleTrickRoomInstruction,
 };
 use crate::pokemon::PokemonName;
 use crate::state::{
@@ -154,6 +155,13 @@ pub fn modify_choice(
     let (attacking_side, target_side) =
         state.get_sides_immutable(attacking_side_ref, target_side_ref);
     match attacker_choice.move_id {
+        Choices::RAGEFIST => {
+            let multiplier = 1.0
+                + attacking_side
+                    .get_active_immutable(attacking_slot_ref)
+                    .times_attacked as f32;
+            attacker_choice.base_power *= multiplier
+        }
         Choices::DIRECLAW => {
             attacker_choice.add_or_create_secondaries(Secondary {
                 chance: 16.67,
@@ -752,7 +760,22 @@ pub fn choice_after_damage_hit(
     instructions: &mut StateInstructions,
     hit_sub: bool,
 ) {
-    let attacking_side = state.get_side(attacking_side_ref);
+    let (attacking_side, defending_side) = state.get_both_sides(attacking_side_ref);
+
+    // only increment times_attacked if they have ragefist, otherwise it's a waste of an instruction
+    let (target_pkmn, target_active_index) = defending_side.get_active_with_index(target_slot_ref);
+    if target_pkmn.has_move(&Choices::RAGEFIST) {
+        instructions
+            .instruction_list
+            .push(Instruction::IncrementTimesAttacked(
+                IncrementTimesAttackedInstruction {
+                    side_ref: *target_side_ref,
+                    pokemon_index: target_active_index,
+                },
+            ));
+        target_pkmn.times_attacked += 1;
+    }
+
     if choice.flags.recharge {
         let instruction = Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
             side_ref: *attacking_side_ref,

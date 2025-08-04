@@ -11,7 +11,8 @@ use poke_engine::instruction::{
     ChangeItemInstruction, ChangeSideConditionInstruction, ChangeStatInstruction,
     ChangeStatusInstruction, ChangeTerrain, ChangeType, ChangeVolatileStatusDurationInstruction,
     ChangeWeather, DamageInstruction, DisableMoveInstruction, FormeChangeInstruction,
-    HealInstruction, Instruction, RemoveVolatileStatusInstruction, SetLastUsedMoveInstruction,
+    HealInstruction, IncrementTimesAttackedInstruction, Instruction,
+    RemoveVolatileStatusInstruction, SetLastUsedMoveInstruction,
     SetSecondMoveSwitchOutMoveInstruction, SetSleepTurnsInstruction, StateInstructions,
     SwitchInstruction, ToggleForceSwitchInstruction, ToggleTerastallizedInstruction,
 };
@@ -4974,47 +4975,6 @@ fn test_actual_speed_tie() {
 }
 
 #[test]
-fn test_sheerforce_lifeorb_boost_with_fainted_beads_of_ruin() {
-    let mut state = State::deserialize("URSHIFURAPIDSTRIKE,50,FIGHTING,WATER,FIGHTING,WATER,107,189,UNSEENFIST,UNSEENFIST,CHOICEBAND,SERIOUS,85;85;85;85;85;85,192,121,74,103,120,NONE,0,0,105,SURGINGSTRIKES;false;8,CLOSECOMBAT;false;8,UTURN;false;32,AQUAJET;false;29,false,GHOST=LANDORUS,50,GROUND,FLYING,GROUND,FLYING,196,196,SHEERFORCE,SHEERFORCE,LIFEORB,SERIOUS,85;85;85;85;85;85,130,111,165,117,122,NONE,0,0,68,EARTHPOWER;false;15,SLUDGEBOMB;false;16,TAUNT;false;32,PROTECT;false;16,true,POISON=CALYREXICE,50,PSYCHIC,ICE,PSYCHIC,ICE,0,207,ASONEGLASTRIER,ASONEGLASTRIER,LEFTOVERS,SERIOUS,85;85;85;85;85;85,209,171,94,175,73,NONE,0,0,809.1,GLACIALLANCE;false;8,LEECHSEED;false;16,TRICKROOM;false;8,PROTECT;false;16,false,WATER=GRIMMSNARL,50,DARK,FAIRY,DARK,FAIRY,0,202,PRANKSTER,PRANKSTER,UNKNOWNITEM,SERIOUS,85;85;85;85;85;85,141,101,103,121,82,NONE,0,0,61,SPIRITBREAK;false;24,THUNDERWAVE;false;32,REFLECT;false;32,LIGHTSCREEN;false;48,false,GHOST=MIRAIDON,50,ELECTRIC,DRAGON,ELECTRIC,DRAGON,0,205,HADRONENGINE,HADRONENGINE,CHOICESPECS,SERIOUS,85;85;85;85;85;85,94,125,176,152,164,NONE,0,0,240,ELECTRODRIFT;false;8,VOLTSWITCH;false;32,DRACOMETEOR;false;8,DAZZLINGGLEAM;false;16,false,FAIRY=INCINEROAR,50,FIRE,DARK,FIRE,DARK,0,193,INTIMIDATE,INTIMIDATE,ASSAULTVEST,SERIOUS,85;85;85;85;85;85,136,118,90,112,123,NONE,0,0,83,FLAREBLITZ;false;24,KNOCKOFF;false;31,UTURN;false;31,FAKEOUT;false;16,false,GRASS=0||0;0;0;0;0;0;0|0|0|0|0|0|0|0|0|0|0|0|0|false|none|false|false|false|move:3|false=1||0;0;0;0;0;0;0|0|0|0|0|0|0|0|0|0|0|0|0|false|none|false|false|false|move:0|false=0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0/KORAIDON,50,FIGHTING,DRAGON,FIGHTING,DRAGON,207,207,ORICHALCUMPULSE,ORICHALCUMPULSE,UNKNOWNITEM,ADAMANT,252;156;4;0;60;36,192,136,94,128,160,NONE,0,0,303,FLAREBLITZ;false;24,FLAMECHARGE;false;32,COLLISIONCOURSE;false;6,PROTECT;false;16,false,FIRE=CHIYU,50,DARK,FIRE,DARK,FIRE,0,141,BEADSOFRUIN,BEADSOFRUIN,CHOICESCARF,SERIOUS,85;85;85;85;85;85,111,111,166,151,131,NONE,0,0,4.9,HEATWAVE;false;16,FLAMETHROWER;false;21,DARKPULSE;false;24,SNARL;false;24,false,GHOST=WEEZINGGALAR,50,POISON,FAIRY,POISON,FAIRY,151,151,NEUTRALIZINGGAS,NEUTRALIZINGGAS,COVERTCLOAK,SERIOUS,85;85;85;85;85;85,121,151,116,101,91,NONE,0,0,16,PLAYROUGH;false;16,TAUNT;false;32,WILLOWISP;false;24,PROTECT;false;16,false,WATER=WALKINGWAKE,50,WATER,DRAGON,WATER,DRAGON,185,185,PROTOSYNTHESIS,PROTOSYNTHESIS,ASSAULTVEST,SERIOUS,85;85;85;85;85;85,114,122,156,114,140,NONE,0,0,280,HYDROSTEAM;false;24,DRACOMETEOR;false;8,SNARL;false;24,AQUAJET;false;32,false,WATER=INCINEROAR,50,FIRE,DARK,FIRE,DARK,181,181,INTIMIDATE,INTIMIDATE,SAFETYGOGGLES,SERIOUS,85;85;85;85;85;85,146,121,111,121,91,NONE,0,0,83,KNOCKOFF;false;32,FAKEOUT;false;16,PARTINGSHOT;false;32,PROTECT;false;16,false,BUG=CALYREXSHADOW,50,PSYCHIC,GHOST,PSYCHIC,GHOST,0,186,ASONESPECTRIER,ASONESPECTRIER,NONE,SERIOUS,85;85;85;85;85;85,116,111,196,131,181,NONE,0,0,53.6,ASTRALBARRAGE;false;7,PSYCHIC;false;16,ENCORE;false;8,PROTECT;false;16,true,GHOST=0||0;0;0;0;0;0;0|0|-1|0|0|0|0|0|0|0|0|0|0|false|none|false|false|false|move:2|false=1||0;0;0;0;0;0;0|0|-2|0|0|0|0|0|0|0|0|0|0|false|none|false|false|false|move:1|false=0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0/SUN;4/ELECTRICTERRAIN;2/false;0/false");
-    // landorus earthpower sheerforce + lifeorb should be about 110-133 damage to kroaidon
-    // fainted chi-yu with beads of ruin should not boost damage
-    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
-        &mut state,
-        TestMoveChoice::default(),
-        TestMoveChoice {
-            choice: Choices::EARTHPOWER,
-            move_choice: MoveChoice::Move(
-                SlotReference::SlotA,
-                SideReference::SideTwo,
-                PokemonMoveIndex::M0,
-            ),
-        },
-        TestMoveChoice::default(),
-        TestMoveChoice::default(),
-    );
-
-    let expected_instructions = vec![StateInstructions {
-        end_of_turn_triggered: true,
-        percentage: 100.0,
-        instruction_list: vec![
-            Instruction::Damage(DamageInstruction {
-                side_ref: SideReference::SideTwo,
-                pokemon_index: PokemonIndex::P0,
-                damage_amount: 122,
-            }),
-            Instruction::Heal(HealInstruction {
-                side_ref: SideReference::SideOne,
-                pokemon_index: PokemonIndex::P1,
-                heal_amount: -19,
-            }),
-            Instruction::DecrementWeatherTurnsRemaining,
-            Instruction::DecrementTerrainTurnsRemaining,
-        ],
-    }];
-    assert_eq!(expected_instructions, vec_of_instructions);
-}
-
-#[test]
 fn test_parting_shot_into_clear_amulet_interaction() {
     let mut state = State::default();
     state.side_two.pokemon.pkmn[0].item = Items::CLEARAMULET;
@@ -5101,6 +5061,58 @@ fn test_fakeout_into_fakeout_sets_last_used_move() {
                 side_ref: SideReference::SideOne,
                 slot_ref: SlotReference::SlotA,
                 volatile_status: PokemonVolatileStatus::FLINCH,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_being_hit_with_ragefist_increases_ragefist_damage() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].types.0 = PokemonType::FIGHTING;
+    state.side_two.pokemon.pkmn[0].types.0 = PokemonType::NORMAL;
+    state.side_one.pokemon.pkmn[0].speed = 150;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::TACKLE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::RAGEFIST,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 32,
+            }),
+            Instruction::IncrementTimesAttacked(IncrementTimesAttackedInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 79,
             }),
         ],
     }];

@@ -783,6 +783,15 @@ impl Pokemon {
         pkmn_type == &self.types.0 || pkmn_type == &self.types.1
     }
 
+    pub fn has_move(&self, pkmn_move: &Choices) -> bool {
+        for mv in self.moves.into_iter() {
+            if &mv.id == pkmn_move {
+                return true;
+            }
+        }
+        false
+    }
+
     pub fn immune_to_rage_powder_redirection(&self) -> bool {
         if self.ability == Abilities::OVERCOAT
             || self.item == Items::SAFETYGOGGLES

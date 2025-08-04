@@ -201,6 +201,8 @@ class Pokemon:
     :type tera_type: str
     :param moves: List of moves
     :type moves: list[Move]
+    :param times_attacked: The number of times this Pokemon has been attacked
+    :type times_attacked: int
     """
 
     id: str
@@ -226,6 +228,7 @@ class Pokemon:
     terastallized: bool
     tera_type: str
     moves: List[Move]
+    times_attacked: int
 
     def __init__(
         self,
@@ -252,6 +255,7 @@ class Pokemon:
         moves: Optional[List[Move]] = None,
         terastallized: bool = False,
         tera_type: str = "typeless",
+        times_attacked: int = 0,
     ) -> None: ...
     @staticmethod
     def create_fainted() -> Pokemon: ...

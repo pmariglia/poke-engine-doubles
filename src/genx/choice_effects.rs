@@ -154,6 +154,11 @@ pub fn modify_choice(
     let (attacking_side, target_side) =
         state.get_sides_immutable(attacking_side_ref, target_side_ref);
     match attacker_choice.move_id {
+        Choices::ELECTROSHOT => {
+            if state.weather_is_active(&Weather::RAIN) {
+                attacker_choice.flags.charge = false;
+            }
+        }
         Choices::ORDERUP => {
             match attacking_side
                 .get_active_immutable(&attacking_slot_ref.get_other_slot())

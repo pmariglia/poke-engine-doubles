@@ -2691,6 +2691,7 @@ lazy_static! {
                         accuracy: 0,
                     },
                 }),
+                target: MoveTarget::User,
                 volatile_status: Some(VolatileStatus {
                     target: MoveTarget::User,
                     volatile_status: PokemonVolatileStatus::CURSE,

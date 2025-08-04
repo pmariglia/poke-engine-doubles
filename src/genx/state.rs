@@ -17,8 +17,6 @@ use core::panic;
 use std::collections::HashSet;
 use std::str::FromStr;
 
-const CHOICE_ITEMS: [Items; 3] = [Items::CHOICEBAND, Items::CHOICESPECS, Items::CHOICESCARF];
-
 fn common_pkmn_stat_calc(stat: u16, ev: u16, level: u16) -> u16 {
     // 31 IV always used
     ((2 * stat + 31 + (ev / 4)) * level) / 100
@@ -691,7 +689,6 @@ impl Pokemon {
         taunted: bool,
         can_tera: bool,
     ) {
-        let has_choice_item = CHOICE_ITEMS.contains(&self.item);
         let cannot_use_status_moves = self.item == Items::ASSAULTVEST || taunted;
 
         let mut iter = self.moves.into_iter();
@@ -706,8 +703,6 @@ impl Pokemon {
                         (encored && last_used_move_index != &iter.pokemon_move_index) ||
                             // disable: cannot use the last used move
                             (disabled && last_used_move_index == &iter.pokemon_move_index) ||
-                            // choice items: locked into last used move
-                            (has_choice_item && last_used_move_index != &iter.pokemon_move_index) ||
                             // bloodmoon/gigatonhammer: cannot use consecutively
                             ((self.moves[last_used_move_index].id == Choices::BLOODMOON ||
                                 self.moves[last_used_move_index].id == Choices::GIGATONHAMMER) &&

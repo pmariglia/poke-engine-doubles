@@ -154,6 +154,23 @@ pub fn modify_choice(
     let (attacking_side, target_side) =
         state.get_sides_immutable(attacking_side_ref, target_side_ref);
     match attacker_choice.move_id {
+        Choices::DIRECLAW => {
+            attacker_choice.add_or_create_secondaries(Secondary {
+                chance: 16.67,
+                target: MoveTarget::Target,
+                effect: Effect::Status(PokemonStatus::POISON),
+            });
+            attacker_choice.add_or_create_secondaries(Secondary {
+                chance: 20.00,
+                target: MoveTarget::Target,
+                effect: Effect::Status(PokemonStatus::PARALYZE),
+            });
+            attacker_choice.add_or_create_secondaries(Secondary {
+                chance: 25.0,
+                target: MoveTarget::Target,
+                effect: Effect::Status(PokemonStatus::SLEEP),
+            });
+        }
         Choices::ELECTROSHOT => {
             if state.weather_is_active(&Weather::RAIN) {
                 attacker_choice.flags.charge = false;

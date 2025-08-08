@@ -2998,6 +2998,7 @@ fn run_move(
             defender_choice,
             &mut final_instructions,
             &remaining_to_move,
+            final_run_move,
         );
     } else {
         state.reverse_instructions(&incoming_instructions.instruction_list);
@@ -3021,6 +3022,7 @@ fn run_move(
                 defender_choice,
                 &mut final_instructions,
                 &remaining_to_move,
+                final_run_move,
             );
         }
     }
@@ -4248,6 +4250,7 @@ fn execute_move_effects(
     _defender_choice: &Choice,
     final_instructions: &mut Vec<(StateInstructions, Vec<RemainingToMove>)>,
     remaining_to_move: &Vec<RemainingToMove>,
+    final_run_move: bool,
 ) {
     let mut hit_sub = false;
     for _ in 0..hit_count {
@@ -4320,16 +4323,18 @@ fn execute_move_effects(
       // but the way this engine was structured makes it difficult to implement
       // without some performance hits.
 
-    if let Some(boost) = &choice.boost {
-        get_instructions_from_boosts(
-            state,
-            boost,
-            &attacking_side,
-            &attacking_slot,
-            &target_side,
-            &target_slot,
-            &mut instructions,
-        );
+    if final_run_move {
+        if let Some(boost) = &choice.boost {
+            get_instructions_from_boosts(
+                state,
+                boost,
+                &attacking_side,
+                &attacking_slot,
+                &target_side,
+                &target_slot,
+                &mut instructions,
+            );
+        }
     }
 
     if choice.flags.drag

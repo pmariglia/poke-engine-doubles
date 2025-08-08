@@ -2542,6 +2542,46 @@ fn test_stormdrain_redirects_liquidmoved_move() {
 }
 
 #[test]
+fn test_tailwind_as_prankster_dark_type() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].ability = Abilities::PRANKSTER;
+    state.side_one.pokemon.pkmn[0].types.0 = PokemonType::DARK;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::TAILWIND,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::ChangeSideCondition(ChangeSideConditionInstruction {
+                side_ref: SideReference::SideOne,
+                side_condition: PokemonSideCondition::Tailwind,
+                amount: 4,
+            }),
+            Instruction::ChangeSideCondition(ChangeSideConditionInstruction {
+                side_ref: SideReference::SideOne,
+                side_condition: PokemonSideCondition::Tailwind,
+                amount: -1,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_armortail_stop_increased_priority_single_target() {
     let mut state = State::default();
     state.side_two.pokemon.pkmn[0].ability = Abilities::ARMORTAIL;

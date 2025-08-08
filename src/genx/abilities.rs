@@ -2112,6 +2112,7 @@ pub fn ability_modify_attack_being_used(
     match attacking_pkmn.ability {
         Abilities::PRANKSTER => {
             if attacker_choice.category == MoveCategory::Status
+                && attacker_choice.target == MoveTarget::Target
                 && state
                     .get_side_immutable(target_side_ref)
                     .get_active_immutable(target_slot_ref)

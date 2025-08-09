@@ -11,7 +11,8 @@ use crate::instruction::{
 use crate::pokemon::PokemonName;
 use crate::state::{
     LastUsedMove, Pokemon, PokemonBoostableStat, PokemonIndex, PokemonMoveIndex,
-    PokemonSideCondition, PokemonStatus, PokemonType, Side, SideReference, SlotReference, State,
+    PokemonSideCondition, PokemonStatus, PokemonType, Side, SideReference, SideSlot, SlotReference,
+    State,
 };
 use core::panic;
 use std::collections::HashSet;
@@ -1089,12 +1090,11 @@ impl Side {
 
     pub fn trapped(
         &self,
-        slot_ref: &SlotReference,
+        slot: &SideSlot,
         opponent_active_a: &Pokemon,
         opponent_active_b: &Pokemon,
     ) -> bool {
-        let slot = self.get_slot_immutable(slot_ref);
-        let active_pkmn = self.get_active_immutable(slot_ref);
+        let active_pkmn = &self.pokemon.pkmn[slot.active_index as usize];
         if slot
             .volatile_statuses
             .contains(&PokemonVolatileStatus::LOCKEDMOVE)
@@ -1363,7 +1363,11 @@ impl State {
                 side.can_use_tera(),
             );
 
-            if !side.trapped(&slot_ref, opponent_active_a, opponent_active_b) {
+            if !side.trapped(
+                side.get_slot_immutable(&slot_ref),
+                opponent_active_a,
+                opponent_active_b,
+            ) {
                 side.add_switches(slot_options);
             }
         }

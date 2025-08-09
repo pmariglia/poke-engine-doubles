@@ -39,6 +39,9 @@ const POKEMON_BURNED: f32 = -25.0;
 const LEECH_SEED: f32 = -30.0;
 const SUBSTITUTE: f32 = 40.0;
 const CONFUSION: f32 = -20.0;
+const PERISH3: f32 = -15.0;
+const PERISH2: f32 = -30.0;
+const PERISH1: f32 = -45.0;
 
 const REFLECT: f32 = 20.0;
 const LIGHT_SCREEN: f32 = 20.0;
@@ -159,13 +162,34 @@ fn evaluate_pokemon(pokemon: &Pokemon) -> f32 {
     score
 }
 
-fn evaluate_slot(slot: &SideSlot) -> f32 {
+fn evaluate_slot(
+    side: &Side,
+    slot: &SideSlot,
+    has_alive_reserve: bool,
+    other_side_a: &Pokemon,
+    other_side_b: &Pokemon,
+) -> f32 {
     let mut score = 0.0;
     for vs in slot.volatile_statuses.iter() {
         match vs {
             PokemonVolatileStatus::LEECHSEED => score += LEECH_SEED,
             PokemonVolatileStatus::SUBSTITUTE => score += SUBSTITUTE,
             PokemonVolatileStatus::CONFUSION => score += CONFUSION,
+            PokemonVolatileStatus::PERISH3
+                if !has_alive_reserve || side.trapped(slot, other_side_a, other_side_b) =>
+            {
+                score += PERISH3
+            }
+            PokemonVolatileStatus::PERISH1
+                if !has_alive_reserve || side.trapped(slot, other_side_a, other_side_b) =>
+            {
+                score += PERISH2
+            }
+            PokemonVolatileStatus::PERISH1
+                if !has_alive_reserve || side.trapped(slot, other_side_a, other_side_b) =>
+            {
+                score += PERISH1
+            }
             _ => {}
         }
     }
@@ -180,42 +204,82 @@ fn evaluate_slot(slot: &SideSlot) -> f32 {
 
 pub fn evaluate(state: &State) -> f32 {
     let mut score = 0.0;
+    let side_one_a = &state.side_one.pokemon[state.side_one.slot_a.active_index];
+    let side_one_b = &state.side_one.pokemon[state.side_one.slot_b.active_index];
+    let side_two_a = &state.side_one.pokemon[state.side_two.slot_a.active_index];
+    let side_two_b = &state.side_one.pokemon[state.side_two.slot_b.active_index];
     let mut iter = state.side_one.pokemon.into_iter();
     let mut s1_used_tera = false;
+    let mut side_one_has_alive_reserve = false;
     while let Some(pkmn) = iter.next() {
         if pkmn.hp > 0 {
             score += evaluate_pokemon(pkmn);
             score += evaluate_hazards(pkmn, &state.side_one);
+            if iter.pokemon_index != state.side_one.slot_a.active_index
+                && iter.pokemon_index != state.side_one.slot_b.active_index
+            {
+                side_one_has_alive_reserve = true;
+            }
         }
         if pkmn.terastallized {
             s1_used_tera = true;
         }
     }
     if state.side_one.pokemon[state.side_one.slot_a.active_index].hp > 0 {
-        score += evaluate_slot(&state.side_one.slot_a);
+        score += evaluate_slot(
+            &state.side_one,
+            &state.side_one.slot_a,
+            side_one_has_alive_reserve,
+            side_two_a,
+            side_two_b,
+        );
     }
     if state.side_one.pokemon[state.side_one.slot_b.active_index].hp > 0 {
-        score += evaluate_slot(&state.side_one.slot_b);
+        score += evaluate_slot(
+            &state.side_one,
+            &state.side_one.slot_b,
+            side_one_has_alive_reserve,
+            side_two_a,
+            side_two_b,
+        );
     }
     if s1_used_tera {
         score += USED_TERA;
     }
     let mut iter = state.side_two.pokemon.into_iter();
     let mut s2_used_tera = false;
+    let mut side_two_has_alive_reserve = false;
     while let Some(pkmn) = iter.next() {
         if pkmn.hp > 0 {
             score -= evaluate_pokemon(pkmn);
             score -= evaluate_hazards(pkmn, &state.side_two);
+            if iter.pokemon_index != state.side_two.slot_a.active_index
+                && iter.pokemon_index != state.side_two.slot_b.active_index
+            {
+                side_two_has_alive_reserve = true;
+            }
         }
         if pkmn.terastallized {
             s2_used_tera = true;
         }
     }
     if state.side_two.pokemon[state.side_two.slot_a.active_index].hp > 0 {
-        score -= evaluate_slot(&state.side_two.slot_a);
+        score -= evaluate_slot(
+            &state.side_two,
+            &state.side_two.slot_a,
+            side_two_has_alive_reserve,
+            side_one_a,
+            side_one_b,
+        );
     }
     if state.side_two.pokemon[state.side_two.slot_b.active_index].hp > 0 {
-        score -= evaluate_slot(&state.side_two.slot_b);
+        score -= evaluate_slot(
+            &state.side_two,
+            &state.side_two.slot_b,
+            side_two_has_alive_reserve,
+            side_one_a,
+            side_one_b,
+        );
     }
     if s2_used_tera {
         score -= USED_TERA;

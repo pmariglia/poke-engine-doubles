@@ -273,10 +273,12 @@ fn get_defending_types(
     attacking_pkmn: &Pokemon,
     attacking_choice: &Choice,
 ) -> (PokemonType, PokemonType) {
-    if defending_pkmn.terastallized && !(defending_pkmn.tera_type == PokemonType::STELLAR) {
-        return (defending_pkmn.tera_type, PokemonType::TYPELESS);
-    }
-    let mut defender_types = defending_pkmn.types;
+    let mut defender_types =
+        if defending_pkmn.terastallized && !(defending_pkmn.tera_type == PokemonType::STELLAR) {
+            (defending_pkmn.tera_type, PokemonType::TYPELESS)
+        } else {
+            defending_pkmn.types
+        };
     if slot
         .volatile_statuses
         .contains(&PokemonVolatileStatus::ROOST)

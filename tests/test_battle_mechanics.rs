@@ -667,6 +667,41 @@ fn test_disguise_blocks_damaging_move() {
 }
 
 #[test]
+fn test_scrappy_can_hit_terastallized_ghost_type() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].ability = Abilities::SCRAPPY;
+    state.side_two.pokemon.pkmn[0].types = (PokemonType::NORMAL, PokemonType::TYPELESS);
+    state.side_two.pokemon.pkmn[0].terastallized = true;
+    state.side_two.pokemon.pkmn[0].tera_type = PokemonType::GHOST;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::TACKLE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![Instruction::Damage(DamageInstruction {
+            side_ref: SideReference::SideTwo,
+            pokemon_index: PokemonIndex::P0,
+            damage_amount: 48, // Normal damage since Scrappy allows hitting Ghost types
+        })],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_disguise_totem_form() {
     let mut state = State::default();
     state.side_two.pokemon.pkmn[0].ability = Abilities::DISGUISE;

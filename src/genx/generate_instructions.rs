@@ -4816,6 +4816,14 @@ pub fn calculate_damage_rolls(
             .last_used_move = LastUsedMove::Switch(PokemonIndex::P0);
     }
 
+    modify_choice_before_move(
+        state,
+        attacking_side_ref,
+        attacking_slot_ref,
+        &mut choice,
+        false,
+    );
+
     ability_change_type(state, &mut choice, &attacking_side_ref, &attacking_slot_ref);
     item_change_type(state, &mut choice, &attacking_side_ref, &attacking_slot_ref);
     choice_change_type(state, &mut choice, &attacking_side_ref, &attacking_slot_ref);

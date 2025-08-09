@@ -286,13 +286,9 @@ pub fn modify_choice(
         }
         Choices::LASTRESPECTS => {
             // Technically not correct because of reviving moves but good enough
-            let mut bp = 50.0;
-            for pkmn in attacking_side.pokemon.into_iter() {
-                if pkmn.hp == 0 {
-                    bp += 50.0;
-                }
-            }
-            attacker_choice.base_power = bp
+            let mut bp_boost = 1.0;
+            bp_boost += 1.0 * attacking_side.num_fainted_pkmn() as f32;
+            attacker_choice.base_power *= bp_boost
         }
         Choices::CLANGOROUSSOUL => {
             let attacker = attacking_side.get_active_immutable(attacking_slot_ref);

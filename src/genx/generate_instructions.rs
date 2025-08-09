@@ -4323,8 +4323,8 @@ fn execute_move_effects(
       // but the way this engine was structured makes it difficult to implement
       // without some performance hits.
 
-    if final_run_move {
-        if let Some(boost) = &choice.boost {
+    if let Some(boost) = &choice.boost {
+        if final_run_move || boost.target != MoveTarget::User {
             get_instructions_from_boosts(
                 state,
                 boost,

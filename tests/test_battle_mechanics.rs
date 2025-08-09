@@ -667,6 +667,46 @@ fn test_disguise_blocks_damaging_move() {
 }
 
 #[test]
+fn test_captivate() {
+    let mut state = State::default();
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::CAPTIVATE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::SpecialAttack,
+                amount: -2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::SpecialAttack,
+                amount: -2,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_scrappy_can_hit_terastallized_ghost_type() {
     let mut state = State::default();
     state.side_one.pokemon.pkmn[0].ability = Abilities::SCRAPPY;

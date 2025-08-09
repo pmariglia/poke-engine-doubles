@@ -1,12 +1,12 @@
 use crate::choices::{Choice, Choices, MoveCategory, MOVES};
 use crate::engine::evaluate::evaluate;
 use crate::engine::generate_instructions::{
-    calculate_both_damage_rolls, generate_instructions_from_move_pair,
+    calculate_damage_rolls, generate_instructions_from_move_pair,
 };
 use crate::engine::state::MoveChoice;
 use crate::instruction::{Instruction, StateInstructions};
 use crate::mcts::{perform_mcts, MctsResult};
-use crate::state::{SlotReference, State};
+use crate::state::{SideReference, SlotReference, State};
 use clap::Parser;
 use std::io;
 use std::io::Write;
@@ -338,27 +338,34 @@ pub fn main() {
 }
 
 fn calculate_damage_io(
-    state: &State,
+    state: &mut State,
+    attacking_side: SideReference,
+    attacking_slot: SlotReference,
+    target_side: SideReference,
+    target_slot: SlotReference,
     s1_choice: Choice,
     s2_choice: Choice,
-    side_one_moves_first: bool,
 ) {
-    let (damages_dealt_s1, damages_dealt_s2) =
-        calculate_both_damage_rolls(state, s1_choice, s2_choice, side_one_moves_first);
-
-    for dmg in [damages_dealt_s1, damages_dealt_s2] {
-        match dmg {
-            Some(damages_vec) => {
-                let joined = damages_vec
-                    .iter()
-                    .map(|x| format!("{:?}", x))
-                    .collect::<Vec<String>>()
-                    .join(",");
-                println!("Damage Rolls: {}", joined);
-            }
-            None => {
-                println!("Damage Rolls: 0");
-            }
+    let damages_dealt = calculate_damage_rolls(
+        state,
+        &attacking_side,
+        &attacking_slot,
+        &target_side,
+        &target_slot,
+        s1_choice,
+        &s2_choice,
+    );
+    match damages_dealt {
+        Some(damages_vec) => {
+            let joined = damages_vec
+                .iter()
+                .map(|x| format!("{:?}", x))
+                .collect::<Vec<String>>()
+                .join(",");
+            println!("Damage Rolls: {}", joined);
+        }
+        None => {
+            println!("Damage Rolls: 0");
         }
     }
 }
@@ -507,7 +514,31 @@ fn command_loop(mut io_data: IOData) {
                 io_data.last_instructions_generated = instructions;
             }
             "calculate-damage" | "d" => {
+                let (attacking_side, attacking_slot);
+                let (target_side, target_slot);
                 let (mut s1_choice, mut s2_choice);
+                match args.next() {
+                    Some(s) => {
+                        let split: Vec<&str> = s.split(',').collect();
+                        attacking_side = SideReference::from_str(split[0]).unwrap();
+                        attacking_slot = SlotReference::from_str(split[1]).unwrap();
+                    }
+                    None => {
+                        println!("Usage: calculate-damage <attacking_side,attacking_slot> <target_side,target_slot> <side-1 move> <side-2 move> <side-1-moves-first>");
+                        continue;
+                    }
+                }
+                match args.next() {
+                    Some(s) => {
+                        let split: Vec<&str> = s.split(',').collect();
+                        target_side = SideReference::from_str(split[0]).unwrap();
+                        target_slot = SlotReference::from_str(split[1]).unwrap();
+                    }
+                    None => {
+                        println!("Usage: calculate-damage <attacking_side,attacking_slot> <target_side,target_slot> <side-1 move> <side-2 move> <side-1-moves-first>");
+                        continue;
+                    }
+                }
                 match args.next() {
                     Some(s) => {
                         s1_choice = MOVES
@@ -519,7 +550,7 @@ fn command_loop(mut io_data: IOData) {
                         }
                     }
                     None => {
-                        println!("Usage: calculate-damage <side-1 move> <side-2 move> <side-1-moves-first>");
+                        println!("Usage: calculate-damage <attacking_side,attacking_slot> <target_side,target_slot> <side-1 move> <side-2 move> <side-1-moves-first>");
                         continue;
                     }
                 }
@@ -534,21 +565,19 @@ fn command_loop(mut io_data: IOData) {
                         }
                     }
                     None => {
-                        println!("Usage: calculate-damage <side-1 move> <side-2 move> <side-1-moves-first>");
+                        println!("Usage: calculate-damage <attacking_side,attacking_slot> <target_side,target_slot> <side-1 move> <side-2 move> <side-1-moves-first>");
                         continue;
                     }
                 }
-                let s1_moves_first: bool;
-                match args.next() {
-                    Some(s) => {
-                        s1_moves_first = s.parse::<bool>().unwrap();
-                    }
-                    None => {
-                        println!("Usage: calculate-damage <side-1 move> <side-2 move> <side-1-moves-first>");
-                        continue;
-                    }
-                }
-                calculate_damage_io(&io_data.state, s1_choice, s2_choice, s1_moves_first);
+                calculate_damage_io(
+                    &mut io_data.state,
+                    attacking_side,
+                    attacking_slot,
+                    target_side,
+                    target_slot,
+                    s1_choice,
+                    s2_choice,
+                );
             }
             "instructions" | "i" => {
                 println!("{:?}", io_data.last_instructions_generated);

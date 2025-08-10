@@ -640,6 +640,7 @@ pub struct PyPokemon {
     pub tera_type: String,
     pub moves: Vec<PyMove>,
     pub times_attacked: u16,
+    pub stellar_boosted_types: Vec<String>,
 }
 
 impl From<Pokemon> for PyPokemon {
@@ -683,6 +684,11 @@ impl From<Pokemon> for PyPokemon {
                 .map(|m| PyMove::from(m.clone()))
                 .collect(),
             times_attacked: other.times_attacked,
+            stellar_boosted_types: other
+                .stellar_boosted_types
+                .iter()
+                .map(|t| t.to_string())
+                .collect(),
         }
     }
 }
@@ -731,6 +737,11 @@ impl Into<Pokemon> for PyPokemon {
                 m3: moves_vec[3].clone().into(),
             },
             times_attacked: self.times_attacked,
+            stellar_boosted_types: self
+                .stellar_boosted_types
+                .iter()
+                .map(|t| PokemonType::from_str(t).unwrap())
+                .collect(),
         }
     }
 }
@@ -763,6 +774,7 @@ impl PyPokemon {
         terastallized=false,
         tera_type="typeless".to_string(),
         times_attacked=0,
+        stellar_boosted_types=Vec::<String>::new(),
     ))]
     fn new(
         id: String,
@@ -789,6 +801,7 @@ impl PyPokemon {
         terastallized: bool,
         tera_type: String,
         times_attacked: u16,
+        stellar_boosted_types: Vec<String>,
     ) -> Self {
         if base_ability == "" {
             base_ability = ability.clone();
@@ -818,6 +831,7 @@ impl PyPokemon {
             tera_type,
             moves,
             times_attacked,
+            stellar_boosted_types,
         }
     }
     #[staticmethod]

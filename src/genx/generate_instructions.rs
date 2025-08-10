@@ -1893,6 +1893,7 @@ fn before_move(
         attacking_slot,
         target_side,
         incoming_instructions,
+        final_run_move,
     );
 
     modify_choice(

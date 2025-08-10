@@ -90,6 +90,7 @@ pub enum Instruction {
     ToggleForceSwitch(ToggleForceSwitchInstruction),
     ToggleTerastallized(ToggleTerastallizedInstruction),
     IncrementTimesAttacked(IncrementTimesAttackedInstruction),
+    InsertStellarBoostedType(InsertStellarBoostedTypeInstruction),
 }
 
 impl fmt::Debug for Instruction {
@@ -378,6 +379,13 @@ impl fmt::Debug for Instruction {
                     s.side_ref, s.pokemon_index
                 )
             }
+            Instruction::InsertStellarBoostedType(s) => {
+                write!(
+                    f,
+                    "InsertStellarBoostedType {:?} {:?}: {:?}",
+                    s.side_ref, s.pokemon_index, s.pkmn_type
+                )
+            }
             Instruction::ToggleTrickRoom(i) => {
                 write!(
                     f,
@@ -431,6 +439,13 @@ pub struct DecrementPPInstruction {
 pub struct IncrementTimesAttackedInstruction {
     pub side_ref: SideReference,
     pub pokemon_index: PokemonIndex,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct InsertStellarBoostedTypeInstruction {
+    pub side_ref: SideReference,
+    pub pokemon_index: PokemonIndex,
+    pub pkmn_type: PokemonType,
 }
 
 #[derive(Debug, PartialEq, Clone)]

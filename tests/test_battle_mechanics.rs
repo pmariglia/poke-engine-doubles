@@ -11,8 +11,8 @@ use poke_engine::instruction::{
     ChangeItemInstruction, ChangeSideConditionInstruction, ChangeStatInstruction,
     ChangeStatusInstruction, ChangeTerrain, ChangeType, ChangeVolatileStatusDurationInstruction,
     ChangeWeather, DamageInstruction, DisableMoveInstruction, FormeChangeInstruction,
-    HealInstruction, IncrementTimesAttackedInstruction, Instruction,
-    RemoveVolatileStatusInstruction, SetLastUsedMoveInstruction,
+    HealInstruction, IncrementTimesAttackedInstruction, InsertStellarBoostedTypeInstruction,
+    Instruction, RemoveVolatileStatusInstruction, SetLastUsedMoveInstruction,
     SetSecondMoveSwitchOutMoveInstruction, SetSleepTurnsInstruction, StateInstructions,
     SwitchInstruction, ToggleForceSwitchInstruction, ToggleTerastallizedInstruction,
 };
@@ -4141,6 +4141,7 @@ fn test_suckerpunch_fails_if_target_moves_before_user() {
 #[test]
 fn test_tera_starstorm_targets_all_foes_if_terastallized() {
     let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].id = PokemonName::TERAPAGOSSTELLAR;
     state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
     state.side_one.pokemon.pkmn[0].terastallized = true;
     state.side_two.pokemon.pkmn[0].maxhp = 500;
@@ -4170,12 +4171,12 @@ fn test_tera_starstorm_targets_all_foes_if_terastallized() {
             Instruction::Damage(DamageInstruction {
                 side_ref: SideReference::SideTwo,
                 pokemon_index: PokemonIndex::P0,
-                damage_amount: 106,
+                damage_amount: 127,
             }),
             Instruction::Damage(DamageInstruction {
                 side_ref: SideReference::SideTwo,
                 pokemon_index: PokemonIndex::P1,
-                damage_amount: 106,
+                damage_amount: 127,
             }),
         ],
     }];
@@ -4222,6 +4223,7 @@ fn test_tera_starstorm_targets_one_pkmn_if_not_terastallized() {
 #[test]
 fn test_tera_starstorm_uses_attack_if_it_is_higher() {
     let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].id = PokemonName::TERAPAGOSSTELLAR;
     state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
     state.side_one.pokemon.pkmn[0].terastallized = true;
     state.side_one.pokemon.pkmn[0].attack = 150;
@@ -4253,12 +4255,12 @@ fn test_tera_starstorm_uses_attack_if_it_is_higher() {
             Instruction::Damage(DamageInstruction {
                 side_ref: SideReference::SideTwo,
                 pokemon_index: PokemonIndex::P0,
-                damage_amount: 159,
+                damage_amount: 191,
             }),
             Instruction::Damage(DamageInstruction {
                 side_ref: SideReference::SideTwo,
                 pokemon_index: PokemonIndex::P1,
-                damage_amount: 159,
+                damage_amount: 191,
             }),
         ],
     }];
@@ -4336,14 +4338,185 @@ fn test_tera_starstorm_while_terastallizing() {
             Instruction::Damage(DamageInstruction {
                 side_ref: SideReference::SideTwo,
                 pokemon_index: PokemonIndex::P0,
-                damage_amount: 106,
+                damage_amount: 127,
+            }),
+            Instruction::InsertStellarBoostedType(InsertStellarBoostedTypeInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                pkmn_type: PokemonType::STELLAR,
             }),
             Instruction::Damage(DamageInstruction {
                 side_ref: SideReference::SideTwo,
                 pokemon_index: PokemonIndex::P1,
-                damage_amount: 106,
+                damage_amount: 127,
             }),
         ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_water_move_when_terastallized() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.side_two.pokemon.pkmn[0].maxhp = 500;
+    state.side_two.pokemon.pkmn[0].hp = 500;
+    state.side_two.pokemon.pkmn[1].maxhp = 500;
+    state.side_two.pokemon.pkmn[1].hp = 500;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::WATERGUN,
+            move_choice: MoveChoice::MoveTera(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::ToggleTerastallized(ToggleTerastallizedInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+            }),
+            Instruction::InsertStellarBoostedType(InsertStellarBoostedTypeInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                pkmn_type: PokemonType::WATER,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 38,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_larger_stellar_boost_when_move_type_is_in_original_types() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.side_one.pokemon.pkmn[0].terastallized = true;
+    state.side_one.pokemon.pkmn[0].types.0 = PokemonType::WATER;
+    state.side_two.pokemon.pkmn[0].maxhp = 500;
+    state.side_two.pokemon.pkmn[0].hp = 500;
+    state.side_two.pokemon.pkmn[1].maxhp = 500;
+    state.side_two.pokemon.pkmn[1].hp = 500;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::WATERGUN,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::InsertStellarBoostedType(InsertStellarBoostedTypeInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                pkmn_type: PokemonType::WATER,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 63,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_does_not_boost_status_move() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.side_one.pokemon.pkmn[0].terastallized = true;
+    state.side_one.pokemon.pkmn[0].types.0 = PokemonType::WATER;
+    state.side_two.pokemon.pkmn[0].maxhp = 500;
+    state.side_two.pokemon.pkmn[0].hp = 500;
+    state.side_two.pokemon.pkmn[1].maxhp = 500;
+    state.side_two.pokemon.pkmn[1].hp = 500;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::SPLASH,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_no_boost_when_using_already_stellar_boosted_water_move() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.side_one.pokemon.pkmn[0].terastallized = true;
+    state.side_one.pokemon.pkmn[0]
+        .stellar_boosted_types
+        .insert(PokemonType::WATER);
+    state.side_two.pokemon.pkmn[0].maxhp = 500;
+    state.side_two.pokemon.pkmn[0].hp = 500;
+    state.side_two.pokemon.pkmn[1].maxhp = 500;
+    state.side_two.pokemon.pkmn[1].hp = 500;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::WATERGUN,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![Instruction::Damage(DamageInstruction {
+            side_ref: SideReference::SideTwo,
+            pokemon_index: PokemonIndex::P0,
+            damage_amount: 32,
+        })],
     }];
     assert_eq!(expected_instructions, vec_of_instructions);
 }
@@ -4747,12 +4920,12 @@ fn test_terapagos_terastal_formechange_with_starstorm() {
             Instruction::Damage(DamageInstruction {
                 side_ref: SideReference::SideTwo,
                 pokemon_index: PokemonIndex::P0,
-                damage_amount: 333,
+                damage_amount: 400,
             }),
             Instruction::Damage(DamageInstruction {
                 side_ref: SideReference::SideTwo,
                 pokemon_index: PokemonIndex::P1,
-                damage_amount: 333,
+                damage_amount: 400,
             }),
         ],
     }];
@@ -4838,7 +5011,7 @@ fn test_tera_starstorm_stellar_does_more_damage_to_terastallized_target() {
             Instruction::Damage(DamageInstruction {
                 side_ref: SideReference::SideTwo,
                 pokemon_index: PokemonIndex::P1,
-                damage_amount: 333,
+                damage_amount: 400,
             }),
         ],
     }];

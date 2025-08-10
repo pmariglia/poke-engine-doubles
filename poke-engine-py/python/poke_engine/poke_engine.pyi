@@ -203,6 +203,8 @@ class Pokemon:
     :type moves: list[Move]
     :param times_attacked: The number of times this Pokemon has been attacked
     :type times_attacked: int
+    :param stellar_boosted_types: For pokemon terastallized into the Stellar type, this keeps track the types that have been boosted by Stellar Boost.
+    :type stellar_boosted_types: list[str]
     """
 
     id: str
@@ -229,6 +231,7 @@ class Pokemon:
     tera_type: str
     moves: List[Move]
     times_attacked: int
+    stellar_boosted_types: Optional[list[str]]
 
     def __init__(
         self,
@@ -256,6 +259,7 @@ class Pokemon:
         terastallized: bool = False,
         tera_type: str = "typeless",
         times_attacked: int = 0,
+        stellar_boosted_types: Optional[list[str]] = None,
     ) -> None: ...
     @staticmethod
     def create_fainted() -> Pokemon: ...

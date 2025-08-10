@@ -12,8 +12,8 @@ use crate::instruction::{
     ApplyVolatileStatusInstruction, BoostInstruction, ChangeItemInstruction,
     ChangeSideConditionInstruction, ChangeStatusInstruction, ChangeSubsituteHealthInstruction,
     ChangeTerrain, ChangeType, ChangeWeather, ChangeWishInstruction, DamageInstruction,
-    HealInstruction, IncrementTimesAttackedInstruction, Instruction,
-    RemoveVolatileStatusInstruction, SetSleepTurnsInstruction, StateInstructions,
+    HealInstruction, IncrementTimesAttackedInstruction, InsertStellarBoostedTypeInstruction,
+    Instruction, RemoveVolatileStatusInstruction, SetSleepTurnsInstruction, StateInstructions,
     ToggleTrickRoomInstruction,
 };
 use crate::pokemon::PokemonName;
@@ -1035,6 +1035,7 @@ pub fn choice_before_move(
     attacking_slot_ref: &SlotReference,
     target_side_ref: &SideReference,
     instructions: &mut StateInstructions,
+    final_run_move: bool,
 ) {
     let defender_ability = state
         .get_side_immutable(target_side_ref)
@@ -1133,6 +1134,32 @@ pub fn choice_before_move(
         choice.flags.charge = false;
         instructions.instruction_list.push(instruction);
     }
+    if attacker.terastallized
+        && attacker.tera_type == PokemonType::STELLAR
+        && !attacker.stellar_boosted_types.contains(&choice.move_type)
+        && choice.category != MoveCategory::Status
+        && choice.target != MoveTarget::User
+    {
+        if choice.move_type == attacker.types.0 || choice.move_type == attacker.types.1 {
+            choice.base_power *= 2.0 / 1.5;
+        } else {
+            choice.base_power *= 1.2;
+        }
+
+        if final_run_move && attacker.id != PokemonName::TERAPAGOSSTELLAR {
+            instructions
+                .instruction_list
+                .push(Instruction::InsertStellarBoostedType(
+                    InsertStellarBoostedTypeInstruction {
+                        side_ref: *attacking_side_ref,
+                        pokemon_index: attacker_index,
+                        pkmn_type: choice.move_type,
+                    },
+                ));
+            attacker.stellar_boosted_types.insert(choice.move_type);
+        }
+    }
+
     if let Some(choice_volatile_status) = &choice.volatile_status {
         if choice_volatile_status.volatile_status == PokemonVolatileStatus::LOCKEDMOVE
             && choice_volatile_status.target == MoveTarget::User

@@ -224,7 +224,7 @@ define_enum_with_from_str! {
 
 define_enum_with_from_str! {
     #[repr(u8)]
-    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
     PokemonType {
         NORMAL,
         FIRE,
@@ -891,6 +891,7 @@ pub struct Pokemon {
     pub tera_type: PokemonType,
     pub moves: PokemonMoves,
     pub times_attacked: u16,
+    pub stellar_boosted_types: HashSet<PokemonType>,
 }
 
 impl Default for Pokemon {
@@ -925,6 +926,7 @@ impl Default for Pokemon {
                 m3: Default::default(),
             },
             times_attacked: 0,
+            stellar_boosted_types: HashSet::new(),
         }
     }
 }
@@ -980,8 +982,13 @@ impl Pokemon {
             "{};{};{};{};{};{}",
             self.evs.0, self.evs.1, self.evs.2, self.evs.3, self.evs.4, self.evs.5
         );
+        let mut stellar_boosted_types = String::new();
+        for pkmn_type in &self.stellar_boosted_types {
+            stellar_boosted_types.push_str(&pkmn_type.to_string());
+            stellar_boosted_types.push_str(";");
+        }
         format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             self.id,
             self.level,
             self.types.0.to_string(),
@@ -1010,7 +1017,8 @@ impl Pokemon {
             self.moves.m3.serialize(),
             self.terastallized,
             self.tera_type.to_string(),
-            self.times_attacked
+            self.times_attacked,
+            stellar_boosted_types,
         )
     }
 
@@ -1029,6 +1037,12 @@ impl Pokemon {
         } else {
             (85, 85, 85, 85, 85, 85)
         };
+        let mut stellar_boosted_types = HashSet::new();
+        if split[29] != "" {
+            for item in split[29].split(";") {
+                stellar_boosted_types.insert(PokemonType::from_str(item).unwrap());
+            }
+        }
         Pokemon {
             id: PokemonName::from_str(split[0]).unwrap(),
             level: split[1].parse::<i8>().unwrap(),
@@ -1065,6 +1079,7 @@ impl Pokemon {
             terastallized: split[26].parse::<bool>().unwrap(),
             tera_type: PokemonType::from_str(split[27]).unwrap(),
             times_attacked: split[28].parse::<u16>().unwrap(),
+            stellar_boosted_types,
         }
     }
 }
@@ -2358,6 +2373,11 @@ impl State {
                     &mut self.get_side(&instruction.side_ref).pokemon[&instruction.pokemon_index];
                 active.times_attacked += 1;
             }
+            Instruction::InsertStellarBoostedType(instruction) => {
+                let active =
+                    &mut self.get_side(&instruction.side_ref).pokemon[&instruction.pokemon_index];
+                active.stellar_boosted_types.insert(instruction.pkmn_type);
+            }
             Instruction::FormeChange(instruction) => {
                 let active =
                     &mut self.get_side(&instruction.side_ref).pokemon[&instruction.pokemon_index];
@@ -2606,6 +2626,11 @@ impl State {
                 let active =
                     &mut self.get_side(&instruction.side_ref).pokemon[&instruction.pokemon_index];
                 active.times_attacked -= 1;
+            }
+            Instruction::InsertStellarBoostedType(instruction) => {
+                let active =
+                    &mut self.get_side(&instruction.side_ref).pokemon[&instruction.pokemon_index];
+                active.stellar_boosted_types.remove(&instruction.pkmn_type);
             }
             Instruction::FormeChange(instruction) => {
                 let active =

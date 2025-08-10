@@ -772,7 +772,7 @@ impl Pokemon {
 
     #[cfg(feature = "terastallization")]
     pub fn has_type(&self, pkmn_type: &PokemonType) -> bool {
-        if self.terastallized {
+        if self.terastallized && self.tera_type != PokemonType::STELLAR {
             pkmn_type == &self.tera_type
         } else {
             pkmn_type == &self.types.0 || pkmn_type == &self.types.1

@@ -1694,6 +1694,14 @@ impl State {
         &self.terrain.terrain_type == terrain && self.terrain.turns_remaining > 0
     }
 
+    pub fn get_terrain(&self) -> Terrain {
+        if self.terrain.turns_remaining > 0 {
+            self.terrain.terrain_type
+        } else {
+            Terrain::NONE
+        }
+    }
+
     pub fn get_weather(&self) -> Weather {
         if self.weather.turns_remaining == 0 {
             return Weather::NONE;

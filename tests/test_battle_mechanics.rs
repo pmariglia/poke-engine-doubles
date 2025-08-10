@@ -4482,6 +4482,64 @@ fn test_does_not_boost_status_move() {
 }
 
 #[test]
+fn test_stellar_boost_does_not_work_if_target_protects() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.side_one.pokemon.pkmn[0].terastallized = true;
+    state.side_one.pokemon.pkmn[0].types.0 = PokemonType::WATER;
+    state.side_two.pokemon.pkmn[0].maxhp = 500;
+    state.side_two.pokemon.pkmn[0].hp = 500;
+    state.side_two.pokemon.pkmn[1].maxhp = 500;
+    state.side_two.pokemon.pkmn[1].hp = 500;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::WATERGUN,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::PROTECT,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotA,
+                volatile_status: PokemonVolatileStatus::PROTECT,
+            }),
+            Instruction::RemoveVolatileStatus(RemoveVolatileStatusInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotA,
+                volatile_status: PokemonVolatileStatus::PROTECT,
+            }),
+            Instruction::ChangeVolatileStatusDuration(ChangeVolatileStatusDurationInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotA,
+                volatile_status: PokemonVolatileStatus::PROTECT,
+                amount: 1,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_no_boost_when_using_already_stellar_boosted_water_move() {
     let mut state = State::default();
     state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;

@@ -18,9 +18,10 @@ use crate::instruction::{
     ChangeDamageDealtDamageInstruction, ChangeDamageDealtMoveCategoryInstruction,
     ChangeItemInstruction, ChangeSideConditionInstruction, ChangeTerrain,
     ChangeVolatileStatusDurationInstruction, ChangeWeather, DecrementRestTurnsInstruction,
-    HealInstruction, RemoveVolatileStatusInstruction, SetSleepTurnsInstruction,
-    ToggleBatonPassingInstruction, ToggleDamageDealtHitSubstituteInstruction,
-    ToggleShedTailingInstruction, ToggleTrickRoomInstruction,
+    HealInstruction, InsertStellarBoostedTypeInstruction, RemoveVolatileStatusInstruction,
+    SetSleepTurnsInstruction, ToggleBatonPassingInstruction,
+    ToggleDamageDealtHitSubstituteInstruction, ToggleShedTailingInstruction,
+    ToggleTrickRoomInstruction,
 };
 use crate::instruction::{DamageSubstituteInstruction, ToggleTerastallizedInstruction};
 use crate::instruction::{FormeChangeInstruction, SetLastUsedMoveInstruction};
@@ -1857,8 +1858,8 @@ fn before_move(
     state: &mut State,
     choice: &mut Choice,
     target_choice: &Choice,
-    attacking_side: &SideReference,
-    attacking_slot: &SlotReference,
+    attacking_side_ref: &SideReference,
+    attacking_slot_ref: &SlotReference,
     target_side: &SideReference,
     target_slot: &SlotReference,
     final_run_move: bool,
@@ -1866,13 +1867,13 @@ fn before_move(
     incoming_instructions: &mut StateInstructions,
 ) {
     #[cfg(feature = "terastallization")]
-    terastallized_base_power_floor(state, choice, attacking_side, attacking_slot);
+    terastallized_base_power_floor(state, choice, attacking_side_ref, attacking_slot_ref);
 
     ability_before_move(
         state,
         choice,
-        attacking_side,
-        attacking_slot,
+        attacking_side_ref,
+        attacking_slot_ref,
         target_side,
         target_slot,
         incoming_instructions,
@@ -1880,8 +1881,8 @@ fn before_move(
     item_before_move(
         state,
         choice,
-        attacking_side,
-        attacking_slot,
+        attacking_side_ref,
+        attacking_slot_ref,
         target_side,
         target_slot,
         incoming_instructions,
@@ -1889,19 +1890,18 @@ fn before_move(
     choice_before_move(
         state,
         choice,
-        attacking_side,
-        attacking_slot,
+        attacking_side_ref,
+        attacking_slot_ref,
         target_side,
         incoming_instructions,
-        final_run_move,
     );
 
     modify_choice(
         state,
         choice,
         target_choice,
-        attacking_side,
-        attacking_slot,
+        attacking_side_ref,
+        attacking_slot_ref,
         target_side,
         target_slot,
         target_has_moved,
@@ -1911,16 +1911,16 @@ fn before_move(
         state,
         choice,
         target_choice,
-        attacking_side,
-        attacking_slot,
+        attacking_side_ref,
+        attacking_slot_ref,
         target_side,
         target_slot,
     );
     ability_modify_attack_against(
         state,
         choice,
-        attacking_side,
-        attacking_slot,
+        attacking_side_ref,
+        attacking_slot_ref,
         target_side,
         target_slot,
     );
@@ -1928,8 +1928,8 @@ fn before_move(
     item_modify_attack_being_used(
         state,
         choice,
-        attacking_side,
-        attacking_slot,
+        attacking_side_ref,
+        attacking_slot_ref,
         target_side,
         target_slot,
         final_run_move,
@@ -1940,8 +1940,8 @@ fn before_move(
         TODO: this needs to be here because from_drag is called after the substitute volatilestatus
             has already been removed
     */
-    let attacking_side = state.get_side_immutable(attacking_side);
-    let attacking_slot = attacking_side.get_slot_immutable(attacking_slot);
+    let attacking_side = state.get_side_immutable(attacking_side_ref);
+    let attacking_slot = attacking_side.get_slot_immutable(attacking_slot_ref);
 
     // Update Choice for `charge` moves
     if choice.flags.charge {
@@ -2035,6 +2035,38 @@ fn before_move(
                     accuracy: 0,
                 },
             })
+        }
+    } else {
+        // A few known bugs here:
+        // - if the second target of a spread move protects, the stellar boost won't apply
+        // - if the move misses *every* target it shouldn't apply the stellar boost
+        let (attacker, attacker_index) = state
+            .get_side(attacking_side_ref)
+            .get_active_with_index(attacking_slot_ref);
+        if attacker.terastallized
+            && attacker.tera_type == PokemonType::STELLAR
+            && !attacker.stellar_boosted_types.contains(&choice.move_type)
+            && choice.category != MoveCategory::Status
+            && choice.target != MoveTarget::User
+        {
+            if choice.move_type == attacker.types.0 || choice.move_type == attacker.types.1 {
+                choice.base_power *= 2.0 / 1.5;
+            } else {
+                choice.base_power *= 1.2;
+            }
+
+            if final_run_move && attacker.id != PokemonName::TERAPAGOSSTELLAR {
+                incoming_instructions
+                    .instruction_list
+                    .push(Instruction::InsertStellarBoostedType(
+                        InsertStellarBoostedTypeInstruction {
+                            side_ref: *attacking_side_ref,
+                            pokemon_index: attacker_index,
+                            pkmn_type: choice.move_type,
+                        },
+                    ));
+                attacker.stellar_boosted_types.insert(choice.move_type);
+            }
         }
     }
 }

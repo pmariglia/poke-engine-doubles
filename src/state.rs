@@ -962,7 +962,7 @@ impl Pokemon {
             .map(|m| format!("{:?}", m.id).to_lowercase())
             .filter(|x| x != "none")
             .collect();
-        format!(
+        let mut result = format!(
             "\n  Name: {}\n  HP: {}/{}\n  Status: {:?}\n  Ability: {:?}\n  Item: {:?}\n  Stats: {}\n  Moves: {}",
             self.id,
             self.hp,
@@ -972,7 +972,15 @@ impl Pokemon {
             self.item,
             self.pprint_stats(),
             moves.join(", ")
-        )
+        );
+        if self.terastallized && self.tera_type == PokemonType::STELLAR {
+            result.push_str(&format!(
+                "\n  Stellar Boosted Types: {:?} ",
+                self.stellar_boosted_types
+            ));
+        }
+
+        result
     }
 }
 

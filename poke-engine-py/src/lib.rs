@@ -35,7 +35,7 @@ fn movechoice_to_string(
 }
 
 #[derive(Clone)]
-#[pyclass(name = "State", module = "poke_engine", get_all)]
+#[pyclass(name = "State", module = "poke_engine", get_all, set_all)]
 pub struct PyState {
     pub side_one: PySide,
     pub side_two: PySide,
@@ -151,7 +151,7 @@ impl PyState {
 }
 
 #[derive(Clone)]
-#[pyclass(name = "Side", module = "poke_engine", get_all)]
+#[pyclass(name = "Side", module = "poke_engine", get_all, set_all)]
 pub struct PySide {
     pub pokemon: [PyPokemon; 6],
     pub side_conditions: PySideConditions,
@@ -226,7 +226,7 @@ impl PySide {
 }
 
 #[derive(Clone)]
-#[pyclass(name = "SideSlot", module = "poke_engine", get_all)]
+#[pyclass(name = "SideSlot", module = "poke_engine", get_all, set_all)]
 pub struct PySideSlot {
     active_index: String,
     baton_passing: bool,
@@ -396,7 +396,12 @@ impl PySideSlot {
 }
 
 #[derive(Clone)]
-#[pyclass(name = "VolatileStatusDurations", module = "poke_engine", get_all)]
+#[pyclass(
+    name = "VolatileStatusDurations",
+    module = "poke_engine",
+    get_all,
+    set_all
+)]
 pub struct PyVolatileStatusDurations {
     pub confusion: i8,
     pub encore: i8,
@@ -469,7 +474,7 @@ impl PyVolatileStatusDurations {
 }
 
 #[derive(Clone)]
-#[pyclass(name = "SideConditions", module = "poke_engine", get_all)]
+#[pyclass(name = "SideConditions", module = "poke_engine", get_all, set_all)]
 pub struct PySideConditions {
     pub aurora_veil: i8,
     pub crafty_shield: i8,
@@ -614,7 +619,7 @@ impl PySideConditions {
 }
 
 #[derive(Clone)]
-#[pyclass(name = "Pokemon", module = "poke_engine", get_all)]
+#[pyclass(name = "Pokemon", module = "poke_engine", get_all, set_all)]
 pub struct PyPokemon {
     pub id: String,
     pub level: i8,
@@ -844,7 +849,7 @@ impl PyPokemon {
 }
 
 #[derive(Clone)]
-#[pyclass(name = "Move", module = "poke_engine", get_all)]
+#[pyclass(name = "Move", module = "poke_engine", get_all, set_all)]
 pub struct PyMove {
     pub id: String,
     pub disabled: bool,

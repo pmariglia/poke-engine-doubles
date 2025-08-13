@@ -946,6 +946,7 @@ pub fn apply_boost_instructions(
 
             if boost_amount < 0
                 && target_pkmn_ability == Abilities::DEFIANT
+                && attacking_side_ref != target_side_ref
                 && target_slot.attack_boost < 6
             {
                 let defiant_boost_amount = cmp::min(6 - target_slot.attack_boost, 2);

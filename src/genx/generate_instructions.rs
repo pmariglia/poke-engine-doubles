@@ -35,8 +35,9 @@ use crate::instruction::{
     ChangeStatusInstruction, DamageInstruction, Instruction, StateInstructions, SwitchInstruction,
 };
 use crate::state::{
-    LastUsedMove, PokemonBoostableStat, PokemonIndex, PokemonMoveIndex, PokemonSideCondition,
-    PokemonStatus, PokemonType, Side, SideReference, SideSlot, SlotReference, State,
+    LastUsedMove, Pokemon, PokemonBoostableStat, PokemonIndex, PokemonMoveIndex,
+    PokemonSideCondition, PokemonStatus, PokemonType, Side, SideReference, SideSlot, SlotReference,
+    State,
 };
 use std::cmp;
 
@@ -2454,6 +2455,32 @@ pub fn generate_instructions_from_move(
     final_instructions.extend(state_instructions_vec);
 }
 
+fn get_crit_rate(choice: &Choice, attacker: &Pokemon, defender_active: &Pokemon) -> f32 {
+    if defender_active.ability == Abilities::BATTLEARMOR
+        || defender_active.ability == Abilities::SHELLARMOR
+    {
+        return 0.0;
+    }
+
+    let mut stage = if choice.move_id.guaranteed_crit() {
+        3
+    } else if choice.move_id.increased_crit_ratio() {
+        1
+    } else {
+        0
+    };
+    if attacker.item == Items::SCOPELENS {
+        stage += 1;
+    }
+    match stage {
+        -1 => 0.0,
+        0 => BASE_CRIT_CHANCE,
+        1 => 1.0 / 8.0,
+        2 => 1.0 / 2.0,
+        _ => 1.0,
+    }
+}
+
 fn run_move(
     state: &mut State,
     choice: &mut Choice,
@@ -2984,7 +3011,8 @@ fn run_move(
         }
     }
 
-    let defender_side = state.get_side(&target_side);
+    let (attacker_side, defender_side) = state.get_both_sides(&attacking_side);
+    let attacker = attacker_side.get_active(&attacking_slot);
     let defender_active = defender_side.get_active(&target_slot);
     let mut does_damage = false;
     let (mut branch_damage, mut regular_damage) = (0, 0);
@@ -3000,17 +3028,7 @@ fn run_move(
             let (average_non_kill_damage, num_kill_rolls) =
                 compare_health_with_damage_multiples(max_damage_dealt, defender_active.hp);
 
-            let crit_rate = if defender_active.ability == Abilities::BATTLEARMOR
-                || defender_active.ability == Abilities::SHELLARMOR
-            {
-                0.0
-            } else if choice.move_id.guaranteed_crit() {
-                1.0
-            } else if choice.move_id.increased_crit_ratio() {
-                1.0 / 8.0
-            } else {
-                BASE_CRIT_CHANCE
-            };
+            let crit_rate = get_crit_rate(choice, attacker, defender_active);
 
             // the chance of a branch is the chance of the roll killing + the chance of a crit
             let branch_chance = ((1.0 - crit_rate) * (num_kill_rolls as f32 / 16.0)) + crit_rate;
@@ -3023,17 +3041,7 @@ fn run_move(
             incoming_instructions.update_percentage(1.0 - branch_chance);
             regular_damage = average_non_kill_damage;
         } else if branch_on_damage && max_damage_dealt < defender_active.hp {
-            let crit_rate = if defender_active.ability == Abilities::BATTLEARMOR
-                || defender_active.ability == Abilities::SHELLARMOR
-            {
-                0.0
-            } else if choice.move_id.guaranteed_crit() {
-                1.0
-            } else if choice.move_id.increased_crit_ratio() {
-                1.0 / 8.0
-            } else {
-                BASE_CRIT_CHANCE
-            };
+            let crit_rate = get_crit_rate(choice, attacker, defender_active);
             let mut branch_ins = incoming_instructions.clone();
             branch_ins.update_percentage(crit_rate);
             branch_instructions = Some(branch_ins);

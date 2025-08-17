@@ -46,6 +46,7 @@ pub fn generate_instructions_with_state_assertion(
     side_one_b_move: &MoveChoice,
     side_two_a_move: &MoveChoice,
     side_two_b_move: &MoveChoice,
+    should_branch_on_rolls: bool,
 ) -> Vec<StateInstructions> {
     let before_state_string = format!("{:?}", state);
     let before_serialized = state.serialize();
@@ -55,7 +56,7 @@ pub fn generate_instructions_with_state_assertion(
         side_one_b_move,
         side_two_a_move,
         side_two_b_move,
-        false,
+        should_branch_on_rolls,
     );
     let after_state_string = format!("{:?}", state);
     let after_serialized = state.serialize();
@@ -94,6 +95,7 @@ fn set_moves_on_pkmn_and_call_generate_instructions(
         &move_one_b.move_choice,
         &move_two_a.move_choice,
         &move_two_b.move_choice,
+        false,
     );
     instructions
 }
@@ -1696,6 +1698,107 @@ fn test_seed_sower_sets_grassy_terrain() {
             Instruction::DecrementTerrainTurnsRemaining,
         ],
     }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_increased_crit_move() {
+    let mut state = State::default();
+
+    let move_one_a = TestMoveChoice {
+        choice: Choices::SLASH,
+        move_choice: MoveChoice::Move(
+            SlotReference::SlotA,
+            SideReference::SideTwo,
+            PokemonMoveIndex::M0,
+        ),
+    };
+
+    state
+        .side_one
+        .get_active(&SlotReference::SlotA)
+        .replace_move(PokemonMoveIndex::M0, move_one_a.choice);
+
+    let vec_of_instructions = generate_instructions_with_state_assertion(
+        &mut state,
+        &move_one_a.move_choice,
+        &MoveChoice::None,
+        &MoveChoice::None,
+        &MoveChoice::None,
+        true,
+    );
+
+    let expected_instructions = vec![
+        StateInstructions {
+            end_of_turn_triggered: true,
+            percentage: 87.5,
+            instruction_list: vec![Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 83,
+            })],
+        },
+        StateInstructions {
+            end_of_turn_triggered: true,
+            percentage: 12.5,
+            instruction_list: vec![Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 100,
+            })],
+        },
+    ];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_increased_crit_move_with_scope_lens() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].item = Items::SCOPELENS;
+
+    let move_one_a = TestMoveChoice {
+        choice: Choices::SLASH,
+        move_choice: MoveChoice::Move(
+            SlotReference::SlotA,
+            SideReference::SideTwo,
+            PokemonMoveIndex::M0,
+        ),
+    };
+
+    state
+        .side_one
+        .get_active(&SlotReference::SlotA)
+        .replace_move(PokemonMoveIndex::M0, move_one_a.choice);
+
+    let vec_of_instructions = generate_instructions_with_state_assertion(
+        &mut state,
+        &move_one_a.move_choice,
+        &MoveChoice::None,
+        &MoveChoice::None,
+        &MoveChoice::None,
+        true,
+    );
+
+    let expected_instructions = vec![
+        StateInstructions {
+            end_of_turn_triggered: true,
+            percentage: 50.0,
+            instruction_list: vec![Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 83,
+            })],
+        },
+        StateInstructions {
+            end_of_turn_triggered: true,
+            percentage: 50.0,
+            instruction_list: vec![Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 100,
+            })],
+        },
+    ];
     assert_eq!(expected_instructions, vec_of_instructions);
 }
 

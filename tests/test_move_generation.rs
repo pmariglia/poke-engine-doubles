@@ -512,6 +512,47 @@ fn test_decorate_can_target_only_ally() {
 }
 
 #[test]
+fn test_coaching_can_target_only_ally() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[5].terastallized = true;
+    state.side_one.pokemon.pkmn[5].hp = 0;
+    state.side_one.pokemon.pkmn[4].hp = 0;
+    state.side_one.pokemon.pkmn[3].hp = 0;
+    state.side_one.pokemon.pkmn[2].hp = 0;
+    state.side_two.pokemon.pkmn[5].terastallized = true;
+    state.side_two.pokemon.pkmn[5].hp = 0;
+    state.side_two.pokemon.pkmn[4].hp = 0;
+    state.side_two.pokemon.pkmn[3].hp = 0;
+    state.side_two.pokemon.pkmn[2].hp = 0;
+
+    // only have 1 move per pkmn
+    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
+    state.side_one.slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
+    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::COACHING,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::COACHING).unwrap().clone(),
+    };
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
+
+    let expected_s1_options = vec![(
+        MoveChoice::Move(
+            SlotReference::SlotB,
+            SideReference::SideOne,
+            PokemonMoveIndex::M0,
+        ),
+        MoveChoice::None,
+    )];
+
+    assert_eq!(expected_s1_options, move_options.side_one_combined_options);
+}
+
+#[test]
 fn test_fakeout_is_an_option_when_just_switching_in() {
     let mut state = State::default();
     state.side_one.pokemon.pkmn[5].terastallized = true;

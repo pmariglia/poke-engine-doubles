@@ -4026,6 +4026,46 @@ fn test_wideguard_protection_own_side() {
 }
 
 #[test]
+fn test_coaching() {
+    let mut state = State::default();
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::COACHING,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::Attack,
+                amount: 1,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::Defense,
+                amount: 1,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_pollen_puff_damaging_other_side() {
     let mut state = State::default();
 

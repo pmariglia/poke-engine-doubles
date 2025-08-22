@@ -2166,7 +2166,7 @@ lazy_static! {
                     ..Default::default()
                 },
                 boost: Some(Boost {
-                    target: MoveTarget::User,
+                    target: MoveTarget::Target,
                     boosts: StatBoosts {
                         attack: 1,
                         defense: 1,

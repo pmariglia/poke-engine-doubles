@@ -427,7 +427,7 @@ pub fn perform_mcts(
         }
 
         /*
-        Cut off after 10 million iterations
+        Cut off after 25 million iterations
 
         Under normal circumstances the bot will only run for 2.5-3.5 million iterations
         however towards the end of a battle the bot may perform tens of millions of iterations
@@ -435,10 +435,10 @@ pub fn perform_mcts(
         Beyond about 30 million iterations some floating point nonsense happens where
         MoveNode.total_score stops updating because f32 does not have enough precision
 
-        I can push the problem farther out by using f64 but if the bot is running for 10 million iterations
+        I can push the problem farther out by using f64 but if the bot is running for this long
         then it almost certainly sees a forced win
         */
-        if root_node.times_visited == 10_000_000 {
+        if root_node.times_visited == 25_000_000 {
             break;
         }
     }

@@ -163,7 +163,8 @@ pub fn modify_choice(
             let multiplier = 1.0
                 + attacking_side
                     .get_active_immutable(attacking_slot_ref)
-                    .times_attacked as f32;
+                    .times_attacked
+                    .min(6) as f32;
             attacker_choice.base_power *= multiplier
         }
         Choices::DIRECLAW => {

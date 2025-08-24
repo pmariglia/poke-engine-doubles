@@ -2382,21 +2382,22 @@ pub fn generate_instructions_from_move(
         // Targets Everyone except the user
         MoveChoiceTarget::AllOther => {
             let mut choices = Vec::with_capacity(3);
+            let other_side_ref = attacking_side.get_other_side();
             if state
-                .get_side_immutable(&target_side)
+                .get_side_immutable(&other_side_ref)
                 .get_active_immutable(&SlotReference::SlotA)
                 .hp
                 > 0
             {
-                choices.push((choice.clone(), target_side, SlotReference::SlotA))
+                choices.push((choice.clone(), other_side_ref, SlotReference::SlotA))
             }
             if state
-                .get_side_immutable(&target_side)
+                .get_side_immutable(&other_side_ref)
                 .get_active_immutable(&SlotReference::SlotB)
                 .hp
                 > 0
             {
-                choices.push((choice.clone(), target_side, SlotReference::SlotB))
+                choices.push((choice.clone(), other_side_ref, SlotReference::SlotB))
             }
             if state
                 .get_side_immutable(&attacking_side)

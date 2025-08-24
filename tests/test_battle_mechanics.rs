@@ -6220,9 +6220,10 @@ fn test_multiple_none_moves_does_not_set_end_of_turn() {
 }
 
 #[test]
-fn test_beatup_on_ally_with_ragefist() {
+fn test_beatup_on_ally_with_ragefist_and_times_attacked_cap() {
     let mut state = State::default();
     state.side_one.pokemon.pkmn[1].id = PokemonName::ANNIHILAPE;
+    state.side_one.pokemon.pkmn[1].times_attacked = 4;
     state.side_one.pokemon.pkmn[4].hp = 0;
     state.side_one.pokemon.pkmn[5].hp = 0;
 
@@ -6281,18 +6282,10 @@ fn test_beatup_on_ally_with_ragefist() {
                 pokemon_index: PokemonIndex::P1,
                 damage_amount: 9,
             }),
-            Instruction::IncrementTimesAttacked(IncrementTimesAttackedInstruction {
-                side_ref: SideReference::SideOne,
-                pokemon_index: PokemonIndex::P1,
-            }),
             Instruction::Damage(DamageInstruction {
                 side_ref: SideReference::SideOne,
                 pokemon_index: PokemonIndex::P1,
                 damage_amount: 9,
-            }),
-            Instruction::IncrementTimesAttacked(IncrementTimesAttackedInstruction {
-                side_ref: SideReference::SideOne,
-                pokemon_index: PokemonIndex::P1,
             }),
         ],
     }];

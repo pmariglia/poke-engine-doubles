@@ -16017,6 +16017,7 @@ pub enum MultiHitMove {
     TripleHit,
     TwoToFiveHits,
     PopulationBomb,
+    BeatUp,
     TripleAxel,
 }
 
@@ -17076,6 +17077,7 @@ impl Choice {
             Choices::TWINBEAM => MultiHitMove::DoubleHit,
             Choices::TWINEEDLE => MultiHitMove::DoubleHit,
             Choices::WATERSHURIKEN => MultiHitMove::TwoToFiveHits,
+            Choices::BEATUP => MultiHitMove::BeatUp,
 
             // These are multi-accuracy
             // but until that is implemented we approximate them as multi-hit

@@ -6220,6 +6220,86 @@ fn test_multiple_none_moves_does_not_set_end_of_turn() {
 }
 
 #[test]
+fn test_beatup_on_ally_with_ragefist() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[1].id = PokemonName::ANNIHILAPE;
+    state.side_one.pokemon.pkmn[4].hp = 0;
+    state.side_one.pokemon.pkmn[5].hp = 0;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::BEATUP,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice {
+            choice: Choices::RAGEFIST,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::None,
+        },
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::None,
+        },
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P1,
+                damage_amount: 9,
+            }),
+            Instruction::IncrementTimesAttacked(IncrementTimesAttackedInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P1,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P1,
+                damage_amount: 9,
+            }),
+            Instruction::IncrementTimesAttacked(IncrementTimesAttackedInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P1,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P1,
+                damage_amount: 9,
+            }),
+            Instruction::IncrementTimesAttacked(IncrementTimesAttackedInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P1,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P1,
+                damage_amount: 9,
+            }),
+            Instruction::IncrementTimesAttacked(IncrementTimesAttackedInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P1,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_fainted_followme_does_not_redirect() {
     let mut state = State::default();
     state.side_one.pokemon.pkmn[0].speed = 150;

@@ -2962,7 +2962,7 @@ fn run_move(
     }
 
     // start multi-hit
-    let hit_count;
+    let mut hit_count;
     match choice.multi_hit() {
         MultiHitMove::None => {
             hit_count = 1;
@@ -2991,6 +2991,16 @@ fn run_move(
             } else {
                 3 // too lazy to implement branching here. Average is 3.2 so this is a fine approximation
             };
+        }
+        MultiHitMove::BeatUp => {
+            // beat up hits once for each non-fainted pokemon in the party
+            hit_count = 0;
+            let attacking_side = state.get_side_immutable(&attacking_side);
+            for pkmn in attacking_side.pokemon.pkmn.iter() {
+                if pkmn.hp > 0 {
+                    hit_count += 1;
+                }
+            }
         }
         MultiHitMove::PopulationBomb => {
             // population bomb checks accuracy each time but lets approximate

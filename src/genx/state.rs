@@ -642,8 +642,8 @@ impl Pokemon {
                     ));
                 }
             }
-            // Pollen Puff: targeting ally and enemies makes sense
-            Choices::POLLENPUFF if partner_alive => {
+            // targeting ally and enemies makes sense
+            Choices::POLLENPUFF | Choices::BEATUP if partner_alive => {
                 vec.push(MoveChoice::Move(
                     slot_ref.get_other_slot(),
                     *side_ref,

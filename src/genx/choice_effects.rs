@@ -155,6 +155,10 @@ pub fn modify_choice(
     let (attacking_side, target_side) =
         state.get_sides_immutable(attacking_side_ref, target_side_ref);
     match attacker_choice.move_id {
+        Choices::BEATUP => {
+            // an approximation to get beatup to do something
+            attacker_choice.base_power = 10.0;
+        }
         Choices::RAGEFIST => {
             let multiplier = 1.0
                 + attacking_side
@@ -756,10 +760,9 @@ pub fn choice_after_damage_hit(
     instructions: &mut StateInstructions,
     hit_sub: bool,
 ) {
-    let (attacking_side, defending_side) = state.get_both_sides(attacking_side_ref);
-
+    let target_side = state.get_side(target_side_ref);
     // only increment times_attacked if they have ragefist, otherwise it's a waste of an instruction
-    let (target_pkmn, target_active_index) = defending_side.get_active_with_index(target_slot_ref);
+    let (target_pkmn, target_active_index) = target_side.get_active_with_index(target_slot_ref);
     if target_pkmn.has_move(&Choices::RAGEFIST) {
         instructions
             .instruction_list
@@ -772,6 +775,7 @@ pub fn choice_after_damage_hit(
         target_pkmn.times_attacked += 1;
     }
 
+    let attacking_side = state.get_side(attacking_side_ref);
     if choice.flags.recharge {
         let instruction = Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
             side_ref: *attacking_side_ref,

@@ -5680,6 +5680,51 @@ fn test_parting_shot_into_clear_amulet_interaction() {
 }
 
 #[test]
+fn test_parting_shot_into_magic_bounce_interaction() {
+    let mut state = State::default();
+    state.side_two.pokemon.pkmn[0].ability = Abilities::MAGICBOUNCE;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::PARTINGSHOT,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: false,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Attack,
+                amount: -1,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::SpecialAttack,
+                amount: -1,
+            }),
+            Instruction::ToggleForceSwitch(ToggleForceSwitchInstruction {
+                side_ref: SideReference::SideOne, // incorrect, should be SideTwo
+                slot_ref: SlotReference::SlotA,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_parting_shot_into_defiant() {
     let mut state = State::default();
     state.side_two.pokemon.pkmn[0].ability = Abilities::DEFIANT;

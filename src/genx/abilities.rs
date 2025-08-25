@@ -2831,6 +2831,11 @@ pub fn ability_modify_attack_against(
                             status.target = MoveTarget::User;
                         }
                     }
+                    if let Some(boosts) = &mut attacker_choice.boost {
+                        if boosts.target == MoveTarget::Target {
+                            boosts.target = MoveTarget::User;
+                        }
+                    }
                     if let Some(volatile_status) = &mut attacker_choice.volatile_status {
                         if volatile_status.target == MoveTarget::Target {
                             volatile_status.target = MoveTarget::User;

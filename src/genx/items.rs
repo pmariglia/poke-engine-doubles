@@ -181,6 +181,7 @@ define_enum_with_from_str! {
         RUSTEDSWORD,
         RUSTEDSHIELD,
         SCOPELENS,
+        TERRAINEXTENDER,
     },
     default = UNKNOWNITEM
 }

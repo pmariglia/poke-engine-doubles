@@ -1369,6 +1369,21 @@ pub fn choice_special_effect(
 ) {
     let attacking_side = state.get_side(attacking_side_ref);
     match choice.move_id {
+        Choices::TAILWIND => {
+            let partner_slot_ref = attacking_slot_ref.get_other_slot();
+            let ally_pkmn = attacking_side.get_active_immutable(&partner_slot_ref);
+            if ally_pkmn.ability == Abilities::WINDRIDER {
+                instructions
+                    .instruction_list
+                    .push(Instruction::Boost(BoostInstruction {
+                        side_ref: *attacking_side_ref,
+                        slot_ref: partner_slot_ref,
+                        stat: PokemonBoostableStat::Attack,
+                        amount: 1,
+                    }));
+                attacking_side.get_slot(&partner_slot_ref).attack_boost += 1;
+            }
+        }
         Choices::LIFEDEW => {
             get_instructions_from_heal(
                 state,

@@ -4814,6 +4814,10 @@ lazy_static! {
                     reflectable: true,
                     ..Default::default()
                 },
+                heal: Some(Heal {
+                    target: MoveTarget::Target,
+                    amount: 0.5,
+                }),
                 ..Default::default()
             },
         );

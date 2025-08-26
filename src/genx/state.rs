@@ -643,7 +643,7 @@ impl Pokemon {
                 }
             }
             // targeting ally and enemies makes sense
-            Choices::POLLENPUFF | Choices::BEATUP if partner_alive => {
+            Choices::POLLENPUFF | Choices::BEATUP | Choices::FLORALHEALING if partner_alive => {
                 vec.push(MoveChoice::Move(
                     slot_ref.get_other_slot(),
                     *side_ref,

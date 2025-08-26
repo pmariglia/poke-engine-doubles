@@ -1467,6 +1467,14 @@ pub fn choice_special_effect(
                 });
             }
         }
+        Choices::FLORALHEALING => {
+            if state.terrain_is_active(&Terrain::GRASSYTERRAIN) {
+                choice.heal = Some(Heal {
+                    target: MoveTarget::Target,
+                    amount: 2.0 / 3.0,
+                });
+            }
+        }
         Choices::BELLYDRUM => {
             let (attacker, attacker_index) =
                 attacking_side.get_active_with_index(attacking_slot_ref);

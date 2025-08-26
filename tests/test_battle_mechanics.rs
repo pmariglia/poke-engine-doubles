@@ -4174,6 +4174,53 @@ fn test_pollen_puff_healing_own_side() {
 }
 
 #[test]
+fn test_floral_healing_own_side_and_other_side() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[1].hp = 25;
+    state.side_two.pokemon.pkmn[1].hp = 25;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::FLORALHEALING,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice {
+            choice: Choices::FLORALHEALING,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Heal(HealInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P1,
+                heal_amount: 50,
+            }),
+            Instruction::Heal(HealInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P1,
+                heal_amount: 50,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_covertcloak_prevents_flinch() {
     let mut state = State::default();
     state.side_two.pokemon.pkmn[1].item = Items::COVERTCLOAK;

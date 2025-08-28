@@ -860,16 +860,32 @@ fn get_instructions_from_status_effects(
     let target_side_active = target_slot.active_index;
     let target_pkmn = target_side.get_active(&target_slot_ref);
 
-    let status_hit_instruction = Instruction::ChangeStatus(ChangeStatusInstruction {
-        side_ref: target_side_ref,
-        pokemon_index: target_side_active,
-        old_status: target_pkmn.status,
-        new_status: status.status,
-    });
-    target_pkmn.status = status.status;
-    incoming_instructions
-        .instruction_list
-        .push(status_hit_instruction);
+    let instruction = if target_pkmn.item == Items::LUMBERRY {
+        target_pkmn.item = Items::NONE;
+        Instruction::ChangeItem(ChangeItemInstruction {
+            side_ref: target_side_ref,
+            pokemon_index: target_side_active,
+            current_item: Items::LUMBERRY,
+            new_item: Items::NONE,
+        })
+    } else if target_pkmn.item == Items::CHESTOBERRY && status.status == PokemonStatus::SLEEP {
+        target_pkmn.item = Items::NONE;
+        Instruction::ChangeItem(ChangeItemInstruction {
+            side_ref: target_side_ref,
+            pokemon_index: target_side_active,
+            current_item: Items::CHESTOBERRY,
+            new_item: Items::NONE,
+        })
+    } else {
+        let old_status = target_pkmn.status;
+        Instruction::ChangeStatus(ChangeStatusInstruction {
+            side_ref: target_side_ref,
+            pokemon_index: target_side_active,
+            old_status,
+            new_status: status.status,
+        })
+    };
+    incoming_instructions.instruction_list.push(instruction);
 }
 
 pub fn get_boost_amount(

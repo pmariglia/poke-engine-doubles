@@ -2280,6 +2280,39 @@ fn test_being_slept_into_spread_move() {
 }
 
 #[test]
+fn test_being_slept_into_lumberry() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].item = Items::LUMBERRY;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::SPORE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![Instruction::ChangeItem(ChangeItemInstruction {
+            side_ref: SideReference::SideOne,
+            pokemon_index: PokemonIndex::P0,
+            current_item: Items::LUMBERRY,
+            new_item: Items::NONE,
+        })],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_switching_out_while_slept() {
     let mut state = State::default();
     state.side_one.pokemon.pkmn[0].status = PokemonStatus::SLEEP;

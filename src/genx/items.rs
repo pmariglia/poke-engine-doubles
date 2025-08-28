@@ -4,14 +4,13 @@ use super::generate_instructions::{apply_boost_instructions, immune_to_status};
 use super::state::Terrain;
 use crate::choices::{Choice, Choices, Effect, MoveCategory, MoveTarget, Secondary, StatBoosts};
 use crate::define_enum_with_from_str;
-use crate::engine::generate_instructions::add_remove_status_instructions;
 use crate::instruction::{
     ChangeItemInstruction, ChangeStatusInstruction, DamageInstruction, DisableMoveInstruction,
     HealInstruction, Instruction, StateInstructions,
 };
 use crate::pokemon::PokemonName;
 use crate::state::{
-    Pokemon, PokemonBoostableStat, PokemonIndex, PokemonStatus, PokemonType, Side, SideReference,
+    Pokemon, PokemonBoostableStat, PokemonIndex, PokemonStatus, PokemonType, SideReference,
     SlotReference, State,
 };
 use std::cmp;
@@ -263,31 +262,6 @@ Regarding berries:
     move AND at the end-of-turn should be accurate enough for a simulation. The item is
     removed after this is triggered so only one will take effect
 */
-fn lum_berry(
-    active_pkmn: &mut Pokemon,
-    active_index: PokemonIndex,
-    side_ref: &SideReference,
-    instructions: &mut StateInstructions,
-) {
-    instructions
-        .instruction_list
-        .push(Instruction::ChangeStatus(ChangeStatusInstruction {
-            side_ref: *side_ref,
-            pokemon_index: active_index,
-            new_status: PokemonStatus::NONE,
-            old_status: active_pkmn.status,
-        }));
-    active_pkmn.status = PokemonStatus::NONE;
-    instructions
-        .instruction_list
-        .push(Instruction::ChangeItem(ChangeItemInstruction {
-            side_ref: *side_ref,
-            pokemon_index: active_index,
-            current_item: Items::LUMBERRY,
-            new_item: Items::NONE,
-        }));
-    active_pkmn.item = Items::NONE;
-}
 
 fn sitrus_berry(
     active_pkmn: &mut Pokemon,
@@ -313,24 +287,6 @@ fn sitrus_berry(
             new_item: Items::NONE,
         }));
     active_pkmn.item = Items::NONE;
-}
-
-fn chesto_berry(
-    attacking_side: &mut Side,
-    active_index: PokemonIndex,
-    side_ref: &SideReference,
-    instructions: &mut StateInstructions,
-) {
-    instructions
-        .instruction_list
-        .push(Instruction::ChangeItem(ChangeItemInstruction {
-            side_ref: *side_ref,
-            pokemon_index: active_index,
-            current_item: Items::CHESTOBERRY,
-            new_item: Items::NONE,
-        }));
-    attacking_side.pokemon[&active_index].item = Items::NONE;
-    add_remove_status_instructions(instructions, active_index, *side_ref, attacking_side);
 }
 
 fn boost_berry(
@@ -795,9 +751,6 @@ pub fn item_before_move(
             PokemonType::FAIRY,
             instructions,
         ),
-        Items::LUMBERRY if active_pkmn.status != PokemonStatus::NONE => {
-            lum_berry(active_pkmn, active_index, attacking_side_ref, instructions)
-        }
         Items::SITRUSBERRY
             if active_pkmn.ability == Abilities::GLUTTONY
                 && active_pkmn.hp <= active_pkmn.maxhp / 2 =>
@@ -807,12 +760,6 @@ pub fn item_before_move(
         Items::SITRUSBERRY if active_pkmn.hp <= active_pkmn.maxhp / 4 => {
             sitrus_berry(active_pkmn, active_index, attacking_side_ref, instructions)
         }
-        Items::CHESTOBERRY if active_pkmn.status == PokemonStatus::SLEEP => chesto_berry(
-            attacking_side,
-            active_index,
-            attacking_side_ref,
-            instructions,
-        ),
         Items::PETAYABERRY if active_pkmn.hp <= active_pkmn.maxhp / 4 => boost_berry(
             state,
             attacking_side_ref,
@@ -970,14 +917,8 @@ pub fn item_end_of_turn(
     let active_pkmn_index = attacking_side.get_slot_immutable(slot_ref).active_index;
     let active_pkmn = attacking_side.get_active(slot_ref);
     match active_pkmn.item {
-        Items::LUMBERRY if active_pkmn.status != PokemonStatus::NONE => {
-            lum_berry(active_pkmn, active_pkmn_index, side_ref, instructions)
-        }
         Items::SITRUSBERRY if active_pkmn.hp <= active_pkmn.maxhp / 2 => {
             sitrus_berry(active_pkmn, active_pkmn_index, side_ref, instructions)
-        }
-        Items::CHESTOBERRY if active_pkmn.status == PokemonStatus::SLEEP => {
-            chesto_berry(attacking_side, active_pkmn_index, side_ref, instructions)
         }
         Items::BLACKSLUDGE => {
             if active_pkmn.has_type(&PokemonType::POISON) {

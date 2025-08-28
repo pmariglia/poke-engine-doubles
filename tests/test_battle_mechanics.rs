@@ -1695,8 +1695,104 @@ fn test_seed_sower_sets_grassy_terrain() {
                 previous_terrain: Terrain::NONE,
                 previous_terrain_turns_remaining: 0,
             }),
+            Instruction::Heal(HealInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                heal_amount: 6,
+            }),
             Instruction::DecrementTerrainTurnsRemaining,
         ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_grassyterrain_does_not_overheal() {
+    let mut state = State::default();
+    state.side_two.pokemon.pkmn[0].hp = 97;
+    state.terrain.terrain_type = Terrain::GRASSYTERRAIN;
+    state.terrain.turns_remaining = 3;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Heal(HealInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                heal_amount: 3,
+            }),
+            Instruction::DecrementTerrainTurnsRemaining,
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_grassyterrain_does_not_heal_when_dead() {
+    let mut state = State::default();
+    state.side_two.pokemon.pkmn[0].hp = 40;
+    state.terrain.terrain_type = Terrain::GRASSYTERRAIN;
+    state.terrain.turns_remaining = 3;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::TACKLE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 40,
+            }),
+            Instruction::DecrementTerrainTurnsRemaining,
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_grassyterrain_does_not_heal_when_airborne() {
+    let mut state = State::default();
+    state.side_two.pokemon.pkmn[0].hp = 40;
+    state.side_two.pokemon.pkmn[0].types.0 = PokemonType::FLYING;
+    state.terrain.terrain_type = Terrain::GRASSYTERRAIN;
+    state.terrain.turns_remaining = 3;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![Instruction::DecrementTerrainTurnsRemaining],
     }];
     assert_eq!(expected_instructions, vec_of_instructions);
 }

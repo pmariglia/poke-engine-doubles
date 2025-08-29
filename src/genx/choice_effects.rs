@@ -23,6 +23,19 @@ use crate::state::{
 };
 use std::cmp;
 
+const CHOICE_THAWS_USER: [Choices; 10] = [
+    Choices::FLAMEWHEEL,
+    Choices::SACREDFIRE,
+    Choices::FLAREBLITZ,
+    Choices::FUSIONFLARE,
+    Choices::SCALD,
+    Choices::STEAMERUPTION,
+    Choices::BURNUP,
+    Choices::PYROBALL,
+    Choices::SCORCHINGSANDS,
+    Choices::MATCHAGOTCHA,
+];
+
 pub fn choice_change_type(
     state: &mut State,
     attacker_choice: &mut Choice,
@@ -1053,6 +1066,22 @@ pub fn choice_before_move(
         choice,
         instructions,
     );
+
+    if attacking_side
+        .get_active_immutable(attacking_slot_ref)
+        .status
+        == PokemonStatus::FREEZE
+        && CHOICE_THAWS_USER.contains(&choice.move_id)
+    {
+        add_remove_status_instructions(
+            instructions,
+            attacking_side
+                .get_slot_immutable(attacking_slot_ref)
+                .active_index,
+            *attacking_side_ref,
+            attacking_side,
+        );
+    }
 
     let (attacker, attacker_index) = attacking_side.get_active_with_index(attacking_slot_ref);
     match choice.move_id {

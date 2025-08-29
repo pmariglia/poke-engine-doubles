@@ -744,6 +744,46 @@ fn test_scrappy_can_hit_terastallized_ghost_type() {
 }
 
 #[test]
+fn test_scald_always_thaws_user() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].status = PokemonStatus::FREEZE;
+    state.side_two.pokemon.pkmn[0].types.0 = PokemonType::FIRE;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::SCALD,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::ChangeStatus(ChangeStatusInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                old_status: PokemonStatus::FREEZE,
+                new_status: PokemonStatus::NONE,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 100,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_disguise_totem_form() {
     let mut state = State::default();
     state.side_two.pokemon.pkmn[0].ability = Abilities::DISGUISE;

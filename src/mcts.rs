@@ -158,6 +158,23 @@ impl Node {
         chosen_node_ptr
     }
 
+    fn should_not_expand(
+        &self,
+        state: &State,
+        s1_move: &(MoveChoice, MoveChoice),
+        s2_move: &(MoveChoice, MoveChoice),
+    ) -> bool {
+        if (state.battle_is_over() != 0.0 && !self.root)
+            || (s1_move == &(MoveChoice::None, MoveChoice::None)
+                && s2_move == &(MoveChoice::None, MoveChoice::None))
+            || (self.instructions.percentage < 15.0)
+        {
+            true
+        } else {
+            false
+        }
+    }
+
     pub unsafe fn expand(
         &mut self,
         state: &mut State,
@@ -169,11 +186,7 @@ impl Node {
         }
         let s1_move = &self.s1_options.as_ref().unwrap()[s1_move_index].move_choice;
         let s2_move = &self.s2_options.as_ref().unwrap()[s2_move_index].move_choice;
-        // if the battle is over or both moves are none there is no need to expand
-        if (state.battle_is_over() != 0.0 && !self.root)
-            || (s1_move == &(MoveChoice::None, MoveChoice::None)
-                && s2_move == &(MoveChoice::None, MoveChoice::None))
-        {
+        if self.should_not_expand(state, s1_move, s2_move) {
             return self as *mut Node;
         }
         let should_branch_on_damage = self.should_branch_on_damage();

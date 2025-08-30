@@ -5955,6 +5955,41 @@ fn test_mistyterrain_move_blocks_spore() {
 }
 
 #[test]
+fn test_ally_sweetveil_blocks_spore() {
+    let mut state = State::default();
+    state.side_two.pokemon.pkmn[0].ability = Abilities::SWEETVEIL;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::SPORE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice {
+            choice: Choices::SPORE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_parting_shot_into_clear_amulet_interaction() {
     let mut state = State::default();
     state.side_two.pokemon.pkmn[0].item = Items::CLEARAMULET;

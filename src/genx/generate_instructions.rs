@@ -751,6 +751,7 @@ pub fn immune_to_status(
     let target_side = state.get_side_immutable(target_side_ref);
     let target_slot = target_side.get_slot_immutable(slot_ref);
     let target_pkmn = target_side.get_active_immutable(slot_ref);
+    let target_ally = target_side.get_active_immutable(&slot_ref.get_other_slot());
     let attacking_pkmn = attacking_side.get_active_immutable(slot_ref);
 
     // General Status Immunity
@@ -801,6 +802,7 @@ pub fn immune_to_status(
                         Abilities::VITALSPIRIT,
                     ]
                     .contains(&target_pkmn.ability)
+                    || target_ally.ability == Abilities::SWEETVEIL
             }
 
             PokemonStatus::PARALYZE => {

@@ -878,6 +878,7 @@ fn get_instructions_from_status_effects(
         })
     } else {
         let old_status = target_pkmn.status;
+        target_pkmn.status = status.status;
         Instruction::ChangeStatus(ChangeStatusInstruction {
             side_ref: target_side_ref,
             pokemon_index: target_side_active,

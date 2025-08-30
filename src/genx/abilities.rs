@@ -2072,6 +2072,7 @@ pub fn ability_modify_attack_being_used(
 ) {
     let attacking_side = state.get_side_immutable(attacking_side_ref);
     let attacking_pkmn = attacking_side.get_active_immutable(attacking_slot_ref);
+    let ally_pkmn = attacking_side.get_active_immutable(&attacking_slot_ref.get_other_slot());
     if state.neutralizing_gas_is_active() && attacking_pkmn.item != Items::ABILITYSHIELD {
         return;
     }
@@ -2409,6 +2410,23 @@ pub fn ability_modify_attack_being_used(
             {
                 attacker_choice.base_power *= 1.5;
             }
+        }
+        _ => {}
+    }
+
+    match ally_pkmn.ability {
+        Abilities::STEELYSPIRIT => {
+            if attacker_choice.move_type == PokemonType::STEEL {
+                attacker_choice.base_power *= 1.5;
+            };
+        }
+        Abilities::BATTERY => {
+            if attacker_choice.category == MoveCategory::Special {
+                attacker_choice.base_power *= 1.3;
+            };
+        }
+        Abilities::POWERSPOT => {
+            attacker_choice.base_power *= 1.3;
         }
         _ => {}
     }

@@ -6074,6 +6074,102 @@ fn test_ally_sweetveil_blocks_spore() {
 }
 
 #[test]
+fn test_steely_spirit_boosts_ally_move() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[1].ability = Abilities::STEELYSPIRIT;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::ANCHORSHOT,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![Instruction::Damage(DamageInstruction {
+            side_ref: SideReference::SideTwo,
+            pokemon_index: PokemonIndex::P0,
+            damage_amount: 94,
+        })],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_battery_damage_boost() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[1].ability = Abilities::BATTERY;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::WATERGUN,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![Instruction::Damage(DamageInstruction {
+            side_ref: SideReference::SideTwo,
+            pokemon_index: PokemonIndex::P0,
+            damage_amount: 41,
+        })],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_powerspot_damage_boost() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[1].ability = Abilities::POWERSPOT;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::WATERGUN,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![Instruction::Damage(DamageInstruction {
+            side_ref: SideReference::SideTwo,
+            pokemon_index: PokemonIndex::P0,
+            damage_amount: 41,
+        })],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_parting_shot_into_clear_amulet_interaction() {
     let mut state = State::default();
     state.side_two.pokemon.pkmn[0].item = Items::CLEARAMULET;

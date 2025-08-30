@@ -2419,12 +2419,10 @@ pub fn generate_instructions_from_move(
             {
                 choices.push((choice.clone(), other_side_ref, SlotReference::SlotB))
             }
-            if state
+            let ally_pkmn = state
                 .get_side_immutable(&attacking_side)
-                .get_active_immutable(&attacking_slot.get_other_slot())
-                .hp
-                > 0
-            {
+                .get_active_immutable(&attacking_slot.get_other_slot());
+            if ally_pkmn.hp > 0 && ally_pkmn.ability != Abilities::TELEPATHY {
                 choices.push((
                     choice.clone(),
                     attacking_side,

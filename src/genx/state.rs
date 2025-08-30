@@ -898,6 +898,7 @@ impl Pokemon {
         &self,
         volatile_status: &PokemonVolatileStatus,
         active_volatiles: &HashSet<PokemonVolatileStatus>,
+        ally_pkmn: &Pokemon,
         first_move: bool,
     ) -> bool {
         if active_volatiles.contains(volatile_status) || self.hp == 0 {
@@ -931,7 +932,9 @@ impl Pokemon {
             | PokemonVolatileStatus::ENCORE
             | PokemonVolatileStatus::DISABLE
             | PokemonVolatileStatus::HEALBLOCK
-            | PokemonVolatileStatus::ATTRACT => self.ability != Abilities::AROMAVEIL,
+            | PokemonVolatileStatus::ATTRACT => {
+                self.ability != Abilities::AROMAVEIL && ally_pkmn.ability != Abilities::AROMAVEIL
+            }
             _ => true,
         }
     }

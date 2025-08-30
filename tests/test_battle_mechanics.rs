@@ -256,6 +256,39 @@ fn test_basic_switching() {
 }
 
 #[test]
+fn test_taunt_into_aromaveil() {
+    let mut state = State::default();
+    state.side_two.pokemon.pkmn[0].ability = Abilities::AROMAVEIL;
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::TAUNT,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice {
+            choice: Choices::TAUNT,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_switching_with_volatile_status_durations() {
     let mut state = State::default();
     state.side_one.slot_a.volatile_status_durations.confusion = 1;

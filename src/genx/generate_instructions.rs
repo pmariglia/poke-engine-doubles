@@ -659,6 +659,7 @@ fn get_instructions_from_volatile_statuses(
         .volatile_status_can_be_applied(
             &volatile_status.volatile_status,
             &side.get_slot_immutable(&target_slot_ref).volatile_statuses,
+            side.get_active_immutable(&target_slot_ref.get_other_slot()),
             attacker_choice.first_move,
         )
     {

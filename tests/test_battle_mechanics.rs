@@ -6923,6 +6923,43 @@ fn test_fainted_followme_does_not_redirect() {
 }
 
 #[test]
+fn test_switching_in_with_hospitality_heals_ally_without_overhealing() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].hp -= 10;
+    state.side_one.pokemon.pkmn[2].ability = Abilities::HOSPITALITY;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::Switch(PokemonIndex::P2),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Switch(SwitchInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                previous_index: PokemonIndex::P1,
+                next_index: PokemonIndex::P2,
+            }),
+            Instruction::Heal(HealInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                heal_amount: 10,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_commander_switch_in_when_dondozo_is_on_the_field() {
     let mut state = State::default();
     state.side_one.pokemon.pkmn[0].id = PokemonName::DONDOZO;

@@ -1586,478 +1586,493 @@ pub fn ability_on_switch_in(
         .ability;
     let attacking_side = state.get_side(side_ref);
     let (active_pkmn, active_index) = attacking_side.get_active_with_index(slot_ref);
-    if neutralizing_gas_active && active_pkmn.item != Items::ABILITYSHIELD {
-        return;
-    }
-
-    // trace copying an ability needs to happen before the ability check to activate on switch-in
-    // e.g. tracing intimidate will activate intimidate
-    // Imperfect: trace copies a random opponent's ability
-    // but this code assumes it copies the opposite Pokemon's ability
-    if active_pkmn.ability == Abilities::TRACE && defender_ability != Abilities::TRACE {
-        instructions
-            .instruction_list
-            .push(Instruction::ChangeAbility(ChangeAbilityInstruction {
-                side_ref: *side_ref,
-                pokemon_index: active_index,
-                ability_change: defender_ability as i16 - active_pkmn.ability as i16,
-            }));
-        active_pkmn.ability = defender_ability;
-    }
-
-    match active_pkmn.ability {
-        Abilities::COMMANDER => {
-            let active_pkmn_ally = state
-                .get_side(side_ref)
-                .get_active_immutable(&slot_ref.get_other_slot());
-            if active_pkmn_ally.id == PokemonName::DONDOZO {
-                commander_activating(state, side_ref, slot_ref, instructions);
-            }
-        }
-        Abilities::ICEFACE if active_pkmn.id == PokemonName::EISCUENOICE => {
-            let state_active_weather = state.get_weather();
-            if state_active_weather == Weather::HAIL || state_active_weather == Weather::SNOW {
-                let active_pkmn = state.get_side(side_ref).get_active(slot_ref);
-                instructions.instruction_list.push(Instruction::FormeChange(
-                    FormeChangeInstruction {
-                        side_ref: *side_ref,
-                        pokemon_index: active_index,
-                        name_change: PokemonName::EISCUE as i16 - active_pkmn.id as i16,
-                    },
-                ));
-                active_pkmn.id = PokemonName::EISCUE;
-                active_pkmn.recalculate_stats(side_ref, active_index, instructions);
-            }
-        }
-        Abilities::PROTOSYNTHESIS => {
-            let sun_is_active = state.weather_is_active(&Weather::SUN);
-            let attacking_side = state.get_side(side_ref);
-            let volatile = protosynthesis_volatile_from_side(&attacking_side, slot_ref);
-            protosynthesus_or_quarkdrive_on_switch_in(
-                sun_is_active,
-                volatile,
-                instructions,
-                attacking_side,
-                side_ref,
-                slot_ref,
-            );
-        }
-        Abilities::QUARKDRIVE => {
-            let electric_terrain_is_active = state.terrain_is_active(&Terrain::ELECTRICTERRAIN);
-            let attacking_side = state.get_side(side_ref);
-            let volatile = quarkdrive_volatile_from_side(&attacking_side, slot_ref);
-            protosynthesus_or_quarkdrive_on_switch_in(
-                electric_terrain_is_active,
-                volatile,
-                instructions,
-                attacking_side,
-                side_ref,
-                slot_ref,
-            );
-        }
-        Abilities::EMBODYASPECTTEAL => {
-            apply_boost_instructions(
-                attacking_side,
-                &PokemonBoostableStat::Speed,
-                &1,
-                side_ref,
-                side_ref,
-                slot_ref,
-                instructions,
-            );
-        }
-        Abilities::EMBODYASPECTWELLSPRING => {
-            apply_boost_instructions(
-                attacking_side,
-                &PokemonBoostableStat::SpecialDefense,
-                &1,
-                side_ref,
-                side_ref,
-                slot_ref,
-                instructions,
-            );
-        }
-        Abilities::EMBODYASPECTCORNERSTONE => {
-            apply_boost_instructions(
-                attacking_side,
-                &PokemonBoostableStat::Defense,
-                &1,
-                side_ref,
-                side_ref,
-                slot_ref,
-                instructions,
-            );
-        }
-        Abilities::EMBODYASPECTHEARTHFLAME => {
-            apply_boost_instructions(
-                attacking_side,
-                &PokemonBoostableStat::Attack,
-                &1,
-                side_ref,
-                side_ref,
-                slot_ref,
-                instructions,
-            );
-        }
-        Abilities::INTREPIDSWORD => {
-            // no need to check for boost at +6 because we are switching in
-            attacking_side.get_slot(slot_ref).attack_boost += 1;
+    if !neutralizing_gas_active || active_pkmn.item == Items::ABILITYSHIELD {
+        // trace copying an ability needs to happen before the ability check to activate on switch-in
+        // e.g. tracing intimidate will activate intimidate
+        // Imperfect: trace copies a random opponent's ability
+        // but this code assumes it copies the opposite Pokemon's ability
+        if active_pkmn.ability == Abilities::TRACE && defender_ability != Abilities::TRACE {
             instructions
                 .instruction_list
-                .push(Instruction::Boost(BoostInstruction {
+                .push(Instruction::ChangeAbility(ChangeAbilityInstruction {
                     side_ref: *side_ref,
-                    slot_ref: *slot_ref,
-                    stat: PokemonBoostableStat::Attack,
-                    amount: 1,
+                    pokemon_index: active_index,
+                    ability_change: defender_ability as i16 - active_pkmn.ability as i16,
                 }));
+            active_pkmn.ability = defender_ability;
         }
-        Abilities::SLOWSTART => {
-            let attacking_slot = attacking_side.get_slot(slot_ref);
-            instructions
-                .instruction_list
-                .push(Instruction::ApplyVolatileStatus(
-                    ApplyVolatileStatusInstruction {
-                        side_ref: *side_ref,
-                        slot_ref: *slot_ref,
-                        volatile_status: PokemonVolatileStatus::SLOWSTART,
-                    },
-                ));
-            instructions
-                .instruction_list
-                .push(Instruction::ChangeVolatileStatusDuration(
-                    ChangeVolatileStatusDurationInstruction {
-                        side_ref: *side_ref,
-                        slot_ref: *slot_ref,
-                        volatile_status: PokemonVolatileStatus::SLOWSTART,
-                        amount: 6 - attacking_slot.volatile_status_durations.slowstart,
-                    },
-                ));
-            attacking_slot
-                .volatile_statuses
-                .insert(PokemonVolatileStatus::SLOWSTART);
-            attacking_slot.volatile_status_durations.slowstart = 6;
-        }
-        Abilities::DROUGHT | Abilities::ORICHALCUMPULSE => {
-            if state.weather.weather_type != Weather::SUN {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeWeather(ChangeWeather {
-                        new_weather: Weather::SUN,
-                        new_weather_turns_remaining: WEATHER_ABILITY_TURNS,
-                        previous_weather: state.weather.weather_type,
-                        previous_weather_turns_remaining: state.weather.turns_remaining,
-                    }));
-                state.weather.weather_type = Weather::SUN;
-                state.weather.turns_remaining = WEATHER_ABILITY_TURNS;
-            }
-        }
-        Abilities::DESOLATELAND => {
-            if state.weather.weather_type != Weather::HARSHSUN {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeWeather(ChangeWeather {
-                        new_weather: Weather::HARSHSUN,
-                        new_weather_turns_remaining: -1,
-                        previous_weather: state.weather.weather_type,
-                        previous_weather_turns_remaining: state.weather.turns_remaining,
-                    }));
-                state.weather.weather_type = Weather::HARSHSUN;
-                state.weather.turns_remaining = -1;
-            }
-        }
-        Abilities::MISTYSURGE => {
-            if state.terrain.terrain_type != Terrain::MISTYTERRAIN {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeTerrain(ChangeTerrain {
-                        new_terrain: Terrain::MISTYTERRAIN,
-                        new_terrain_turns_remaining: 5,
-                        previous_terrain: state.terrain.terrain_type,
-                        previous_terrain_turns_remaining: state.terrain.turns_remaining,
-                    }));
-                state.terrain.terrain_type = Terrain::MISTYTERRAIN;
-                state.terrain.turns_remaining = 5;
-            }
-        }
-        Abilities::SANDSTREAM => {
-            if state.weather.weather_type != Weather::SAND {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeWeather(ChangeWeather {
-                        new_weather: Weather::SAND,
-                        new_weather_turns_remaining: WEATHER_ABILITY_TURNS,
-                        previous_weather: state.weather.weather_type,
-                        previous_weather_turns_remaining: state.weather.turns_remaining,
-                    }));
-                state.weather.weather_type = Weather::SAND;
-                state.weather.turns_remaining = WEATHER_ABILITY_TURNS;
-            }
-        }
-        Abilities::INTIMIDATE => {
-            // apply intimidate -1 to other side
-            // if intimidate hit:
-            //   - try to apply adrenaline orb boost if they have it. If they do, remove the item
-            //   - apply adrenaline orb boost if they have it
 
-            for slot in [SlotReference::SlotA, SlotReference::SlotB] {
-                let defending_side = state.get_side(&side_ref.get_other_side());
-
-                // technically incorrect
-                // these abilities nullifying intimidate should check for adrenaline orb
-                if [
-                    Abilities::OWNTEMPO,
-                    Abilities::OBLIVIOUS,
-                    Abilities::INNERFOCUS,
-                    Abilities::SCRAPPY,
-                ]
-                .contains(&defending_side.get_active_immutable(&slot).ability)
-                {
-                    continue;
+        match active_pkmn.ability {
+            Abilities::COMMANDER => {
+                let active_pkmn_ally = state
+                    .get_side(side_ref)
+                    .get_active_immutable(&slot_ref.get_other_slot());
+                if active_pkmn_ally.id == PokemonName::DONDOZO {
+                    commander_activating(state, side_ref, slot_ref, instructions);
                 }
-
-                if apply_boost_instructions(
-                    defending_side,
-                    &PokemonBoostableStat::Attack,
-                    &-1,
-                    side_ref,
-                    &side_ref.get_other_side(),
-                    &slot,
+            }
+            Abilities::ICEFACE if active_pkmn.id == PokemonName::EISCUENOICE => {
+                let state_active_weather = state.get_weather();
+                if state_active_weather == Weather::HAIL || state_active_weather == Weather::SNOW {
+                    let active_pkmn = state.get_side(side_ref).get_active(slot_ref);
+                    instructions.instruction_list.push(Instruction::FormeChange(
+                        FormeChangeInstruction {
+                            side_ref: *side_ref,
+                            pokemon_index: active_index,
+                            name_change: PokemonName::EISCUE as i16 - active_pkmn.id as i16,
+                        },
+                    ));
+                    active_pkmn.id = PokemonName::EISCUE;
+                    active_pkmn.recalculate_stats(side_ref, active_index, instructions);
+                }
+            }
+            Abilities::PROTOSYNTHESIS => {
+                let sun_is_active = state.weather_is_active(&Weather::SUN);
+                let attacking_side = state.get_side(side_ref);
+                let volatile = protosynthesis_volatile_from_side(&attacking_side, slot_ref);
+                protosynthesus_or_quarkdrive_on_switch_in(
+                    sun_is_active,
+                    volatile,
                     instructions,
-                ) {
-                    let (defender, pkmn_index) = defending_side.get_active_with_index(slot_ref);
-                    if defender.item == Items::ADRENALINEORB {
-                        if apply_boost_instructions(
-                            defending_side,
-                            &PokemonBoostableStat::Speed,
-                            &1,
-                            &side_ref.get_other_side(),
-                            &side_ref.get_other_side(),
-                            &slot,
-                            instructions,
-                        ) {
-                            instructions.instruction_list.push(Instruction::ChangeItem(
-                                ChangeItemInstruction {
-                                    side_ref: side_ref.get_other_side(),
-                                    pokemon_index: pkmn_index,
-                                    current_item: Items::ADRENALINEORB,
-                                    new_item: Items::NONE,
-                                },
-                            ));
-                            defending_side.get_active(&slot).item = Items::NONE;
+                    attacking_side,
+                    side_ref,
+                    slot_ref,
+                );
+            }
+            Abilities::QUARKDRIVE => {
+                let electric_terrain_is_active = state.terrain_is_active(&Terrain::ELECTRICTERRAIN);
+                let attacking_side = state.get_side(side_ref);
+                let volatile = quarkdrive_volatile_from_side(&attacking_side, slot_ref);
+                protosynthesus_or_quarkdrive_on_switch_in(
+                    electric_terrain_is_active,
+                    volatile,
+                    instructions,
+                    attacking_side,
+                    side_ref,
+                    slot_ref,
+                );
+            }
+            Abilities::EMBODYASPECTTEAL => {
+                apply_boost_instructions(
+                    attacking_side,
+                    &PokemonBoostableStat::Speed,
+                    &1,
+                    side_ref,
+                    side_ref,
+                    slot_ref,
+                    instructions,
+                );
+            }
+            Abilities::EMBODYASPECTWELLSPRING => {
+                apply_boost_instructions(
+                    attacking_side,
+                    &PokemonBoostableStat::SpecialDefense,
+                    &1,
+                    side_ref,
+                    side_ref,
+                    slot_ref,
+                    instructions,
+                );
+            }
+            Abilities::EMBODYASPECTCORNERSTONE => {
+                apply_boost_instructions(
+                    attacking_side,
+                    &PokemonBoostableStat::Defense,
+                    &1,
+                    side_ref,
+                    side_ref,
+                    slot_ref,
+                    instructions,
+                );
+            }
+            Abilities::EMBODYASPECTHEARTHFLAME => {
+                apply_boost_instructions(
+                    attacking_side,
+                    &PokemonBoostableStat::Attack,
+                    &1,
+                    side_ref,
+                    side_ref,
+                    slot_ref,
+                    instructions,
+                );
+            }
+            Abilities::INTREPIDSWORD => {
+                // no need to check for boost at +6 because we are switching in
+                attacking_side.get_slot(slot_ref).attack_boost += 1;
+                instructions
+                    .instruction_list
+                    .push(Instruction::Boost(BoostInstruction {
+                        side_ref: *side_ref,
+                        slot_ref: *slot_ref,
+                        stat: PokemonBoostableStat::Attack,
+                        amount: 1,
+                    }));
+            }
+            Abilities::SLOWSTART => {
+                let attacking_slot = attacking_side.get_slot(slot_ref);
+                instructions
+                    .instruction_list
+                    .push(Instruction::ApplyVolatileStatus(
+                        ApplyVolatileStatusInstruction {
+                            side_ref: *side_ref,
+                            slot_ref: *slot_ref,
+                            volatile_status: PokemonVolatileStatus::SLOWSTART,
+                        },
+                    ));
+                instructions
+                    .instruction_list
+                    .push(Instruction::ChangeVolatileStatusDuration(
+                        ChangeVolatileStatusDurationInstruction {
+                            side_ref: *side_ref,
+                            slot_ref: *slot_ref,
+                            volatile_status: PokemonVolatileStatus::SLOWSTART,
+                            amount: 6 - attacking_slot.volatile_status_durations.slowstart,
+                        },
+                    ));
+                attacking_slot
+                    .volatile_statuses
+                    .insert(PokemonVolatileStatus::SLOWSTART);
+                attacking_slot.volatile_status_durations.slowstart = 6;
+            }
+            Abilities::DROUGHT | Abilities::ORICHALCUMPULSE => {
+                if state.weather.weather_type != Weather::SUN {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeWeather(ChangeWeather {
+                            new_weather: Weather::SUN,
+                            new_weather_turns_remaining: WEATHER_ABILITY_TURNS,
+                            previous_weather: state.weather.weather_type,
+                            previous_weather_turns_remaining: state.weather.turns_remaining,
+                        }));
+                    state.weather.weather_type = Weather::SUN;
+                    state.weather.turns_remaining = WEATHER_ABILITY_TURNS;
+                }
+            }
+            Abilities::DESOLATELAND => {
+                if state.weather.weather_type != Weather::HARSHSUN {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeWeather(ChangeWeather {
+                            new_weather: Weather::HARSHSUN,
+                            new_weather_turns_remaining: -1,
+                            previous_weather: state.weather.weather_type,
+                            previous_weather_turns_remaining: state.weather.turns_remaining,
+                        }));
+                    state.weather.weather_type = Weather::HARSHSUN;
+                    state.weather.turns_remaining = -1;
+                }
+            }
+            Abilities::MISTYSURGE => {
+                if state.terrain.terrain_type != Terrain::MISTYTERRAIN {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeTerrain(ChangeTerrain {
+                            new_terrain: Terrain::MISTYTERRAIN,
+                            new_terrain_turns_remaining: 5,
+                            previous_terrain: state.terrain.terrain_type,
+                            previous_terrain_turns_remaining: state.terrain.turns_remaining,
+                        }));
+                    state.terrain.terrain_type = Terrain::MISTYTERRAIN;
+                    state.terrain.turns_remaining = 5;
+                }
+            }
+            Abilities::SANDSTREAM => {
+                if state.weather.weather_type != Weather::SAND {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeWeather(ChangeWeather {
+                            new_weather: Weather::SAND,
+                            new_weather_turns_remaining: WEATHER_ABILITY_TURNS,
+                            previous_weather: state.weather.weather_type,
+                            previous_weather_turns_remaining: state.weather.turns_remaining,
+                        }));
+                    state.weather.weather_type = Weather::SAND;
+                    state.weather.turns_remaining = WEATHER_ABILITY_TURNS;
+                }
+            }
+            Abilities::INTIMIDATE => {
+                // apply intimidate -1 to other side
+                // if intimidate hit:
+                //   - try to apply adrenaline orb boost if they have it. If they do, remove the item
+                //   - apply adrenaline orb boost if they have it
+
+                for slot in [SlotReference::SlotA, SlotReference::SlotB] {
+                    let defending_side = state.get_side(&side_ref.get_other_side());
+
+                    // technically incorrect
+                    // these abilities nullifying intimidate should check for adrenaline orb
+                    if [
+                        Abilities::OWNTEMPO,
+                        Abilities::OBLIVIOUS,
+                        Abilities::INNERFOCUS,
+                        Abilities::SCRAPPY,
+                    ]
+                    .contains(&defending_side.get_active_immutable(&slot).ability)
+                    {
+                        continue;
+                    }
+
+                    if apply_boost_instructions(
+                        defending_side,
+                        &PokemonBoostableStat::Attack,
+                        &-1,
+                        side_ref,
+                        &side_ref.get_other_side(),
+                        &slot,
+                        instructions,
+                    ) {
+                        let (defender, pkmn_index) = defending_side.get_active_with_index(slot_ref);
+                        if defender.item == Items::ADRENALINEORB {
+                            if apply_boost_instructions(
+                                defending_side,
+                                &PokemonBoostableStat::Speed,
+                                &1,
+                                &side_ref.get_other_side(),
+                                &side_ref.get_other_side(),
+                                &slot,
+                                instructions,
+                            ) {
+                                instructions.instruction_list.push(Instruction::ChangeItem(
+                                    ChangeItemInstruction {
+                                        side_ref: side_ref.get_other_side(),
+                                        pokemon_index: pkmn_index,
+                                        current_item: Items::ADRENALINEORB,
+                                        new_item: Items::NONE,
+                                    },
+                                ));
+                                defending_side.get_active(&slot).item = Items::NONE;
+                            }
                         }
                     }
                 }
             }
-        }
-        Abilities::DAUNTLESSSHIELD => {
-            // no need to check for boost at +6 because we are switching in
-            attacking_side.get_slot(slot_ref).defense_boost += 1;
-            instructions
-                .instruction_list
-                .push(Instruction::Boost(BoostInstruction {
-                    side_ref: *side_ref,
-                    slot_ref: *slot_ref,
-                    stat: PokemonBoostableStat::Defense,
-                    amount: 1,
-                }));
-        }
-        Abilities::GRASSYSURGE => {
-            if state.terrain.terrain_type != Terrain::GRASSYTERRAIN {
+            Abilities::DAUNTLESSSHIELD => {
+                // no need to check for boost at +6 because we are switching in
+                attacking_side.get_slot(slot_ref).defense_boost += 1;
                 instructions
                     .instruction_list
-                    .push(Instruction::ChangeTerrain(ChangeTerrain {
-                        new_terrain: Terrain::GRASSYTERRAIN,
-                        new_terrain_turns_remaining: 5,
-                        previous_terrain: state.terrain.terrain_type,
-                        previous_terrain_turns_remaining: state.terrain.turns_remaining,
+                    .push(Instruction::Boost(BoostInstruction {
+                        side_ref: *side_ref,
+                        slot_ref: *slot_ref,
+                        stat: PokemonBoostableStat::Defense,
+                        amount: 1,
                     }));
-                state.terrain.terrain_type = Terrain::GRASSYTERRAIN;
-                state.terrain.turns_remaining = 5;
             }
-        }
-        Abilities::ELECTRICSURGE | Abilities::HADRONENGINE => {
-            if state.terrain.terrain_type != Terrain::ELECTRICTERRAIN {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeTerrain(ChangeTerrain {
-                        new_terrain: Terrain::ELECTRICTERRAIN,
-                        new_terrain_turns_remaining: 5,
-                        previous_terrain: state.terrain.terrain_type,
-                        previous_terrain_turns_remaining: state.terrain.turns_remaining,
-                    }));
-                state.terrain.terrain_type = Terrain::ELECTRICTERRAIN;
-                state.terrain.turns_remaining = 5;
+            Abilities::GRASSYSURGE => {
+                if state.terrain.terrain_type != Terrain::GRASSYTERRAIN {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeTerrain(ChangeTerrain {
+                            new_terrain: Terrain::GRASSYTERRAIN,
+                            new_terrain_turns_remaining: 5,
+                            previous_terrain: state.terrain.terrain_type,
+                            previous_terrain_turns_remaining: state.terrain.turns_remaining,
+                        }));
+                    state.terrain.terrain_type = Terrain::GRASSYTERRAIN;
+                    state.terrain.turns_remaining = 5;
+                }
             }
-        }
-        Abilities::DOWNLOAD => {
-            let defending_side = state.get_side(&side_ref.get_other_side());
+            Abilities::ELECTRICSURGE | Abilities::HADRONENGINE => {
+                if state.terrain.terrain_type != Terrain::ELECTRICTERRAIN {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeTerrain(ChangeTerrain {
+                            new_terrain: Terrain::ELECTRICTERRAIN,
+                            new_terrain_turns_remaining: 5,
+                            previous_terrain: state.terrain.terrain_type,
+                            previous_terrain_turns_remaining: state.terrain.turns_remaining,
+                        }));
+                    state.terrain.terrain_type = Terrain::ELECTRICTERRAIN;
+                    state.terrain.turns_remaining = 5;
+                }
+            }
+            Abilities::DOWNLOAD => {
+                let defending_side = state.get_side(&side_ref.get_other_side());
 
-            let defending_side_def_sum = defending_side
-                .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Defense)
-                + defending_side
-                    .calculate_boosted_stat(&SlotReference::SlotB, PokemonBoostableStat::Defense);
-            let defending_side_spdef_sum = defending_side.calculate_boosted_stat(
-                &SlotReference::SlotA,
-                PokemonBoostableStat::SpecialDefense,
-            ) + defending_side.calculate_boosted_stat(
-                &SlotReference::SlotB,
-                PokemonBoostableStat::SpecialDefense,
-            );
-            let attacking_side = state.get_side(side_ref);
-            if defending_side_def_sum < defending_side_spdef_sum {
-                apply_boost_instructions(
-                    attacking_side,
-                    &PokemonBoostableStat::Attack,
-                    &1,
-                    side_ref,
-                    side_ref,
-                    slot_ref,
-                    instructions,
+                let defending_side_def_sum = defending_side
+                    .calculate_boosted_stat(&SlotReference::SlotA, PokemonBoostableStat::Defense)
+                    + defending_side.calculate_boosted_stat(
+                        &SlotReference::SlotB,
+                        PokemonBoostableStat::Defense,
+                    );
+                let defending_side_spdef_sum = defending_side.calculate_boosted_stat(
+                    &SlotReference::SlotA,
+                    PokemonBoostableStat::SpecialDefense,
+                ) + defending_side.calculate_boosted_stat(
+                    &SlotReference::SlotB,
+                    PokemonBoostableStat::SpecialDefense,
                 );
-            } else {
-                apply_boost_instructions(
-                    attacking_side,
-                    &PokemonBoostableStat::SpecialAttack,
-                    &1,
-                    side_ref,
-                    side_ref,
-                    slot_ref,
-                    instructions,
-                );
+                let attacking_side = state.get_side(side_ref);
+                if defending_side_def_sum < defending_side_spdef_sum {
+                    apply_boost_instructions(
+                        attacking_side,
+                        &PokemonBoostableStat::Attack,
+                        &1,
+                        side_ref,
+                        side_ref,
+                        slot_ref,
+                        instructions,
+                    );
+                } else {
+                    apply_boost_instructions(
+                        attacking_side,
+                        &PokemonBoostableStat::SpecialAttack,
+                        &1,
+                        side_ref,
+                        side_ref,
+                        slot_ref,
+                        instructions,
+                    );
+                }
             }
+            Abilities::PRIMORDIALSEA => {
+                if state.weather.weather_type != Weather::HEAVYRAIN {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeWeather(ChangeWeather {
+                            new_weather: Weather::HEAVYRAIN,
+                            new_weather_turns_remaining: -1,
+                            previous_weather: state.weather.weather_type,
+                            previous_weather_turns_remaining: state.weather.turns_remaining,
+                        }));
+                    state.weather.weather_type = Weather::HEAVYRAIN;
+                    state.weather.turns_remaining = -1;
+                }
+            }
+            Abilities::SCREENCLEANER => {
+                if state.side_one.side_conditions.reflect > 0 {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeSideCondition(
+                            ChangeSideConditionInstruction {
+                                side_ref: SideReference::SideOne,
+                                side_condition: PokemonSideCondition::Reflect,
+                                amount: -1 * state.side_one.side_conditions.reflect,
+                            },
+                        ));
+                    state.side_one.side_conditions.reflect = 0;
+                }
+                if state.side_two.side_conditions.reflect > 0 {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeSideCondition(
+                            ChangeSideConditionInstruction {
+                                side_ref: SideReference::SideTwo,
+                                side_condition: PokemonSideCondition::Reflect,
+                                amount: -1 * state.side_two.side_conditions.reflect,
+                            },
+                        ));
+                    state.side_two.side_conditions.reflect = 0;
+                }
+                if state.side_one.side_conditions.light_screen > 0 {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeSideCondition(
+                            ChangeSideConditionInstruction {
+                                side_ref: SideReference::SideOne,
+                                side_condition: PokemonSideCondition::LightScreen,
+                                amount: -1 * state.side_one.side_conditions.light_screen,
+                            },
+                        ));
+                    state.side_one.side_conditions.light_screen = 0;
+                }
+                if state.side_two.side_conditions.light_screen > 0 {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeSideCondition(
+                            ChangeSideConditionInstruction {
+                                side_ref: SideReference::SideTwo,
+                                side_condition: PokemonSideCondition::LightScreen,
+                                amount: -1 * state.side_two.side_conditions.light_screen,
+                            },
+                        ));
+                    state.side_two.side_conditions.light_screen = 0;
+                }
+                if state.side_one.side_conditions.aurora_veil > 0 {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeSideCondition(
+                            ChangeSideConditionInstruction {
+                                side_ref: SideReference::SideOne,
+                                side_condition: PokemonSideCondition::AuroraVeil,
+                                amount: -1 * state.side_one.side_conditions.aurora_veil,
+                            },
+                        ));
+                    state.side_one.side_conditions.aurora_veil = 0;
+                }
+                if state.side_two.side_conditions.aurora_veil > 0 {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeSideCondition(
+                            ChangeSideConditionInstruction {
+                                side_ref: SideReference::SideTwo,
+                                side_condition: PokemonSideCondition::AuroraVeil,
+                                amount: -1 * state.side_two.side_conditions.aurora_veil,
+                            },
+                        ));
+                    state.side_two.side_conditions.aurora_veil = 0;
+                }
+            }
+            Abilities::SNOWWARNING => {
+                let weather_type = Weather::SNOW;
+                if state.weather.weather_type != weather_type {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeWeather(ChangeWeather {
+                            new_weather: weather_type,
+                            new_weather_turns_remaining: WEATHER_ABILITY_TURNS,
+                            previous_weather: state.weather.weather_type,
+                            previous_weather_turns_remaining: state.weather.turns_remaining,
+                        }));
+                    state.weather.weather_type = weather_type;
+                    state.weather.turns_remaining = WEATHER_ABILITY_TURNS;
+                }
+            }
+            Abilities::PSYCHICSURGE => {
+                if state.terrain.terrain_type != Terrain::PSYCHICTERRAIN {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeTerrain(ChangeTerrain {
+                            new_terrain: Terrain::PSYCHICTERRAIN,
+                            new_terrain_turns_remaining: 5,
+                            previous_terrain: state.terrain.terrain_type,
+                            previous_terrain_turns_remaining: state.terrain.turns_remaining,
+                        }));
+                    state.terrain.terrain_type = Terrain::PSYCHICTERRAIN;
+                    state.terrain.turns_remaining = 5;
+                }
+            }
+            Abilities::DRIZZLE => {
+                if state.weather.weather_type != Weather::RAIN {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::ChangeWeather(ChangeWeather {
+                            new_weather: Weather::RAIN,
+                            new_weather_turns_remaining: WEATHER_ABILITY_TURNS,
+                            previous_weather: state.weather.weather_type,
+                            previous_weather_turns_remaining: state.weather.turns_remaining,
+                        }));
+                    state.weather.weather_type = Weather::RAIN;
+                    state.weather.turns_remaining = WEATHER_ABILITY_TURNS;
+                }
+            }
+            Abilities::HOSPITALITY => {
+                let (ally_pkmn, ally_pkmn_index) =
+                    attacking_side.get_active_with_index(&slot_ref.get_other_slot());
+                let heal_amount = cmp::min(ally_pkmn.maxhp / 4, ally_pkmn.maxhp - ally_pkmn.hp);
+                if heal_amount > 0 {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::Heal(HealInstruction {
+                            side_ref: *side_ref,
+                            pokemon_index: ally_pkmn_index,
+                            heal_amount,
+                        }));
+                    ally_pkmn.hp += heal_amount;
+                }
+            }
+            _ => {}
         }
-        Abilities::PRIMORDIALSEA => {
-            if state.weather.weather_type != Weather::HEAVYRAIN {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeWeather(ChangeWeather {
-                        new_weather: Weather::HEAVYRAIN,
-                        new_weather_turns_remaining: -1,
-                        previous_weather: state.weather.weather_type,
-                        previous_weather_turns_remaining: state.weather.turns_remaining,
-                    }));
-                state.weather.weather_type = Weather::HEAVYRAIN;
-                state.weather.turns_remaining = -1;
-            }
-        }
-        Abilities::SCREENCLEANER => {
-            if state.side_one.side_conditions.reflect > 0 {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeSideCondition(
-                        ChangeSideConditionInstruction {
-                            side_ref: SideReference::SideOne,
-                            side_condition: PokemonSideCondition::Reflect,
-                            amount: -1 * state.side_one.side_conditions.reflect,
-                        },
-                    ));
-                state.side_one.side_conditions.reflect = 0;
-            }
-            if state.side_two.side_conditions.reflect > 0 {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeSideCondition(
-                        ChangeSideConditionInstruction {
-                            side_ref: SideReference::SideTwo,
-                            side_condition: PokemonSideCondition::Reflect,
-                            amount: -1 * state.side_two.side_conditions.reflect,
-                        },
-                    ));
-                state.side_two.side_conditions.reflect = 0;
-            }
-            if state.side_one.side_conditions.light_screen > 0 {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeSideCondition(
-                        ChangeSideConditionInstruction {
-                            side_ref: SideReference::SideOne,
-                            side_condition: PokemonSideCondition::LightScreen,
-                            amount: -1 * state.side_one.side_conditions.light_screen,
-                        },
-                    ));
-                state.side_one.side_conditions.light_screen = 0;
-            }
-            if state.side_two.side_conditions.light_screen > 0 {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeSideCondition(
-                        ChangeSideConditionInstruction {
-                            side_ref: SideReference::SideTwo,
-                            side_condition: PokemonSideCondition::LightScreen,
-                            amount: -1 * state.side_two.side_conditions.light_screen,
-                        },
-                    ));
-                state.side_two.side_conditions.light_screen = 0;
-            }
-            if state.side_one.side_conditions.aurora_veil > 0 {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeSideCondition(
-                        ChangeSideConditionInstruction {
-                            side_ref: SideReference::SideOne,
-                            side_condition: PokemonSideCondition::AuroraVeil,
-                            amount: -1 * state.side_one.side_conditions.aurora_veil,
-                        },
-                    ));
-                state.side_one.side_conditions.aurora_veil = 0;
-            }
-            if state.side_two.side_conditions.aurora_veil > 0 {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeSideCondition(
-                        ChangeSideConditionInstruction {
-                            side_ref: SideReference::SideTwo,
-                            side_condition: PokemonSideCondition::AuroraVeil,
-                            amount: -1 * state.side_two.side_conditions.aurora_veil,
-                        },
-                    ));
-                state.side_two.side_conditions.aurora_veil = 0;
-            }
-        }
-        Abilities::SNOWWARNING => {
-            let weather_type = Weather::SNOW;
-            if state.weather.weather_type != weather_type {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeWeather(ChangeWeather {
-                        new_weather: weather_type,
-                        new_weather_turns_remaining: WEATHER_ABILITY_TURNS,
-                        previous_weather: state.weather.weather_type,
-                        previous_weather_turns_remaining: state.weather.turns_remaining,
-                    }));
-                state.weather.weather_type = weather_type;
-                state.weather.turns_remaining = WEATHER_ABILITY_TURNS;
-            }
-        }
-        Abilities::PSYCHICSURGE => {
-            if state.terrain.terrain_type != Terrain::PSYCHICTERRAIN {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeTerrain(ChangeTerrain {
-                        new_terrain: Terrain::PSYCHICTERRAIN,
-                        new_terrain_turns_remaining: 5,
-                        previous_terrain: state.terrain.terrain_type,
-                        previous_terrain_turns_remaining: state.terrain.turns_remaining,
-                    }));
-                state.terrain.terrain_type = Terrain::PSYCHICTERRAIN;
-                state.terrain.turns_remaining = 5;
-            }
-        }
-        Abilities::DRIZZLE => {
-            if state.weather.weather_type != Weather::RAIN {
-                instructions
-                    .instruction_list
-                    .push(Instruction::ChangeWeather(ChangeWeather {
-                        new_weather: Weather::RAIN,
-                        new_weather_turns_remaining: WEATHER_ABILITY_TURNS,
-                        previous_weather: state.weather.weather_type,
-                        previous_weather_turns_remaining: state.weather.turns_remaining,
-                    }));
-                state.weather.weather_type = Weather::RAIN;
-                state.weather.turns_remaining = WEATHER_ABILITY_TURNS;
-            }
-        }
-        _ => {}
     }
 }
 

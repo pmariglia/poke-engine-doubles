@@ -1313,7 +1313,7 @@ pub fn choice_hazard_clear(
                         .instruction_list
                         .push(Instruction::ChangeSubstituteHealth(
                             ChangeSubsituteHealthInstruction {
-                                side_ref: SideReference::SideOne,
+                                side_ref: side_r,
                                 slot_ref: slot_r,
                                 health_change: -1 * slot.substitute_health,
                             },
@@ -1322,7 +1322,7 @@ pub fn choice_hazard_clear(
                         .instruction_list
                         .push(Instruction::RemoveVolatileStatus(
                             RemoveVolatileStatusInstruction {
-                                side_ref: SideReference::SideOne,
+                                side_ref: side_r,
                                 slot_ref: slot_r,
                                 volatile_status: PokemonVolatileStatus::SUBSTITUTE,
                             },

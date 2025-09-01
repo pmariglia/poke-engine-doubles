@@ -1287,10 +1287,10 @@ fn check_move_hit_or_miss(
             move_missed_instruction
                 .instruction_list
                 .push(Instruction::Boost(BoostInstruction {
-                    side_ref: SideReference::SideOne,
-                    slot_ref: SlotReference::SlotA,
-                    stat: PokemonBoostableStat::Attack,
-                    amount: 0,
+                    side_ref: *attacking_side_ref,
+                    slot_ref: *attacking_slot_ref,
+                    stat: PokemonBoostableStat::Speed,
+                    amount: 2,
                 }));
         }
 

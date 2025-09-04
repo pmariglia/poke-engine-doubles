@@ -167,7 +167,6 @@ impl Node {
         if (state.battle_is_over() != 0.0 && !self.root)
             || (s1_move == &(MoveChoice::None, MoveChoice::None)
                 && s2_move == &(MoveChoice::None, MoveChoice::None))
-            || (self.instructions.percentage < 15.0)
         {
             true
         } else {

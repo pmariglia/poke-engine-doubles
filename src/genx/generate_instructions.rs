@@ -2429,6 +2429,11 @@ pub fn generate_instructions_from_move(
                     attacking_slot.get_other_slot(),
                 ))
             }
+            if choices.len() >= 2 {
+                for (c, _, _) in &mut choices {
+                    c.base_power *= 0.75;
+                }
+            }
             choices
         }
         // Single Target Move (target already chosen)

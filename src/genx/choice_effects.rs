@@ -168,6 +168,17 @@ pub fn modify_choice(
     let (attacking_side, target_side) =
         state.get_sides_immutable(attacking_side_ref, target_side_ref);
     match attacker_choice.move_id {
+        Choices::POLLENPUFF => {
+            if attacking_side_ref == target_side_ref {
+                attacker_choice.category = MoveCategory::Status;
+                attacker_choice.base_power = 0.0;
+                attacker_choice.accuracy = 100.0;
+                attacker_choice.heal = Some(Heal {
+                    target: MoveTarget::Target,
+                    amount: 0.5,
+                });
+            }
+        }
         Choices::BEATUP => {
             // an approximation to get beatup to do something
             attacker_choice.base_power = 10.0;
@@ -1484,17 +1495,6 @@ pub fn choice_special_effect(
                 &attacking_slot_ref.get_other_slot(),
                 instructions,
             );
-        }
-        Choices::POLLENPUFF => {
-            if attacking_side_ref == target_side_ref {
-                choice.category = MoveCategory::Status;
-                choice.base_power = 0.0;
-                choice.accuracy = 100.0;
-                choice.heal = Some(Heal {
-                    target: MoveTarget::Target,
-                    amount: 0.5,
-                });
-            }
         }
         Choices::FLORALHEALING => {
             if state.terrain_is_active(&Terrain::GRASSYTERRAIN) {

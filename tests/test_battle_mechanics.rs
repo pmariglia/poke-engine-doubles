@@ -5841,6 +5841,203 @@ fn test_intimidate_into_defiant() {
 }
 
 #[test]
+fn test_intimidate_into_whiteherb() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[2].ability = Abilities::INTIMIDATE;
+    state.side_two.pokemon.pkmn[0].item = Items::WHITEHERB;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::Switch(PokemonIndex::P2),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Switch(SwitchInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                previous_index: PokemonIndex::P0,
+                next_index: PokemonIndex::P2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Attack,
+                amount: -1,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::Attack,
+                amount: -1,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Attack,
+                amount: 1,
+            }),
+            Instruction::ChangeItem(ChangeItemInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                current_item: Items::WHITEHERB,
+                new_item: Items::NONE,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_closecombat_with_whiteherb() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].item = Items::WHITEHERB;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::CLOSECOMBAT,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 100,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Defense,
+                amount: -1,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::SpecialDefense,
+                amount: -1,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Defense,
+                amount: 1,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::SpecialDefense,
+                amount: 1,
+            }),
+            Instruction::ChangeItem(ChangeItemInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                current_item: Items::WHITEHERB,
+                new_item: Items::NONE,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_shellsmash_with_whiteherb() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].item = Items::WHITEHERB;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::SHELLSMASH,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Attack,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Defense,
+                amount: -1,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::SpecialAttack,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::SpecialDefense,
+                amount: -1,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Speed,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Defense,
+                amount: 1,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::SpecialDefense,
+                amount: 1,
+            }),
+            Instruction::ChangeItem(ChangeItemInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                current_item: Items::WHITEHERB,
+                new_item: Items::NONE,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_intimidate_into_adrenalineorb() {
     let mut state = State::default();
     state.side_one.pokemon.pkmn[2].ability = Abilities::INTIMIDATE;

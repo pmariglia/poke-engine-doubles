@@ -2475,6 +2475,38 @@ pub fn generate_instructions_from_move(
         state_instructions_vec = next_state_instructions_vec;
     }
 
+    // end-of-move effects
+    for (state_instructions, _) in state_instructions_vec.iter_mut() {
+        state.apply_instructions(&state_instructions.instruction_list);
+
+        // check if anybody has negative boosts and a whiteherb
+        // if so, consume the item and set the boosts to 0
+        // this check needs to be done after every move, not at the end of the turn
+        for side_ref in [SideReference::SideOne, SideReference::SideTwo] {
+            for slot_ref in [SlotReference::SlotA, SlotReference::SlotB] {
+                let side = state.get_side(&side_ref);
+                let active_has_whiteherb =
+                    side.get_active_immutable(&slot_ref).item == Items::WHITEHERB;
+                let slot = side.get_slot(&slot_ref);
+                if active_has_whiteherb {
+                    if slot.reset_negative_boosts(side_ref, slot_ref, state_instructions) {
+                        let (active, pokemon_index) = side.get_active_with_index(&slot_ref);
+                        active.item = Items::NONE;
+                        state_instructions
+                            .instruction_list
+                            .push(Instruction::ChangeItem(ChangeItemInstruction {
+                                side_ref,
+                                pokemon_index,
+                                current_item: Items::WHITEHERB,
+                                new_item: Items::NONE,
+                            }));
+                    }
+                }
+            }
+        }
+        state.reverse_instructions(&state_instructions.instruction_list);
+    }
+
     // Add all the final states to the final_instructions vector
     final_instructions.extend(state_instructions_vec);
 }

@@ -5064,7 +5064,9 @@ pub fn calculate_damage_rolls(
     );
 
     // Spread move 0.75x damage if there are two targets
-    if choice.move_choice_target == MoveChoiceTarget::AllFoes {
+    if choice.move_choice_target == MoveChoiceTarget::AllFoes
+        || choice.move_choice_target == MoveChoiceTarget::AllOther
+    {
         let target_side = if *attacking_side_ref == SideReference::SideOne {
             &state.side_two
         } else {

@@ -1,4 +1,5 @@
 use poke_engine::choices::{Choices, MOVES};
+use poke_engine::engine::abilities::Abilities;
 use poke_engine::engine::state::{MoveChoice, MoveOptions, PokemonVolatileStatus};
 use poke_engine::state::{
     LastUsedMove, Move, PokemonIndex, PokemonMoveIndex, PokemonMoves, SideReference, SlotReference,
@@ -496,6 +497,120 @@ fn test_beatup_can_target_ally_with_ragefist_and_opponents() {
         pp: 32,
         choice: MOVES.get(&Choices::BEATUP).unwrap().clone(),
     };
+    state.side_one.pokemon.pkmn[1].moves.m0 = Move {
+        id: Choices::RAGEFIST,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::RAGEFIST).unwrap().clone(),
+    };
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
+
+    let expected_s1_options = vec![
+        (
+            MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+            MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        ),
+        (
+            MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+            MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        ),
+        (
+            MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+            MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        ),
+        (
+            MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+            MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        ),
+        (
+            MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+            MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        ),
+        (
+            MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+            MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        ),
+    ];
+
+    assert_eq!(expected_s1_options, move_options.side_one_combined_options);
+}
+
+#[test]
+fn test_beatup_can_target_ally_with_stamina_and_opponents() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[5].terastallized = true;
+    state.side_one.pokemon.pkmn[5].hp = 0;
+    state.side_one.pokemon.pkmn[4].hp = 0;
+    state.side_one.pokemon.pkmn[3].hp = 0;
+    state.side_one.pokemon.pkmn[2].hp = 0;
+    state.side_two.pokemon.pkmn[5].terastallized = true;
+    state.side_two.pokemon.pkmn[5].hp = 0;
+    state.side_two.pokemon.pkmn[4].hp = 0;
+    state.side_two.pokemon.pkmn[3].hp = 0;
+    state.side_two.pokemon.pkmn[2].hp = 0;
+
+    // only have 1 move per pkmn
+    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
+    state.side_one.slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
+    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::BEATUP,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::BEATUP).unwrap().clone(),
+    };
+    state.side_one.pokemon.pkmn[1].ability = Abilities::STAMINA;
     let mut move_options = MoveOptions::new();
     state.get_all_options(&mut move_options);
 

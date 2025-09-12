@@ -788,7 +788,7 @@ pub fn choice_after_damage_hit(
     let target_side = state.get_side(target_side_ref);
     // only increment times_attacked if they have ragefist, otherwise it's a waste of an instruction
     let (target_pkmn, target_active_index) = target_side.get_active_with_index(target_slot_ref);
-    if target_pkmn.has_move(&Choices::RAGEFIST) && target_pkmn.times_attacked < 6 && !hit_sub {
+    if target_pkmn.has_move(Choices::RAGEFIST) && target_pkmn.times_attacked < 6 && !hit_sub {
         instructions
             .instruction_list
             .push(Instruction::IncrementTimesAttacked(

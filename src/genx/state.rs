@@ -603,7 +603,7 @@ impl Pokemon {
         opponent_targets: (bool, bool),
         move_choice: &Choice,
         pokemon_move_index: PokemonMoveIndex,
-        partner_alive: bool,
+        partner: &Pokemon,
         mut can_tera: bool,
     ) {
         // Conditionally add single target moves to the vec
@@ -613,7 +613,7 @@ impl Pokemon {
         if move_choice.move_id == Choices::PROTECT {
             can_tera = false
         }
-
+        let partner_alive = partner.hp > 0;
         match move_choice.move_id {
             // Fakeout: Only makes sense if you just switched in
             Choices::FAKEOUT | Choices::FIRSTIMPRESSION => match last_used_move {
@@ -642,8 +642,37 @@ impl Pokemon {
                     ));
                 }
             }
-            // targeting ally and enemies makes sense
-            Choices::POLLENPUFF | Choices::BEATUP | Choices::FLORALHEALING if partner_alive => {
+            // targeting ally makes sense
+            Choices::BEATUP
+            | Choices::POPULATIONBOMB
+            | Choices::SCALESHOT
+            | Choices::POPULATIONBOMB
+                if partner_alive =>
+            {
+                if partner.has_move(Choices::RAGEFIST) || partner.ability == Abilities::STAMINA {
+                    vec.push(MoveChoice::Move(
+                        slot_ref.get_other_slot(),
+                        *side_ref,
+                        pokemon_move_index,
+                    ));
+                    if can_tera {
+                        vec.push(MoveChoice::MoveTera(
+                            slot_ref.get_other_slot(),
+                            *side_ref,
+                            pokemon_move_index,
+                        ));
+                    }
+                }
+                self.add_moves_from_opponent_targets(
+                    vec,
+                    side_ref.get_other_side(),
+                    opponent_targets.0,
+                    opponent_targets.1,
+                    pokemon_move_index,
+                    can_tera,
+                )
+            }
+            Choices::POLLENPUFF | Choices::FLORALHEALING if partner_alive => {
                 vec.push(MoveChoice::Move(
                     slot_ref.get_other_slot(),
                     *side_ref,
@@ -684,7 +713,7 @@ impl Pokemon {
         vec: &mut Vec<MoveChoice>,
         last_used_move: &LastUsedMove,
         opponent_targets: (bool, bool),
-        partner_alive: bool,
+        partner: &Pokemon,
         encored: bool,
         disabled: bool,
         taunted: bool,
@@ -729,7 +758,7 @@ impl Pokemon {
                             opponent_targets,
                             move_choice,
                             iter.pokemon_move_index,
-                            partner_alive,
+                            partner,
                             can_tera,
                         );
                     }
@@ -784,9 +813,9 @@ impl Pokemon {
         pkmn_type == &self.types.0 || pkmn_type == &self.types.1
     }
 
-    pub fn has_move(&self, pkmn_move: &Choices) -> bool {
+    pub fn has_move(&self, pkmn_move: Choices) -> bool {
         for mv in self.moves.into_iter() {
-            if &mv.id == pkmn_move {
+            if mv.id == pkmn_move {
                 return true;
             }
         }
@@ -1345,7 +1374,7 @@ impl State {
             let mut targets_opponent_slot_a = false;
             let mut targets_opponent_slot_b = false;
 
-            let partner_alive = side.get_active_immutable(&slot_ref.get_other_slot()).hp > 0;
+            let partner = side.get_active_immutable(&slot_ref.get_other_slot());
             if opponent_active_a.hp > 0 {
                 targets_opponent_slot_a = true;
             }
@@ -1359,7 +1388,7 @@ impl State {
                 slot_options,
                 &slot.last_used_move,
                 (targets_opponent_slot_a, targets_opponent_slot_b),
-                partner_alive,
+                partner,
                 encored,
                 disabled,
                 taunted,

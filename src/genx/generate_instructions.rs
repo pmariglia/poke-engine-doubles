@@ -3731,6 +3731,7 @@ fn add_end_of_turn_instructions(
                 let active_index = side.get_slot_immutable(slot_ref).active_index;
                 let active_pkmn = side.get_active(slot_ref);
                 if active_pkmn.hp == 0
+                    || active_pkmn.item == Items::SAFETYGOGGLES
                     || active_pkmn.ability == Abilities::MAGICGUARD
                     || active_pkmn.ability == Abilities::OVERCOAT
                     || active_pkmn.has_type(&PokemonType::GROUND)

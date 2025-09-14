@@ -3797,6 +3797,46 @@ fn test_ragepowder_does_not_redirect_grass_pokemon_moves() {
 }
 
 #[test]
+fn test_sandstorm_does_not_affect_safetygoggles() {
+    let mut state = State::default();
+    state.side_one.pokemon.pkmn[0].item = Items::SAFETYGOGGLES;
+    state.weather.weather_type = Weather::SAND;
+    state.weather.turns_remaining = 5;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::DecrementWeatherTurnsRemaining,
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P1,
+                damage_amount: 6,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 6,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P1,
+                damage_amount: 6,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_ragepowder_does_not_redirect_safetygoggles() {
     let mut state = State::default();
     state.side_two.pokemon.pkmn[0].item = Items::SAFETYGOGGLES;

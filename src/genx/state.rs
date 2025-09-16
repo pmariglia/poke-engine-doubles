@@ -726,8 +726,6 @@ impl Pokemon {
         let mut iter = self.moves.into_iter();
         while let Some(p) = iter.next() {
             if !p.disabled && p.pp > 0 {
-                let current_move = &self.moves[&iter.pokemon_move_index];
-
                 // disqualifying conditions for a move
                 let should_skip = match last_used_move {
                     LastUsedMove::Move(last_used_move_index) => {
@@ -742,13 +740,13 @@ impl Pokemon {
                     }
                     _ => false,
                 } || (cannot_use_status_moves
-                    && current_move.choice.category == MoveCategory::Status);
+                    && p.choice.category == MoveCategory::Status);
 
                 if should_skip {
                     continue;
                 }
 
-                let move_choice = &current_move.choice;
+                let move_choice = &p.choice;
                 // Handle move targeting based on MoveChoiceTarget
                 match move_choice.move_choice_target {
                     MoveChoiceTarget::Normal if move_choice.target == MoveTarget::Target => {

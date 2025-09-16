@@ -715,6 +715,7 @@ impl Pokemon {
         vec: &mut Vec<MoveChoice>,
         last_used_move: &LastUsedMove,
         opponent_targets: (bool, bool),
+        charging_mv_index: Option<PokemonMoveIndex>,
         partner: &Pokemon,
         encored: bool,
         disabled: bool,
@@ -740,7 +741,8 @@ impl Pokemon {
                     }
                     _ => false,
                 } || (cannot_use_status_moves
-                    && p.choice.category == MoveCategory::Status);
+                    && p.choice.category == MoveCategory::Status)
+                    || charging_mv_index.map_or(false, |idx| idx != iter.pokemon_move_index);
 
                 if should_skip {
                     continue;
@@ -1358,9 +1360,8 @@ impl State {
                 .contains(&PokemonVolatileStatus::MUSTRECHARGE)
         {
             slot_options.push(MoveChoice::None);
-        } else if let Some(mv_index) = side.active_is_charging_move(slot_ref) {
-            slot_options.push(MoveChoice::Move(slot_ref, side_ref, mv_index));
         } else {
+            let active_charging_mv_index = side.active_is_charging_move(slot_ref);
             let encored = slot
                 .volatile_statuses
                 .contains(&PokemonVolatileStatus::ENCORE);
@@ -1388,6 +1389,7 @@ impl State {
                 slot_options,
                 &slot.last_used_move,
                 (targets_opponent_slot_a, targets_opponent_slot_b),
+                active_charging_mv_index,
                 partner,
                 encored,
                 disabled,

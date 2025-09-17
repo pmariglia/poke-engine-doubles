@@ -204,19 +204,19 @@ fn evaluate_slot(
 
 pub fn evaluate(state: &State) -> f32 {
     let mut score = 0.0;
-    let side_one_a = &state.side_one.pokemon[state.side_one.slot_a.active_index];
-    let side_one_b = &state.side_one.pokemon[state.side_one.slot_b.active_index];
-    let side_two_a = &state.side_one.pokemon[state.side_two.slot_a.active_index];
-    let side_two_b = &state.side_one.pokemon[state.side_two.slot_b.active_index];
-    let mut iter = state.side_one.pokemon.into_iter();
+    let side_one_a = &state.sides[0].pokemon[state.sides[0].slot_a.active_index];
+    let side_one_b = &state.sides[0].pokemon[state.sides[0].slot_b.active_index];
+    let side_two_a = &state.sides[1].pokemon[state.sides[1].slot_a.active_index];
+    let side_two_b = &state.sides[1].pokemon[state.sides[1].slot_b.active_index];
+    let mut iter = state.sides[0].pokemon.into_iter();
     let mut s1_used_tera = false;
     let mut side_one_has_alive_reserve = false;
     while let Some(pkmn) = iter.next() {
         if pkmn.hp > 0 {
             score += evaluate_pokemon(pkmn);
-            score += evaluate_hazards(pkmn, &state.side_one);
-            if iter.pokemon_index != state.side_one.slot_a.active_index
-                && iter.pokemon_index != state.side_one.slot_b.active_index
+            score += evaluate_hazards(pkmn, &state.sides[0]);
+            if iter.pokemon_index != state.sides[0].slot_a.active_index
+                && iter.pokemon_index != state.sides[0].slot_b.active_index
             {
                 side_one_has_alive_reserve = true;
             }
@@ -225,19 +225,19 @@ pub fn evaluate(state: &State) -> f32 {
             s1_used_tera = true;
         }
     }
-    if state.side_one.pokemon[state.side_one.slot_a.active_index].hp > 0 {
+    if state.sides[0].pokemon[state.sides[0].slot_a.active_index].hp > 0 {
         score += evaluate_slot(
-            &state.side_one,
-            &state.side_one.slot_a,
+            &state.sides[0],
+            &state.sides[0].slot_a,
             side_one_has_alive_reserve,
             side_two_a,
             side_two_b,
         );
     }
-    if state.side_one.pokemon[state.side_one.slot_b.active_index].hp > 0 {
+    if state.sides[0].pokemon[state.sides[0].slot_b.active_index].hp > 0 {
         score += evaluate_slot(
-            &state.side_one,
-            &state.side_one.slot_b,
+            &state.sides[0],
+            &state.sides[0].slot_b,
             side_one_has_alive_reserve,
             side_two_a,
             side_two_b,
@@ -246,15 +246,15 @@ pub fn evaluate(state: &State) -> f32 {
     if s1_used_tera {
         score += USED_TERA;
     }
-    let mut iter = state.side_two.pokemon.into_iter();
+    let mut iter = state.sides[1].pokemon.into_iter();
     let mut s2_used_tera = false;
     let mut side_two_has_alive_reserve = false;
     while let Some(pkmn) = iter.next() {
         if pkmn.hp > 0 {
             score -= evaluate_pokemon(pkmn);
-            score -= evaluate_hazards(pkmn, &state.side_two);
-            if iter.pokemon_index != state.side_two.slot_a.active_index
-                && iter.pokemon_index != state.side_two.slot_b.active_index
+            score -= evaluate_hazards(pkmn, &state.sides[1]);
+            if iter.pokemon_index != state.sides[1].slot_a.active_index
+                && iter.pokemon_index != state.sides[1].slot_b.active_index
             {
                 side_two_has_alive_reserve = true;
             }
@@ -263,19 +263,19 @@ pub fn evaluate(state: &State) -> f32 {
             s2_used_tera = true;
         }
     }
-    if state.side_two.pokemon[state.side_two.slot_a.active_index].hp > 0 {
+    if state.sides[1].pokemon[state.sides[1].slot_a.active_index].hp > 0 {
         score -= evaluate_slot(
-            &state.side_two,
-            &state.side_two.slot_a,
+            &state.sides[1],
+            &state.sides[1].slot_a,
             side_two_has_alive_reserve,
             side_one_a,
             side_one_b,
         );
     }
-    if state.side_two.pokemon[state.side_two.slot_b.active_index].hp > 0 {
+    if state.sides[1].pokemon[state.sides[1].slot_b.active_index].hp > 0 {
         score -= evaluate_slot(
-            &state.side_two,
-            &state.side_two.slot_b,
+            &state.sides[1],
+            &state.sides[1].slot_b,
             side_two_has_alive_reserve,
             side_one_a,
             side_one_b,
@@ -285,10 +285,10 @@ pub fn evaluate(state: &State) -> f32 {
         score -= USED_TERA;
     }
 
-    let s1a_speed = get_effective_speed(state, &SideReference::SideOne, &SlotReference::SlotA);
-    let s1b_speed = get_effective_speed(state, &SideReference::SideOne, &SlotReference::SlotB);
-    let s2a_speed = get_effective_speed(state, &SideReference::SideTwo, &SlotReference::SlotA);
-    let s2b_speed = get_effective_speed(state, &SideReference::SideTwo, &SlotReference::SlotB);
+    let s1a_speed = get_effective_speed(state, SideReference::SideOne, &SlotReference::SlotA);
+    let s1b_speed = get_effective_speed(state, SideReference::SideOne, &SlotReference::SlotB);
+    let s2a_speed = get_effective_speed(state, SideReference::SideTwo, &SlotReference::SlotA);
+    let s2b_speed = get_effective_speed(state, SideReference::SideTwo, &SlotReference::SlotB);
 
     let faster_than_multiplier = if state.trick_room.active {
         // in trick room, slower pokemon are favored
@@ -319,19 +319,19 @@ pub fn evaluate(state: &State) -> f32 {
         }
     }
 
-    score += state.side_one.side_conditions.reflect as f32 * REFLECT;
-    score += state.side_one.side_conditions.light_screen as f32 * LIGHT_SCREEN;
-    score += state.side_one.side_conditions.aurora_veil as f32 * AURORA_VEIL;
-    score += state.side_one.side_conditions.safeguard as f32 * SAFE_GUARD;
-    score += state.side_one.side_conditions.tailwind as f32 * TAILWIND;
-    score += state.side_one.side_conditions.healing_wish as f32 * HEALING_WISH;
+    score += state.sides[0].side_conditions.reflect as f32 * REFLECT;
+    score += state.sides[0].side_conditions.light_screen as f32 * LIGHT_SCREEN;
+    score += state.sides[0].side_conditions.aurora_veil as f32 * AURORA_VEIL;
+    score += state.sides[0].side_conditions.safeguard as f32 * SAFE_GUARD;
+    score += state.sides[0].side_conditions.tailwind as f32 * TAILWIND;
+    score += state.sides[0].side_conditions.healing_wish as f32 * HEALING_WISH;
 
-    score -= state.side_two.side_conditions.reflect as f32 * REFLECT;
-    score -= state.side_two.side_conditions.light_screen as f32 * LIGHT_SCREEN;
-    score -= state.side_two.side_conditions.aurora_veil as f32 * AURORA_VEIL;
-    score -= state.side_two.side_conditions.safeguard as f32 * SAFE_GUARD;
-    score -= state.side_two.side_conditions.tailwind as f32 * TAILWIND;
-    score -= state.side_two.side_conditions.healing_wish as f32 * HEALING_WISH;
+    score -= state.sides[1].side_conditions.reflect as f32 * REFLECT;
+    score -= state.sides[1].side_conditions.light_screen as f32 * LIGHT_SCREEN;
+    score -= state.sides[1].side_conditions.aurora_veil as f32 * AURORA_VEIL;
+    score -= state.sides[1].side_conditions.safeguard as f32 * SAFE_GUARD;
+    score -= state.sides[1].side_conditions.tailwind as f32 * TAILWIND;
+    score -= state.sides[1].side_conditions.healing_wish as f32 * HEALING_WISH;
 
     score
 }

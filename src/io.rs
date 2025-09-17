@@ -106,10 +106,10 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
             "\t{:<20}{:<20}{:>12.2}{:>12.2}{:>10}{:>10.2}",
             x.move_choice
                 .0
-                .to_string(&state.side_one, &SlotReference::SlotA),
+                .to_string(&state.sides[0], &SlotReference::SlotA),
             x.move_choice
                 .1
-                .to_string(&state.side_one, &SlotReference::SlotB),
+                .to_string(&state.sides[0], &SlotReference::SlotB),
             x.total_score,
             x.total_score / x.visits as f32,
             x.visits,
@@ -129,10 +129,10 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
                 "\t{:<20}{:<20}{:>12.2}{:>12.2}{:>10}{:>10.2}",
                 x.move_choice
                     .0
-                    .to_string(&state.side_one, &SlotReference::SlotA),
+                    .to_string(&state.sides[0], &SlotReference::SlotA),
                 x.move_choice
                     .1
-                    .to_string(&state.side_one, &SlotReference::SlotB),
+                    .to_string(&state.sides[0], &SlotReference::SlotB),
                 x.total_score,
                 x.total_score / x.visits as f32,
                 x.visits,
@@ -157,10 +157,10 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
             "\t{:<20}{:<20}{:>12.2}{:>12.2}{:>10}{:>10.2}",
             x.move_choice
                 .0
-                .to_string(&state.side_two, &SlotReference::SlotA),
+                .to_string(&state.sides[1], &SlotReference::SlotA),
             x.move_choice
                 .1
-                .to_string(&state.side_two, &SlotReference::SlotB),
+                .to_string(&state.sides[1], &SlotReference::SlotB),
             x.total_score,
             x.total_score / x.visits as f32,
             x.visits,
@@ -180,10 +180,10 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
                 "\t{:<20}{:<20}{:>12.2}{:>12.2}{:>10}{:>10.2}",
                 x.move_choice
                     .0
-                    .to_string(&state.side_two, &SlotReference::SlotA),
+                    .to_string(&state.sides[1], &SlotReference::SlotA),
                 x.move_choice
                     .1
-                    .to_string(&state.side_two, &SlotReference::SlotB),
+                    .to_string(&state.sides[1], &SlotReference::SlotB),
                 x.total_score,
                 x.total_score / x.visits as f32,
                 x.visits,
@@ -253,7 +253,7 @@ pub fn main() {
                 let (s1_a_movechoice, s1_b_movechoice, s2_a_movechoice, s2_b_movechoice);
                 match MoveChoice::from_string(
                     generate_instructions.side_one_move_a.as_str(),
-                    &state.side_one,
+                    &state.sides[0],
                     SlotReference::SlotA,
                 ) {
                     None => {
@@ -267,7 +267,7 @@ pub fn main() {
                 }
                 match MoveChoice::from_string(
                     generate_instructions.side_one_move_b.as_str(),
-                    &state.side_one,
+                    &state.sides[0],
                     SlotReference::SlotB,
                 ) {
                     None => {
@@ -281,7 +281,7 @@ pub fn main() {
                 }
                 match MoveChoice::from_string(
                     generate_instructions.side_two_move_a.as_str(),
-                    &state.side_two,
+                    &state.sides[1],
                     SlotReference::SlotA,
                 ) {
                     None => {
@@ -295,7 +295,7 @@ pub fn main() {
                 }
                 match MoveChoice::from_string(
                     generate_instructions.side_two_move_b.as_str(),
-                    &state.side_two,
+                    &state.sides[1],
                     SlotReference::SlotB,
                 ) {
                     None => {
@@ -348,9 +348,9 @@ fn calculate_damage_io(
 ) {
     let damages_dealt = calculate_damage_rolls(
         state,
-        &attacking_side,
+        attacking_side,
         &attacking_slot,
-        &target_side,
+        target_side,
         &target_slot,
         s1_choice,
         &s2_choice,
@@ -414,7 +414,7 @@ fn command_loop(mut io_data: IOData) {
                 match args.next() {
                     Some(s) => match MoveChoice::from_string(
                         s,
-                        &io_data.state.side_one,
+                        &io_data.state.sides[0],
                         SlotReference::SlotA,
                     ) {
                         Some(m) => {
@@ -433,7 +433,7 @@ fn command_loop(mut io_data: IOData) {
                 match args.next() {
                     Some(s) => match MoveChoice::from_string(
                         s,
-                        &io_data.state.side_one,
+                        &io_data.state.sides[0],
                         SlotReference::SlotB,
                     ) {
                         Some(m) => {
@@ -452,7 +452,7 @@ fn command_loop(mut io_data: IOData) {
                 match args.next() {
                     Some(s) => match MoveChoice::from_string(
                         s,
-                        &io_data.state.side_two,
+                        &io_data.state.sides[1],
                         SlotReference::SlotA,
                     ) {
                         Some(m) => {
@@ -471,7 +471,7 @@ fn command_loop(mut io_data: IOData) {
                 match args.next() {
                     Some(s) => match MoveChoice::from_string(
                         s,
-                        &io_data.state.side_two,
+                        &io_data.state.sides[1],
                         SlotReference::SlotB,
                     ) {
                         Some(m) => {

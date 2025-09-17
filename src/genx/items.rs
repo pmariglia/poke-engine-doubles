@@ -189,7 +189,7 @@ define_enum_with_from_str! {
 pub fn get_choice_move_disable_instructions(
     pkmn: &Pokemon,
     pkmn_index: PokemonIndex,
-    side_ref: &SideReference,
+    side_ref: SideReference,
     move_name: &Choices,
 ) -> Vec<Instruction> {
     let mut moves_to_disable = vec![];
@@ -197,7 +197,7 @@ pub fn get_choice_move_disable_instructions(
     while let Some(p) = iter.next() {
         if &p.id != move_name && p.disabled == false {
             moves_to_disable.push(Instruction::DisableMove(DisableMoveInstruction {
-                side_ref: *side_ref,
+                side_ref,
                 pokemon_index: pkmn_index,
                 move_index: iter.pokemon_move_index,
             }));
@@ -208,7 +208,7 @@ pub fn get_choice_move_disable_instructions(
 
 fn damage_reduction_berry(
     defending_pkmn: &mut Pokemon,
-    target_side_ref: &SideReference,
+    target_side_ref: SideReference,
     target_active_index: PokemonIndex,
     choice: &mut Choice,
     berry: Items,
@@ -221,7 +221,7 @@ fn damage_reduction_berry(
         instructions
             .instruction_list
             .push(Instruction::ChangeItem(ChangeItemInstruction {
-                side_ref: *target_side_ref,
+                side_ref: target_side_ref,
                 pokemon_index: target_active_index,
                 current_item: berry,
                 new_item: Items::NONE,
@@ -235,7 +235,7 @@ fn damage_reduction_berry(
 NormalGem, FlyingGem, etc.
 */
 fn power_up_gem(
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_pkmn: &mut Pokemon,
     active_index: PokemonIndex,
     choice: &mut Choice,
@@ -247,7 +247,7 @@ fn power_up_gem(
         instructions
             .instruction_list
             .push(Instruction::ChangeItem(ChangeItemInstruction {
-                side_ref: *attacking_side_ref,
+                side_ref: attacking_side_ref,
                 pokemon_index: active_index,
                 current_item: attacking_pkmn.item,
                 new_item: Items::NONE,
@@ -267,14 +267,14 @@ Regarding berries:
 fn sitrus_berry(
     active_pkmn: &mut Pokemon,
     active_index: PokemonIndex,
-    side_ref: &SideReference,
+    side_ref: SideReference,
     instructions: &mut StateInstructions,
 ) {
     let heal_amount = cmp::min(active_pkmn.maxhp / 4, active_pkmn.maxhp - active_pkmn.hp);
     instructions
         .instruction_list
         .push(Instruction::Heal(HealInstruction {
-            side_ref: *side_ref,
+            side_ref,
             pokemon_index: active_index,
             heal_amount: heal_amount,
         }));
@@ -282,7 +282,7 @@ fn sitrus_berry(
     instructions
         .instruction_list
         .push(Instruction::ChangeItem(ChangeItemInstruction {
-            side_ref: *side_ref,
+            side_ref,
             pokemon_index: active_index,
             current_item: Items::SITRUSBERRY,
             new_item: Items::NONE,
@@ -292,7 +292,7 @@ fn sitrus_berry(
 
 fn boost_berry(
     state: &mut State,
-    side_ref: &SideReference,
+    side_ref: SideReference,
     slot_ref: &SlotReference,
     stat: PokemonBoostableStat,
     instructions: &mut StateInstructions,
@@ -312,7 +312,7 @@ fn boost_berry(
     instructions
         .instruction_list
         .push(Instruction::ChangeItem(ChangeItemInstruction {
-            side_ref: *side_ref,
+            side_ref,
             pokemon_index: attacking_index,
             current_item: attacker.item,
             new_item: Items::NONE,
@@ -323,7 +323,7 @@ fn boost_berry(
 pub fn item_change_type(
     state: &State,
     attacking_choice: &mut Choice,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
 ) {
     let attacking_side = state.get_side_immutable(attacking_side_ref);
@@ -421,9 +421,9 @@ pub fn item_change_type(
 pub fn item_before_move(
     state: &mut State,
     choice: &mut Choice,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
-    target_side_ref: &SideReference,
+    target_side_ref: SideReference,
     target_slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) {
@@ -463,7 +463,7 @@ pub fn item_before_move(
             if &choice.move_type == &PokemonType::NORMAL {
                 instructions.instruction_list.push(Instruction::ChangeItem(
                     ChangeItemInstruction {
-                        side_ref: *target_side_ref,
+                        side_ref: target_side_ref,
                         pokemon_index: target_active_index,
                         current_item: Items::CHILANBERRY,
                         new_item: Items::NONE,
@@ -803,7 +803,7 @@ pub fn item_before_move(
 
 pub fn item_on_switch_in(
     state: &mut State,
-    side_ref: &SideReference,
+    side_ref: SideReference,
     slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) {
@@ -826,7 +826,7 @@ pub fn item_on_switch_in(
                     state.get_side(side_ref).get_active(slot_ref).item = Items::NONE;
                     instructions.instruction_list.push(Instruction::ChangeItem(
                         ChangeItemInstruction {
-                            side_ref: side_ref.clone(),
+                            side_ref,
                             pokemon_index: switching_in_index,
                             current_item: Items::ELECTRICSEED,
                             new_item: Items::NONE,
@@ -849,7 +849,7 @@ pub fn item_on_switch_in(
                     state.get_side(side_ref).get_active(slot_ref).item = Items::NONE;
                     instructions.instruction_list.push(Instruction::ChangeItem(
                         ChangeItemInstruction {
-                            side_ref: side_ref.clone(),
+                            side_ref,
                             pokemon_index: switching_in_index,
                             current_item: Items::GRASSYSEED,
                             new_item: Items::NONE,
@@ -872,7 +872,7 @@ pub fn item_on_switch_in(
                     state.get_side(side_ref).get_active(slot_ref).item = Items::NONE;
                     instructions.instruction_list.push(Instruction::ChangeItem(
                         ChangeItemInstruction {
-                            side_ref: side_ref.clone(),
+                            side_ref,
                             pokemon_index: switching_in_index,
                             current_item: Items::MISTYSEED,
                             new_item: Items::NONE,
@@ -895,7 +895,7 @@ pub fn item_on_switch_in(
                     state.get_side(side_ref).get_active(slot_ref).item = Items::NONE;
                     instructions.instruction_list.push(Instruction::ChangeItem(
                         ChangeItemInstruction {
-                            side_ref: side_ref.clone(),
+                            side_ref,
                             pokemon_index: switching_in_index,
                             current_item: Items::PSYCHICSEED,
                             new_item: Items::NONE,
@@ -910,7 +910,7 @@ pub fn item_on_switch_in(
 
 pub fn item_end_of_turn(
     state: &mut State,
-    side_ref: &SideReference,
+    side_ref: SideReference,
     slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) {
@@ -927,7 +927,7 @@ pub fn item_end_of_turn(
                     let heal_amount =
                         cmp::min(active_pkmn.maxhp / 16, active_pkmn.maxhp - active_pkmn.hp);
                     let ins = Instruction::Heal(HealInstruction {
-                        side_ref: side_ref.clone(),
+                        side_ref,
                         pokemon_index: active_pkmn_index,
                         heal_amount,
                     });
@@ -938,7 +938,7 @@ pub fn item_end_of_turn(
                 let damage_amount =
                     cmp::min(active_pkmn.maxhp / 16, active_pkmn.maxhp - active_pkmn.hp);
                 let ins = Instruction::Damage(DamageInstruction {
-                    side_ref: side_ref.clone(),
+                    side_ref,
                     pokemon_index: active_pkmn_index,
                     damage_amount,
                 });
@@ -957,7 +957,7 @@ pub fn item_end_of_turn(
             ) {
                 let side = state.get_side(side_ref);
                 let ins = Instruction::ChangeStatus(ChangeStatusInstruction {
-                    side_ref: side_ref.clone(),
+                    side_ref,
                     pokemon_index: active_pkmn_index,
                     new_status: PokemonStatus::BURN,
                     old_status: PokemonStatus::NONE,
@@ -971,7 +971,7 @@ pub fn item_end_of_turn(
             if attacker.hp < attacker.maxhp {
                 let heal_amount = cmp::min(attacker.maxhp / 16, attacker.maxhp - attacker.hp);
                 let ins = Instruction::Heal(HealInstruction {
-                    side_ref: side_ref.clone(),
+                    side_ref,
                     pokemon_index: active_pkmn_index,
                     heal_amount,
                 });
@@ -990,7 +990,7 @@ pub fn item_end_of_turn(
             ) {
                 let side = state.get_side(side_ref);
                 let ins = Instruction::ChangeStatus(ChangeStatusInstruction {
-                    side_ref: side_ref.clone(),
+                    side_ref,
                     pokemon_index: active_pkmn_index,
                     new_status: PokemonStatus::TOXIC,
                     old_status: PokemonStatus::NONE,
@@ -1006,7 +1006,7 @@ pub fn item_end_of_turn(
 pub fn item_modify_attack_against(
     state: &State,
     attacking_choice: &mut Choice,
-    target_side_ref: &SideReference,
+    target_side_ref: SideReference,
     target_slot_ref: &SlotReference,
 ) {
     let target_side = state.get_side_immutable(target_side_ref);
@@ -1123,9 +1123,9 @@ pub fn item_modify_attack_against(
 pub fn item_modify_attack_being_used(
     state: &State,
     attacking_choice: &mut Choice,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
-    _target_side_ref: &SideReference,
+    _target_side_ref: SideReference,
     target_slot_ref: &SlotReference,
     final_run_move: bool,
 ) {

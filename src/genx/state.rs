@@ -435,7 +435,7 @@ define_enum_with_from_str! {
 impl Pokemon {
     pub fn recalculate_stats(
         &mut self,
-        side_ref: &SideReference,
+        side_ref: SideReference,
         pokemon_index: PokemonIndex,
         instructions: &mut StateInstructions,
     ) {
@@ -443,7 +443,7 @@ impl Pokemon {
         let stats = self.calculate_stats_from_base_stats();
         if stats.1 != self.attack {
             let ins = Instruction::ChangeAttack(ChangeStatInstruction {
-                side_ref: *side_ref,
+                side_ref,
                 pokemon_index,
                 amount: stats.1 - self.attack,
             });
@@ -452,7 +452,7 @@ impl Pokemon {
         }
         if stats.2 != self.defense {
             let ins = Instruction::ChangeDefense(ChangeStatInstruction {
-                side_ref: *side_ref,
+                side_ref,
                 pokemon_index,
                 amount: stats.2 - self.defense,
             });
@@ -461,7 +461,7 @@ impl Pokemon {
         }
         if stats.3 != self.special_attack {
             let ins = Instruction::ChangeSpecialAttack(ChangeStatInstruction {
-                side_ref: *side_ref,
+                side_ref,
                 pokemon_index,
                 amount: stats.3 - self.special_attack,
             });
@@ -470,7 +470,7 @@ impl Pokemon {
         }
         if stats.4 != self.special_defense {
             let ins = Instruction::ChangeSpecialDefense(ChangeStatInstruction {
-                side_ref: *side_ref,
+                side_ref,
                 pokemon_index,
                 amount: stats.4 - self.special_defense,
             });
@@ -479,7 +479,7 @@ impl Pokemon {
         }
         if stats.5 != self.speed {
             let ins = Instruction::ChangeSpeed(ChangeStatInstruction {
-                side_ref: *side_ref,
+                side_ref,
                 pokemon_index,
                 amount: stats.5 - self.speed,
             });
@@ -489,7 +489,7 @@ impl Pokemon {
     }
     pub fn recalculate_stats_without_updating_stats(
         &self,
-        side_ref: &SideReference,
+        side_ref: SideReference,
         pokemon_index: PokemonIndex,
         instructions: &mut StateInstructions,
     ) {
@@ -497,7 +497,7 @@ impl Pokemon {
         let stats = self.calculate_stats_from_base_stats();
         if stats.1 != self.attack {
             let ins = Instruction::ChangeAttack(ChangeStatInstruction {
-                side_ref: *side_ref,
+                side_ref,
                 pokemon_index,
                 amount: stats.1 - self.attack,
             });
@@ -505,7 +505,7 @@ impl Pokemon {
         }
         if stats.2 != self.defense {
             let ins = Instruction::ChangeDefense(ChangeStatInstruction {
-                side_ref: *side_ref,
+                side_ref,
                 pokemon_index,
                 amount: stats.2 - self.defense,
             });
@@ -513,7 +513,7 @@ impl Pokemon {
         }
         if stats.3 != self.special_attack {
             let ins = Instruction::ChangeSpecialAttack(ChangeStatInstruction {
-                side_ref: *side_ref,
+                side_ref,
                 pokemon_index,
                 amount: stats.3 - self.special_attack,
             });
@@ -521,7 +521,7 @@ impl Pokemon {
         }
         if stats.4 != self.special_defense {
             let ins = Instruction::ChangeSpecialDefense(ChangeStatInstruction {
-                side_ref: *side_ref,
+                side_ref,
                 pokemon_index,
                 amount: stats.4 - self.special_defense,
             });
@@ -529,7 +529,7 @@ impl Pokemon {
         }
         if stats.5 != self.speed {
             let ins = Instruction::ChangeSpeed(ChangeStatInstruction {
-                side_ref: *side_ref,
+                side_ref,
                 pokemon_index,
                 amount: stats.5 - self.speed,
             });
@@ -596,7 +596,7 @@ impl Pokemon {
 
     fn add_single_target_move(
         &self,
-        side_ref: &SideReference,
+        side_ref: SideReference,
         slot_ref: &SlotReference,
         last_used_move: &LastUsedMove,
         vec: &mut Vec<MoveChoice>,
@@ -631,13 +631,13 @@ impl Pokemon {
             Choices::DECORATE if partner_alive => {
                 vec.push(MoveChoice::Move(
                     slot_ref.get_other_slot(),
-                    *side_ref,
+                    side_ref,
                     pokemon_move_index,
                 ));
                 if can_tera {
                     vec.push(MoveChoice::MoveTera(
                         slot_ref.get_other_slot(),
-                        *side_ref,
+                        side_ref,
                         pokemon_move_index,
                     ));
                 }
@@ -654,13 +654,13 @@ impl Pokemon {
                 if partner.has_move(Choices::RAGEFIST) || partner.ability == Abilities::STAMINA {
                     vec.push(MoveChoice::Move(
                         slot_ref.get_other_slot(),
-                        *side_ref,
+                        side_ref,
                         pokemon_move_index,
                     ));
                     if can_tera {
                         vec.push(MoveChoice::MoveTera(
                             slot_ref.get_other_slot(),
-                            *side_ref,
+                            side_ref,
                             pokemon_move_index,
                         ));
                     }
@@ -677,13 +677,13 @@ impl Pokemon {
             Choices::POLLENPUFF | Choices::FLORALHEALING if partner_alive => {
                 vec.push(MoveChoice::Move(
                     slot_ref.get_other_slot(),
-                    *side_ref,
+                    side_ref,
                     pokemon_move_index,
                 ));
                 if can_tera {
                     vec.push(MoveChoice::MoveTera(
                         slot_ref.get_other_slot(),
-                        *side_ref,
+                        side_ref,
                         pokemon_move_index,
                     ));
                 }
@@ -710,7 +710,7 @@ impl Pokemon {
 
     pub fn add_available_moves(
         &self,
-        side_ref: &SideReference,
+        side_ref: SideReference,
         slot_ref: &SlotReference,
         vec: &mut Vec<MoveChoice>,
         last_used_move: &LastUsedMove,
@@ -767,14 +767,14 @@ impl Pokemon {
                     MoveChoiceTarget::Ally => {
                         vec.push(MoveChoice::Move(
                             slot_ref.get_other_slot(),
-                            *side_ref,
+                            side_ref,
                             iter.pokemon_move_index,
                         ));
 
                         if can_tera {
                             vec.push(MoveChoice::MoveTera(
                                 slot_ref.get_other_slot(),
-                                *side_ref,
+                                side_ref,
                                 iter.pokemon_move_index,
                             ));
                         }
@@ -784,14 +784,14 @@ impl Pokemon {
                         // since separate logic will handle the actual targeting
                         vec.push(MoveChoice::Move(
                             *slot_ref,
-                            *side_ref,
+                            side_ref,
                             iter.pokemon_move_index,
                         ));
 
                         if can_tera {
                             vec.push(MoveChoice::MoveTera(
                                 *slot_ref,
-                                *side_ref,
+                                side_ref,
                                 iter.pokemon_move_index,
                             ));
                         }
@@ -1181,16 +1181,16 @@ impl State {
 
             // collect alive indices
             let mut s1_alive_indices = Vec::new();
-            let mut pkmn_iter = self.side_one.pokemon.into_iter();
+            let mut pkmn_iter = self.sides[0].pokemon.into_iter();
             while let Some(_) = pkmn_iter.next() {
-                if self.side_one.pokemon[pkmn_iter.pokemon_index].hp > 0 {
+                if self.sides[0].pokemon[pkmn_iter.pokemon_index].hp > 0 {
                     s1_alive_indices.push(pkmn_iter.pokemon_index);
                 }
             }
             let mut s2_alive_indices = Vec::new();
-            let mut pkmn_iter = self.side_two.pokemon.into_iter();
+            let mut pkmn_iter = self.sides[1].pokemon.into_iter();
             while let Some(_) = pkmn_iter.next() {
-                if self.side_two.pokemon[pkmn_iter.pokemon_index].hp > 0 {
+                if self.sides[1].pokemon[pkmn_iter.pokemon_index].hp > 0 {
                     s2_alive_indices.push(pkmn_iter.pokemon_index);
                 }
             }
@@ -1217,7 +1217,7 @@ impl State {
 
         let mut move_options = MoveOptions::new();
         self.get_all_options(&mut move_options);
-        if self.side_one.slot_a.force_trapped || self.side_one.slot_a.slow_uturn_move {
+        if self.sides[0].slot_a.force_trapped || self.sides[0].slot_a.slow_uturn_move {
             move_options
                 .side_one_combined_options
                 .retain(|(x, _)| match x {
@@ -1226,7 +1226,7 @@ impl State {
                     MoveChoice::None => true,
                 });
         }
-        if self.side_one.slot_b.force_trapped || self.side_one.slot_b.slow_uturn_move {
+        if self.sides[0].slot_b.force_trapped || self.sides[0].slot_b.slow_uturn_move {
             move_options
                 .side_one_combined_options
                 .retain(|(_, x)| match x {
@@ -1236,7 +1236,7 @@ impl State {
                 });
         }
 
-        if self.side_two.slot_a.force_trapped || self.side_two.slot_a.slow_uturn_move {
+        if self.sides[1].slot_a.force_trapped || self.sides[1].slot_a.slow_uturn_move {
             move_options
                 .side_two_combined_options
                 .retain(|(x, _)| match x {
@@ -1245,7 +1245,7 @@ impl State {
                     MoveChoice::None => true,
                 });
         }
-        if self.side_two.slot_b.force_trapped || self.side_two.slot_b.slow_uturn_move {
+        if self.sides[1].slot_b.force_trapped || self.sides[1].slot_b.slow_uturn_move {
             move_options
                 .side_two_combined_options
                 .retain(|(_, x)| match x {
@@ -1384,7 +1384,7 @@ impl State {
             }
 
             side.get_active_immutable(&slot_ref).add_available_moves(
-                &side_ref,
+                side_ref,
                 &slot_ref,
                 slot_options,
                 &slot.last_used_move,
@@ -1409,16 +1409,16 @@ impl State {
 
     pub fn get_all_options(&self, move_options: &mut MoveOptions) {
         // Get active pokemon references
-        let side_one_active_a = self.side_one.get_active_immutable(&SlotReference::SlotA);
-        let side_one_active_b = self.side_one.get_active_immutable(&SlotReference::SlotB);
-        let side_two_active_a = self.side_two.get_active_immutable(&SlotReference::SlotA);
-        let side_two_active_b = self.side_two.get_active_immutable(&SlotReference::SlotB);
+        let side_one_active_a = self.sides[0].get_active_immutable(&SlotReference::SlotA);
+        let side_one_active_b = self.sides[0].get_active_immutable(&SlotReference::SlotB);
+        let side_two_active_a = self.sides[1].get_active_immutable(&SlotReference::SlotA);
+        let side_two_active_b = self.sides[1].get_active_immutable(&SlotReference::SlotB);
 
         // Check for external force switches
-        let side_one_slot_a_force_switch = self.side_one.slot_a.force_switch;
-        let side_one_slot_b_force_switch = self.side_one.slot_b.force_switch;
-        let side_two_slot_a_force_switch = self.side_two.slot_a.force_switch;
-        let side_two_slot_b_force_switch = self.side_two.slot_b.force_switch;
+        let side_one_slot_a_force_switch = self.sides[0].slot_a.force_switch;
+        let side_one_slot_b_force_switch = self.sides[0].slot_b.force_switch;
+        let side_two_slot_a_force_switch = self.sides[1].slot_a.force_switch;
+        let side_two_slot_b_force_switch = self.sides[1].slot_b.force_switch;
 
         // Handle external force switches first
         if side_one_slot_a_force_switch || side_one_slot_b_force_switch {
@@ -1427,13 +1427,13 @@ impl State {
                 &mut move_options.side_one_slot_b_options,
                 side_one_slot_a_force_switch,
                 side_one_slot_b_force_switch,
-                &self.side_one,
+                &self.sides[0],
             );
             // Handle side two's saved moves or None
             self.handle_opponent_during_force_switch(
                 &mut move_options.side_two_slot_a_options,
                 &mut move_options.side_two_slot_b_options,
-                &self.side_two,
+                &self.sides[1],
             );
             move_options.combine_slot_options();
             return;
@@ -1445,20 +1445,20 @@ impl State {
                 &mut move_options.side_two_slot_b_options,
                 side_two_slot_a_force_switch,
                 side_two_slot_b_force_switch,
-                &self.side_two,
+                &self.sides[1],
             );
             // Handle side one's saved moves or None
             self.handle_opponent_during_force_switch(
                 &mut move_options.side_one_slot_a_options,
                 &mut move_options.side_one_slot_b_options,
-                &self.side_one,
+                &self.sides[0],
             );
             move_options.combine_slot_options();
             return;
         }
 
-        let side_one_has_alive_reserve = self.side_one.has_alive_reserve_pkmn();
-        let side_two_has_alive_reserve = self.side_two.has_alive_reserve_pkmn();
+        let side_one_has_alive_reserve = self.sides[0].has_alive_reserve_pkmn();
+        let side_two_has_alive_reserve = self.sides[1].has_alive_reserve_pkmn();
 
         // Check for fainting force switches
         let side_one_slot_a_fainted = side_one_active_a.hp <= 0;
@@ -1477,7 +1477,7 @@ impl State {
                     &mut move_options.side_one_slot_b_options,
                     side_one_slot_a_fainted,
                     side_one_slot_b_fainted,
-                    &self.side_one,
+                    &self.sides[0],
                 );
             } else {
                 move_options.side_one_slot_a_options.push(MoveChoice::None);
@@ -1490,7 +1490,7 @@ impl State {
                     &mut move_options.side_two_slot_b_options,
                     side_two_slot_a_fainted,
                     side_two_slot_b_fainted,
-                    &self.side_two,
+                    &self.sides[1],
                 );
             } else {
                 move_options.side_two_slot_a_options.push(MoveChoice::None);
@@ -1506,7 +1506,7 @@ impl State {
             self.handle_slot_normal_options(
                 &mut move_options.side_one_slot_a_options,
                 SlotReference::SlotA,
-                &self.side_one,
+                &self.sides[0],
                 SideReference::SideOne,
                 side_one_active_b,
                 side_two_active_a,
@@ -1518,7 +1518,7 @@ impl State {
             self.handle_slot_normal_options(
                 &mut move_options.side_one_slot_b_options,
                 SlotReference::SlotB,
-                &self.side_one,
+                &self.sides[0],
                 SideReference::SideOne,
                 side_one_active_a,
                 side_two_active_a,
@@ -1531,7 +1531,7 @@ impl State {
             self.handle_slot_normal_options(
                 &mut move_options.side_two_slot_a_options,
                 SlotReference::SlotA,
-                &self.side_two,
+                &self.sides[1],
                 SideReference::SideTwo,
                 side_two_active_b,
                 side_one_active_a,
@@ -1543,7 +1543,7 @@ impl State {
             self.handle_slot_normal_options(
                 &mut move_options.side_two_slot_b_options,
                 SlotReference::SlotB,
-                &self.side_two,
+                &self.sides[1],
                 SideReference::SideTwo,
                 side_two_active_a,
                 side_one_active_a,
@@ -1570,14 +1570,14 @@ impl State {
 
     pub fn reset_toxic_count(
         &mut self,
-        side_ref: &SideReference,
+        side_ref: SideReference,
         vec_to_add_to: &mut Vec<Instruction>,
     ) {
         let side = self.get_side(side_ref);
         if side.side_conditions.toxic_count > 0 {
             vec_to_add_to.push(Instruction::ChangeSideCondition(
                 ChangeSideConditionInstruction {
-                    side_ref: *side_ref,
+                    side_ref,
                     side_condition: PokemonSideCondition::ToxicCount,
                     amount: -1 * side.side_conditions.toxic_count,
                 },
@@ -1588,7 +1588,7 @@ impl State {
 
     pub fn remove_volatile_statuses_on_switch(
         &mut self,
-        side_ref: &SideReference,
+        side_ref: SideReference,
         slot_ref: &SlotReference,
         instructions: &mut Vec<Instruction>,
         baton_passing: bool,
@@ -1609,7 +1609,7 @@ impl State {
                     let active = side.get_active(slot_ref);
                     if active.base_types != active.types {
                         instructions.push(Instruction::ChangeType(ChangeType {
-                            side_ref: *side_ref,
+                            side_ref,
                             pokemon_index: active_index,
                             new_types: active.base_types,
                             old_types: active.types,
@@ -1623,7 +1623,7 @@ impl State {
                     let slot = side.get_slot(slot_ref);
                     instructions.push(Instruction::ChangeVolatileStatusDuration(
                         ChangeVolatileStatusDurationInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: *pkmn_volatile_status,
                             amount: -1 * slot.volatile_status_durations.lockedmove,
@@ -1636,7 +1636,7 @@ impl State {
                     let slot = side.get_slot(slot_ref);
                     instructions.push(Instruction::ChangeVolatileStatusDuration(
                         ChangeVolatileStatusDurationInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: *pkmn_volatile_status,
                             amount: -1 * slot.volatile_status_durations.yawn,
@@ -1649,7 +1649,7 @@ impl State {
                     let slot = side.get_slot(slot_ref);
                     instructions.push(Instruction::ChangeVolatileStatusDuration(
                         ChangeVolatileStatusDurationInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: *pkmn_volatile_status,
                             amount: -1 * slot.volatile_status_durations.taunt,
@@ -1664,7 +1664,7 @@ impl State {
             if !should_retain {
                 instructions.push(Instruction::RemoveVolatileStatus(
                     RemoveVolatileStatusInstruction {
-                        side_ref: *side_ref,
+                        side_ref,
                         slot_ref: *slot_ref,
                         volatile_status: *pkmn_volatile_status,
                     },
@@ -1681,7 +1681,7 @@ impl State {
         if slot.volatile_status_durations.confusion > 0 {
             instructions.push(Instruction::ChangeVolatileStatusDuration(
                 ChangeVolatileStatusDurationInstruction {
-                    side_ref: *side_ref,
+                    side_ref,
                     slot_ref: *slot_ref,
                     volatile_status: PokemonVolatileStatus::CONFUSION,
                     amount: -1 * slot.volatile_status_durations.confusion,
@@ -1692,7 +1692,7 @@ impl State {
         if slot.volatile_status_durations.protect > 0 {
             instructions.push(Instruction::ChangeVolatileStatusDuration(
                 ChangeVolatileStatusDurationInstruction {
-                    side_ref: *side_ref,
+                    side_ref,
                     slot_ref: *slot_ref,
                     volatile_status: PokemonVolatileStatus::PROTECT,
                     amount: -1 * slot.volatile_status_durations.protect,
@@ -1703,7 +1703,7 @@ impl State {
         if slot.volatile_status_durations.taunt > 0 {
             instructions.push(Instruction::ChangeVolatileStatusDuration(
                 ChangeVolatileStatusDurationInstruction {
-                    side_ref: *side_ref,
+                    side_ref,
                     slot_ref: *slot_ref,
                     volatile_status: PokemonVolatileStatus::TAUNT,
                     amount: -1 * slot.volatile_status_durations.taunt,
@@ -1714,7 +1714,7 @@ impl State {
         if slot.volatile_status_durations.encore > 0 {
             instructions.push(Instruction::ChangeVolatileStatusDuration(
                 ChangeVolatileStatusDurationInstruction {
-                    side_ref: *side_ref,
+                    side_ref,
                     slot_ref: *slot_ref,
                     volatile_status: PokemonVolatileStatus::ENCORE,
                     amount: -1 * slot.volatile_status_durations.encore,
@@ -1740,10 +1740,10 @@ impl State {
         if self.weather.turns_remaining == 0 {
             return Weather::NONE;
         }
-        let s1_active_a = self.side_one.get_active_immutable(&SlotReference::SlotA);
-        let s1_active_b = self.side_one.get_active_immutable(&SlotReference::SlotB);
-        let s2_active_a = self.side_two.get_active_immutable(&SlotReference::SlotA);
-        let s2_active_b = self.side_two.get_active_immutable(&SlotReference::SlotB);
+        let s1_active_a = self.sides[0].get_active_immutable(&SlotReference::SlotA);
+        let s1_active_b = self.sides[0].get_active_immutable(&SlotReference::SlotB);
+        let s2_active_a = self.sides[1].get_active_immutable(&SlotReference::SlotA);
+        let s2_active_b = self.sides[1].get_active_immutable(&SlotReference::SlotB);
         if s1_active_a.ability == Abilities::AIRLOCK
             || s1_active_a.ability == Abilities::CLOUDNINE
             || s2_active_a.ability == Abilities::AIRLOCK
@@ -1760,10 +1760,10 @@ impl State {
     }
 
     pub fn weather_is_active(&self, weather: &Weather) -> bool {
-        let s1_active_a = self.side_one.get_active_immutable(&SlotReference::SlotA);
-        let s1_active_b = self.side_one.get_active_immutable(&SlotReference::SlotB);
-        let s2_active_a = self.side_two.get_active_immutable(&SlotReference::SlotA);
-        let s2_active_b = self.side_two.get_active_immutable(&SlotReference::SlotB);
+        let s1_active_a = self.sides[0].get_active_immutable(&SlotReference::SlotA);
+        let s1_active_b = self.sides[0].get_active_immutable(&SlotReference::SlotB);
+        let s2_active_a = self.sides[1].get_active_immutable(&SlotReference::SlotA);
+        let s2_active_b = self.sides[1].get_active_immutable(&SlotReference::SlotB);
         &self.weather.weather_type == weather
             && s1_active_a.ability != Abilities::AIRLOCK
             && s1_active_a.ability != Abilities::CLOUDNINE
@@ -1776,7 +1776,7 @@ impl State {
     }
 
     fn _state_contains_any_move(&self, moves: &[Choices]) -> bool {
-        for s in [&self.side_one, &self.side_two] {
+        for s in self.sides.iter() {
             for pkmn in s.pokemon.into_iter() {
                 for mv in pkmn.moves.into_iter() {
                     if moves.contains(&mv.id) {

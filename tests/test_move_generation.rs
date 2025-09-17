@@ -17,39 +17,39 @@ fn disable_all_moves(pokemon_moves: &mut PokemonMoves) {
 fn test_basic_move_generation() {
     let mut state = State::default();
     // remove tera and only have 4 alive pkmn
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::NONE,
         disabled: false,
         pp: 32,
         choice: Default::default(),
     };
-    state.side_one.pokemon.pkmn[1].moves.m0 = Move {
+    state.sides[0].pokemon.pkmn[1].moves.m0 = Move {
         id: Choices::NONE,
         disabled: false,
         pp: 32,
         choice: Default::default(),
     };
-    state.side_two.pokemon.pkmn[0].moves.m0 = Move {
+    state.sides[1].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::NONE,
         disabled: false,
         pp: 32,
         choice: Default::default(),
     };
-    state.side_two.pokemon.pkmn[1].moves.m0 = Move {
+    state.sides[1].pokemon.pkmn[1].moves.m0 = Move {
         id: Choices::NONE,
         disabled: false,
         pp: 32,
@@ -68,23 +68,23 @@ fn test_basic_move_generation() {
 #[test]
 fn test_spread_move_does_not_result_in_multiple_move_choices() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::SURF,
         disabled: false,
         pp: 32,
@@ -98,23 +98,23 @@ fn test_spread_move_does_not_result_in_multiple_move_choices() {
 #[test]
 fn test_spikes_only_has_one_target() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::SPIKES,
         disabled: false,
         pp: 32,
@@ -128,36 +128,36 @@ fn test_spikes_only_has_one_target() {
 #[test]
 fn test_cannot_target_fainted_pkmn() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[1].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[1].hp = 0;
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::NONE,
         disabled: false,
         pp: 32,
         choice: MOVES.get(&Choices::NONE).unwrap().clone(),
     };
-    state.side_one.pokemon.pkmn[1].moves.m0 = Move {
+    state.sides[0].pokemon.pkmn[1].moves.m0 = Move {
         id: Choices::NONE,
         disabled: false,
         pp: 32,
         choice: Default::default(),
     };
-    state.side_two.pokemon.pkmn[0].moves.m0 = Move {
+    state.sides[1].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::NONE,
         disabled: false,
         pp: 32,
@@ -172,24 +172,24 @@ fn test_cannot_target_fainted_pkmn() {
 #[test]
 fn test_helping_hand_can_only_target_ally() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[1].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[1].hp = 0;
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::HELPINGHAND,
         disabled: false,
         pp: 32,
@@ -215,24 +215,24 @@ fn test_helping_hand_can_only_target_ally() {
 #[test]
 fn test_self_boosting_move_only_has_1_target() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[1].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[1].hp = 0;
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::QUIVERDANCE,
         disabled: false,
         pp: 32,
@@ -256,37 +256,36 @@ fn test_self_boosting_move_only_has_1_target() {
 #[test]
 fn test_disabled_pkmn_cannot_use_last_used_move() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[1].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[1].hp = 0;
 
-    state
-        .side_one
+    state.sides[0]
         .slot_a
         .volatile_statuses
         .insert(PokemonVolatileStatus::DISABLE);
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::QUIVERDANCE,
         disabled: false,
         pp: 32,
         choice: MOVES.get(&Choices::QUIVERDANCE).unwrap().clone(),
     };
-    state.side_one.pokemon.pkmn[0].moves.m1 = Move {
+    state.sides[0].pokemon.pkmn[0].moves.m1 = Move {
         id: Choices::TACKLE,
         disabled: false,
         pp: 32,
@@ -310,31 +309,30 @@ fn test_disabled_pkmn_cannot_use_last_used_move() {
 #[test]
 fn test_disabled_with_one_moves_gives_no_move() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[1].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[1].hp = 0;
 
-    state
-        .side_one
+    state.sides[0]
         .slot_a
         .volatile_statuses
         .insert(PokemonVolatileStatus::DISABLE);
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::QUIVERDANCE,
         disabled: false,
         pp: 32,
@@ -351,54 +349,52 @@ fn test_disabled_with_one_moves_gives_no_move() {
 #[test]
 fn test_encored_and_disabled_means_no_moves() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[1].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[1].hp = 0;
 
-    state
-        .side_one
+    state.sides[0]
         .slot_a
         .volatile_statuses
         .insert(PokemonVolatileStatus::DISABLE);
-    state
-        .side_one
+    state.sides[0]
         .slot_a
         .volatile_statuses
         .insert(PokemonVolatileStatus::ENCORE);
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::QUIVERDANCE,
         disabled: false,
         pp: 32,
         choice: MOVES.get(&Choices::QUIVERDANCE).unwrap().clone(),
     };
-    state.side_one.pokemon.pkmn[0].moves.m1 = Move {
+    state.sides[0].pokemon.pkmn[0].moves.m1 = Move {
         id: Choices::LEER,
         disabled: false,
         pp: 32,
         choice: MOVES.get(&Choices::LEER).unwrap().clone(),
     };
-    state.side_one.pokemon.pkmn[0].moves.m2 = Move {
+    state.sides[0].pokemon.pkmn[0].moves.m2 = Move {
         id: Choices::PROTECT,
         disabled: false,
         pp: 32,
         choice: MOVES.get(&Choices::PROTECT).unwrap().clone(),
     };
-    state.side_one.pokemon.pkmn[0].moves.m3 = Move {
+    state.sides[0].pokemon.pkmn[0].moves.m3 = Move {
         id: Choices::SPLASH,
         disabled: false,
         pp: 32,
@@ -415,24 +411,24 @@ fn test_encored_and_disabled_means_no_moves() {
 #[test]
 fn test_pollenpuff_can_target_ally_and_opponents() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::POLLENPUFF,
         disabled: false,
         pp: 32,
@@ -474,30 +470,30 @@ fn test_pollenpuff_can_target_ally_and_opponents() {
 #[test]
 fn test_beatup_can_target_ally_with_ragefist_and_opponents() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::BEATUP,
         disabled: false,
         pp: 32,
         choice: MOVES.get(&Choices::BEATUP).unwrap().clone(),
     };
-    state.side_one.pokemon.pkmn[1].moves.m0 = Move {
+    state.sides[0].pokemon.pkmn[1].moves.m0 = Move {
         id: Choices::RAGEFIST,
         disabled: false,
         pp: 32,
@@ -587,30 +583,30 @@ fn test_beatup_can_target_ally_with_ragefist_and_opponents() {
 #[test]
 fn test_beatup_can_target_ally_with_stamina_and_opponents() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::BEATUP,
         disabled: false,
         pp: 32,
         choice: MOVES.get(&Choices::BEATUP).unwrap().clone(),
     };
-    state.side_one.pokemon.pkmn[1].ability = Abilities::STAMINA;
+    state.sides[0].pokemon.pkmn[1].ability = Abilities::STAMINA;
     let mut move_options = MoveOptions::new();
     state.get_all_options(&mut move_options);
 
@@ -647,24 +643,24 @@ fn test_beatup_can_target_ally_with_stamina_and_opponents() {
 #[test]
 fn test_decorate_can_target_only_ally() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::DECORATE,
         disabled: false,
         pp: 32,
@@ -688,24 +684,24 @@ fn test_decorate_can_target_only_ally() {
 #[test]
 fn test_coaching_can_target_only_ally() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::COACHING,
         disabled: false,
         pp: 32,
@@ -729,24 +725,24 @@ fn test_coaching_can_target_only_ally() {
 #[test]
 fn test_fakeout_is_an_option_when_just_switching_in() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.slot_a.last_used_move = LastUsedMove::Switch(PokemonIndex::P0);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].slot_a.last_used_move = LastUsedMove::Switch(PokemonIndex::P0);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::FAKEOUT,
         disabled: false,
         pp: 32,
@@ -780,24 +776,24 @@ fn test_fakeout_is_an_option_when_just_switching_in() {
 #[test]
 fn test_electroshot_charging_can_target_either_opponent() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::ELECTROSHOT,
         disabled: false,
         pp: 32,
@@ -830,27 +826,26 @@ fn test_electroshot_charging_can_target_either_opponent() {
 #[test]
 fn test_electroshot_executing_from_charge_can_target_either_opponent() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
 
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
-    state
-        .side_one
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
+    state.sides[0]
         .slot_a
         .volatile_statuses
         .insert(PokemonVolatileStatus::ELECTROSHOT);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::ELECTROSHOT,
         disabled: false,
         pp: 32,
@@ -883,24 +878,24 @@ fn test_electroshot_executing_from_charge_can_target_either_opponent() {
 #[test]
 fn test_fakeout_is_not_an_option_when_already_on_the_field() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
 
     // only have 1 move per pkmn
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
-    state.side_one.slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+    state.sides[0].slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::FAKEOUT,
         disabled: false,
         pp: 32,
@@ -917,32 +912,31 @@ fn test_fakeout_is_not_an_option_when_already_on_the_field() {
 #[test]
 fn test_commanding_pkmn_cannot_select_any_moves() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
 
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
 
     // only have 1 move for side_one.pokemon.pkmn[0]
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::TACKLE,
         disabled: false,
         pp: 32,
         choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
     };
 
-    state
-        .side_one
+    state.sides[0]
         .slot_a
         .volatile_statuses
         .insert(PokemonVolatileStatus::COMMANDING);
@@ -958,38 +952,37 @@ fn test_commanding_pkmn_cannot_select_any_moves() {
 #[test]
 fn test_commanding_pkmn_cannot_switch() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 100;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 100;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
 
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
 
     // only have 1 move for side_one.pokemon.pkmn[0]
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::TACKLE,
         disabled: false,
         pp: 32,
         choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
     };
-    state.side_one.pokemon.pkmn[1].moves.m0 = Move {
+    state.sides[0].pokemon.pkmn[1].moves.m0 = Move {
         id: Choices::TACKLE,
         disabled: false,
         pp: 32,
         choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
     };
 
-    state
-        .side_one
+    state.sides[0]
         .slot_a
         .volatile_statuses
         .insert(PokemonVolatileStatus::COMMANDING);
@@ -1006,33 +999,32 @@ fn test_commanding_pkmn_cannot_switch() {
 #[test]
 fn test_fainted_commanding_pkmn_must_switch() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[5].terastallized = true;
-    state.side_one.pokemon.pkmn[5].hp = 0;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[3].hp = 0;
-    state.side_one.pokemon.pkmn[2].hp = 100;
-    state.side_one.pokemon.pkmn[0].hp = 0;
-    state.side_two.pokemon.pkmn[5].terastallized = true;
-    state.side_two.pokemon.pkmn[5].hp = 0;
-    state.side_two.pokemon.pkmn[4].hp = 0;
-    state.side_two.pokemon.pkmn[3].hp = 0;
-    state.side_two.pokemon.pkmn[2].hp = 0;
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 100;
+    state.sides[0].pokemon.pkmn[0].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
 
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_one.pokemon.pkmn[1].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[0].moves);
-    disable_all_moves(&mut state.side_two.pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
 
     // only have 1 move for side_one.pokemon.pkmn[0]
-    state.side_one.pokemon.pkmn[0].moves.m0 = Move {
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
         id: Choices::TACKLE,
         disabled: false,
         pp: 32,
         choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
     };
 
-    state
-        .side_one
+    state.sides[0]
         .slot_a
         .volatile_statuses
         .insert(PokemonVolatileStatus::COMMANDING);

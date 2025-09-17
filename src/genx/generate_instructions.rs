@@ -135,7 +135,7 @@ fn set_last_used_move_as_move(
 
 fn generate_instructions_from_tera(
     state: &State,
-    side_ref: &SideReference,
+    side_ref: SideReference,
     slot_ref: &SlotReference,
     pokemon_index: PokemonIndex,
     incoming_instructions: &mut StateInstructions,
@@ -147,7 +147,7 @@ fn generate_instructions_from_tera(
         .instruction_list
         .push(Instruction::ToggleTerastallized(
             ToggleTerastallizedInstruction {
-                side_ref: *side_ref,
+                side_ref,
                 pokemon_index,
             },
         ));
@@ -161,7 +161,7 @@ fn generate_instructions_from_tera(
         incoming_instructions
             .instruction_list
             .push(Instruction::FormeChange(FormeChangeInstruction {
-                side_ref: *side_ref,
+                side_ref,
                 pokemon_index,
                 name_change: PokemonName::TERAPAGOSSTELLAR as i16
                     - PokemonName::TERAPAGOSTERASTAL as i16,
@@ -174,7 +174,7 @@ fn generate_instructions_from_tera(
         incoming_instructions
             .instruction_list
             .push(Instruction::ChangeAbility(ChangeAbilityInstruction {
-                side_ref: *side_ref,
+                side_ref,
                 pokemon_index,
                 ability_change: Abilities::TERAFORMZERO as i16 - Abilities::TERASHELL as i16,
             }));
@@ -211,7 +211,7 @@ fn generate_instructions_from_switch(
     let should_last_used_move = state.use_last_used_move;
     state.apply_instructions(&incoming_instructions.instruction_list);
 
-    let side = state.get_side(&switching_side_ref);
+    let side = state.get_side(switching_side_ref);
     let slot = side.get_slot(&slot_ref);
     if slot.force_switch {
         slot.force_switch = false;
@@ -300,42 +300,42 @@ fn generate_instructions_from_switch(
     // }
 
     state.re_enable_disabled_moves(
-        &switching_side_ref,
+        switching_side_ref,
         slot_ref,
         &mut incoming_instructions.instruction_list,
     );
     state.remove_volatile_statuses_on_switch(
-        &switching_side_ref,
+        switching_side_ref,
         slot_ref,
         &mut incoming_instructions.instruction_list,
         baton_passing,
         shed_tailing,
     );
     state.reset_toxic_count(
-        &switching_side_ref,
+        switching_side_ref,
         &mut incoming_instructions.instruction_list,
     );
     if !baton_passing {
         state.reset_boosts(
-            &switching_side_ref,
+            switching_side_ref,
             slot_ref,
             &mut incoming_instructions.instruction_list,
         );
     }
 
-    ability_on_switch_out(state, &switching_side_ref, slot_ref, incoming_instructions);
+    ability_on_switch_out(state, switching_side_ref, slot_ref, incoming_instructions);
 
     let switch_instruction = Instruction::Switch(SwitchInstruction {
         side_ref: switching_side_ref,
         slot_ref: *slot_ref,
         previous_index: state
-            .get_side(&switching_side_ref)
+            .get_side(switching_side_ref)
             .get_slot(slot_ref)
             .active_index,
         next_index: new_pokemon_index,
     });
 
-    let side = state.get_side(&switching_side_ref);
+    let side = state.get_side(switching_side_ref);
     let slot = side.get_slot(&slot_ref);
     slot.active_index = new_pokemon_index;
     incoming_instructions
@@ -403,22 +403,22 @@ fn generate_instructions_from_switch(
                 side,
                 &PokemonBoostableStat::Speed,
                 &-1,
-                &switching_side_ref,
-                &switching_side_ref,
+                switching_side_ref,
+                switching_side_ref,
                 slot_ref,
                 incoming_instructions,
             );
         }
 
-        let side = state.get_side_immutable(&switching_side_ref);
+        let side = state.get_side_immutable(switching_side_ref);
         let switched_in_pkmn = side.get_active_immutable(slot_ref);
         let mut toxic_spike_instruction: Option<Instruction> = None;
         if side.side_conditions.toxic_spikes > 0 && switched_in_pkmn.is_grounded() {
             if !immune_to_status(
                 &state,
                 &MoveTarget::User,
-                &switching_side_ref.get_other_side(),
-                &switching_side_ref,
+                switching_side_ref.get_other_side(),
+                switching_side_ref,
                 slot_ref,
                 &PokemonStatus::POISON,
             ) {
@@ -455,7 +455,7 @@ fn generate_instructions_from_switch(
             }
         }
 
-        let side = state.get_side(&switching_side_ref);
+        let side = state.get_side(switching_side_ref);
         let active_index = side.get_slot_immutable(slot_ref).active_index;
         let active = side.get_active_immutable(slot_ref);
         if active.ability != Abilities::MAGICGUARD {
@@ -497,12 +497,12 @@ fn generate_instructions_from_switch(
         }
     }
 
-    ability_on_switch_in(state, &switching_side_ref, &slot_ref, incoming_instructions);
-    item_on_switch_in(state, &switching_side_ref, &slot_ref, incoming_instructions);
+    ability_on_switch_in(state, switching_side_ref, &slot_ref, incoming_instructions);
+    item_on_switch_in(state, switching_side_ref, &slot_ref, incoming_instructions);
 
     // switching in as dondozo when ally has commander
     let neutralizing_gas_active = state.neutralizing_gas_is_active();
-    let side = state.get_side_immutable(&switching_side_ref);
+    let side = state.get_side_immutable(switching_side_ref);
     let active = side.get_active_immutable(slot_ref);
     if active.id == PokemonName::DONDOZO {
         let active_ally = side.get_active_immutable(&slot_ref.get_other_slot());
@@ -511,7 +511,7 @@ fn generate_instructions_from_switch(
         {
             commander_activating(
                 state,
-                &switching_side_ref,
+                switching_side_ref,
                 &slot_ref.get_other_slot(),
                 incoming_instructions,
             )
@@ -524,13 +524,13 @@ fn generate_instructions_from_switch(
 fn generate_instructions_from_increment_side_condition(
     state: &mut State,
     side_condition: &SideCondition,
-    attacking_side_reference: &SideReference,
+    attacking_side_reference: SideReference,
     incoming_instructions: &mut StateInstructions,
 ) {
     let affected_side_ref;
     match side_condition.target {
         MoveTarget::Target => affected_side_ref = attacking_side_reference.get_other_side(),
-        MoveTarget::User => affected_side_ref = *attacking_side_reference,
+        MoveTarget::User => affected_side_ref = attacking_side_reference,
     }
 
     let max_layers = match side_condition.condition {
@@ -539,7 +539,7 @@ fn generate_instructions_from_increment_side_condition(
         _ => 1,
     };
 
-    let affected_side = state.get_side(&affected_side_ref);
+    let affected_side = state.get_side(affected_side_ref);
     if affected_side.get_side_condition(side_condition.condition) < max_layers {
         let ins = Instruction::ChangeSideCondition(ChangeSideConditionInstruction {
             side_ref: affected_side_ref,
@@ -554,13 +554,13 @@ fn generate_instructions_from_increment_side_condition(
 fn generate_instructions_from_duration_side_conditions(
     state: &mut State,
     side_condition: &SideCondition,
-    attacking_side_reference: &SideReference,
+    attacking_side_reference: SideReference,
     incoming_instructions: &mut StateInstructions,
     duration: i8,
 ) {
     let affected_side_ref = match side_condition.target {
         MoveTarget::Target => attacking_side_reference.get_other_side(),
-        MoveTarget::User => *attacking_side_reference,
+        MoveTarget::User => attacking_side_reference,
     };
     if side_condition.condition == PokemonSideCondition::AuroraVeil
         && !state.weather_is_active(&Weather::HAIL)
@@ -568,7 +568,7 @@ fn generate_instructions_from_duration_side_conditions(
     {
         return;
     }
-    let affected_side = state.get_side(&affected_side_ref);
+    let affected_side = state.get_side(affected_side_ref);
     if affected_side.get_side_condition(side_condition.condition) == 0 {
         let ins = Instruction::ChangeSideCondition(ChangeSideConditionInstruction {
             side_ref: affected_side_ref,
@@ -583,7 +583,7 @@ fn generate_instructions_from_duration_side_conditions(
 fn generate_instructions_from_side_conditions(
     state: &mut State,
     side_condition: &SideCondition,
-    attacking_side_reference: &SideReference,
+    attacking_side_reference: SideReference,
     incoming_instructions: &mut StateInstructions,
 ) {
     match side_condition.condition {
@@ -622,9 +622,9 @@ fn get_instructions_from_volatile_statuses(
     state: &mut State,
     attacker_choice: &Choice,
     volatile_status: &VolatileStatus,
-    attacking_side_reference: &SideReference,
+    attacking_side_reference: SideReference,
     attacking_slot_reference: &SlotReference,
-    target_side_reference: &SideReference,
+    target_side_reference: SideReference,
     target_slot: &SlotReference,
     incoming_instructions: &mut StateInstructions,
 ) {
@@ -632,11 +632,11 @@ fn get_instructions_from_volatile_statuses(
     let target_slot_ref: SlotReference;
     match volatile_status.target {
         MoveTarget::Target => {
-            target_side_ref = *target_side_reference;
+            target_side_ref = target_side_reference;
             target_slot_ref = *target_slot;
         }
         MoveTarget::User => {
-            target_side_ref = *attacking_side_reference;
+            target_side_ref = attacking_side_reference;
             target_slot_ref = *attacking_slot_reference;
         }
     }
@@ -645,15 +645,15 @@ fn get_instructions_from_volatile_statuses(
         && immune_to_status(
             state,
             &MoveTarget::Target,
-            &attacking_side_reference,
-            &target_side_ref,
+            attacking_side_reference,
+            target_side_ref,
             &target_slot_ref,
             &PokemonStatus::SLEEP,
         )
     {
         return;
     }
-    let side = state.get_side(&target_side_ref);
+    let side = state.get_side(target_side_ref);
     if side
         .get_active_immutable(&target_slot_ref)
         .volatile_status_can_be_applied(
@@ -743,8 +743,8 @@ pub fn add_remove_status_instructions(
 pub fn immune_to_status(
     state: &State,
     status_target: &MoveTarget,
-    attacking_side_ref: &SideReference,
-    target_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
+    target_side_ref: SideReference,
     slot_ref: &SlotReference,
     status: &PokemonStatus,
 ) -> bool {
@@ -825,9 +825,9 @@ pub fn immune_to_status(
 fn get_instructions_from_status_effects(
     state: &mut State,
     status: &Status,
-    attacking_side_reference: &SideReference,
+    attacking_side_reference: SideReference,
     attacking_slot_reference: &SlotReference,
-    target_side_reference: &SideReference,
+    target_side_reference: SideReference,
     target_slot: &SlotReference,
     incoming_instructions: &mut StateInstructions,
     hit_sub: bool,
@@ -836,11 +836,11 @@ fn get_instructions_from_status_effects(
     let target_slot_ref: SlotReference;
     match status.target {
         MoveTarget::Target => {
-            target_side_ref = *target_side_reference;
+            target_side_ref = target_side_reference;
             target_slot_ref = *target_slot;
         }
         MoveTarget::User => {
-            target_side_ref = *attacking_side_reference;
+            target_side_ref = attacking_side_reference;
             target_slot_ref = *attacking_slot_reference;
         }
     }
@@ -850,7 +850,7 @@ fn get_instructions_from_status_effects(
             state,
             &status.target,
             attacking_side_reference,
-            &target_side_ref,
+            target_side_ref,
             &target_slot_ref,
             &status.status,
         )
@@ -858,7 +858,7 @@ fn get_instructions_from_status_effects(
         return;
     }
 
-    let target_side = state.get_side(&target_side_ref);
+    let target_side = state.get_side(target_side_ref);
     let target_slot = target_side.get_slot(&target_slot_ref);
     let target_side_active = target_slot.active_index;
     let target_pkmn = target_side.get_active(&target_slot_ref);
@@ -916,8 +916,8 @@ pub fn apply_boost_instructions(
     target_side: &mut Side,
     stat: &PokemonBoostableStat,
     boost: &i8,
-    attacking_side_ref: &SideReference,
-    target_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
+    target_side_ref: SideReference,
     target_slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) -> bool {
@@ -959,7 +959,7 @@ pub fn apply_boost_instructions(
             instructions
                 .instruction_list
                 .push(Instruction::Boost(BoostInstruction {
-                    side_ref: *target_side_ref,
+                    side_ref: target_side_ref,
                     slot_ref: *target_slot_ref,
                     stat: *stat,
                     amount: boost_amount,
@@ -974,7 +974,7 @@ pub fn apply_boost_instructions(
                 instructions
                     .instruction_list
                     .push(Instruction::Boost(BoostInstruction {
-                        side_ref: *target_side_ref,
+                        side_ref: target_side_ref,
                         slot_ref: *target_slot_ref,
                         stat: PokemonBoostableStat::Attack,
                         amount: defiant_boost_amount,
@@ -989,9 +989,9 @@ pub fn apply_boost_instructions(
 fn get_instructions_from_boosts(
     state: &mut State,
     boosts: &Boost,
-    attacking_side_reference: &SideReference,
+    attacking_side_reference: SideReference,
     attacking_slot_reference: &SlotReference,
-    target_side_reference: &SideReference,
+    target_side_reference: SideReference,
     target_slot: &SlotReference,
     incoming_instructions: &mut StateInstructions,
 ) {
@@ -999,23 +999,23 @@ fn get_instructions_from_boosts(
     let target_slot_ref: SlotReference;
     match boosts.target {
         MoveTarget::Target => {
-            target_side_ref = *target_side_reference;
+            target_side_ref = target_side_reference;
             target_slot_ref = *target_slot;
         }
         MoveTarget::User => {
-            target_side_ref = *attacking_side_reference;
+            target_side_ref = attacking_side_reference;
             target_slot_ref = *attacking_slot_reference;
         }
     }
     let boostable_stats = boosts.boosts.get_as_pokemon_boostable();
     for (pkmn_boostable_stat, boost) in boostable_stats.iter().filter(|(_, b)| b != &0) {
-        let side = state.get_side(&target_side_ref);
+        let side = state.get_side(target_side_ref);
         apply_boost_instructions(
             side,
             pkmn_boostable_stat,
             boost,
             attacking_side_reference,
-            &target_side_ref,
+            target_side_ref,
             &target_slot_ref,
             incoming_instructions,
         );
@@ -1048,9 +1048,9 @@ fn get_instructions_from_secondaries(
     state: &mut State,
     attacker_choice: &Choice,
     secondaries: &Vec<Secondary>,
-    side_reference: &SideReference,
+    side_reference: SideReference,
     slot_reference: &SlotReference,
-    target_side_ref: &SideReference,
+    target_side_ref: SideReference,
     target_slot_ref: &SlotReference,
     incoming_instructions: StateInstructions,
     hit_sub: bool,
@@ -1143,19 +1143,19 @@ fn get_instructions_from_secondaries(
                         let secondary_target_slot_ref: SlotReference;
                         match secondary.target {
                             MoveTarget::Target => {
-                                secondary_target_side_ref = *target_side_ref;
+                                secondary_target_side_ref = target_side_ref;
                                 secondary_target_slot_ref = *target_slot_ref;
                             }
                             MoveTarget::User => {
-                                secondary_target_side_ref = *side_reference;
+                                secondary_target_side_ref = side_reference;
                                 secondary_target_slot_ref = *slot_reference;
                             }
                         }
-                        let side = state.get_side(&secondary_target_side_ref);
+                        let side = state.get_side(secondary_target_side_ref);
                         let target_pokemon_index =
                             side.get_slot(&secondary_target_slot_ref).active_index;
                         let target_pkmn = state
-                            .get_side(&secondary_target_side_ref)
+                            .get_side(secondary_target_side_ref)
                             .get_active(&secondary_target_slot_ref);
                         secondary_hit_instructions
                             .instruction_list
@@ -1181,9 +1181,9 @@ fn get_instructions_from_secondaries(
 pub fn get_instructions_from_heal(
     state: &mut State,
     heal: &Heal,
-    attacking_side_reference: &SideReference,
+    attacking_side_reference: SideReference,
     attacking_slot_reference: &SlotReference,
-    target_side_reference: &SideReference,
+    target_side_reference: SideReference,
     target_slot: &SlotReference,
     incoming_instructions: &mut StateInstructions,
 ) {
@@ -1191,20 +1191,18 @@ pub fn get_instructions_from_heal(
     let target_slot_ref: SlotReference;
     match heal.target {
         MoveTarget::Target => {
-            target_side_ref = *target_side_reference;
+            target_side_ref = target_side_reference;
             target_slot_ref = *target_slot;
         }
         MoveTarget::User => {
-            target_side_ref = *attacking_side_reference;
+            target_side_ref = attacking_side_reference;
             target_slot_ref = *attacking_slot_reference;
         }
     }
 
-    let target_side = state.get_side(&target_side_ref);
+    let target_side = state.get_side(target_side_ref);
     let target_pokemon_index = target_side.get_slot(&target_slot_ref).active_index;
-    let target_pkmn = state
-        .get_side(&target_side_ref)
-        .get_active(&target_slot_ref);
+    let target_pkmn = state.get_side(target_side_ref).get_active(&target_slot_ref);
 
     let mut health_recovered = (heal.amount * target_pkmn.maxhp as f32) as i16;
     let final_health = target_pkmn.hp + health_recovered;
@@ -1228,7 +1226,7 @@ pub fn get_instructions_from_heal(
 fn check_move_hit_or_miss(
     state: &mut State,
     choice: &Choice,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
     damage: Option<(i16, i16)>,
     incoming_instructions: &mut StateInstructions,
@@ -1260,7 +1258,7 @@ fn check_move_hit_or_miss(
         if let Some(crash_fraction) = choice.crash {
             let crash_amount = (attacking_pokemon.maxhp as f32 * crash_fraction) as i16;
             let crash_instruction = Instruction::Damage(DamageInstruction {
-                side_ref: *attacking_side_ref,
+                side_ref: attacking_side_ref,
                 pokemon_index: attacking_pokemon_index,
                 damage_amount: cmp::min(crash_amount, attacking_pokemon.hp),
             });
@@ -1279,7 +1277,7 @@ fn check_move_hit_or_miss(
             move_missed_instruction
                 .instruction_list
                 .push(Instruction::ChangeItem(ChangeItemInstruction {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     pokemon_index: attacking_pokemon_index,
                     current_item: attacking_pokemon.item,
                     new_item: Items::NONE,
@@ -1287,7 +1285,7 @@ fn check_move_hit_or_miss(
             move_missed_instruction
                 .instruction_list
                 .push(Instruction::Boost(BoostInstruction {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     slot_ref: *attacking_slot_ref,
                     stat: PokemonBoostableStat::Speed,
                     amount: 2,
@@ -1302,7 +1300,7 @@ fn check_move_hit_or_miss(
 fn get_instructions_from_pivot(
     state: &mut State,
     attacking_choice: &Choice,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
     incoming_instructions: &mut StateInstructions,
     remaining_to_move: &Vec<RemainingToMove>,
@@ -1316,7 +1314,7 @@ fn get_instructions_from_pivot(
                 .instruction_list
                 .push(Instruction::ToggleBatonPassing(
                     ToggleBatonPassingInstruction {
-                        side_ref: *attacking_side_ref,
+                        side_ref: attacking_side_ref,
                         slot_ref: *attacking_slot_ref,
                     },
                 ));
@@ -1326,7 +1324,7 @@ fn get_instructions_from_pivot(
                 .instruction_list
                 .push(Instruction::ToggleShedTailing(
                     ToggleShedTailingInstruction {
-                        side_ref: *attacking_side_ref,
+                        side_ref: attacking_side_ref,
                         slot_ref: *attacking_slot_ref,
                     },
                 ));
@@ -1336,18 +1334,18 @@ fn get_instructions_from_pivot(
             .instruction_list
             .push(Instruction::ToggleForceSwitch(
                 ToggleForceSwitchInstruction {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     slot_ref: *attacking_slot_ref,
                 },
             ));
 
         for rtm in remaining_to_move {
-            if (&rtm.side_ref == attacking_side_ref && &rtm.slot_ref == attacking_slot_ref)
+            if (rtm.side_ref == attacking_side_ref && &rtm.slot_ref == attacking_slot_ref)
                 || rtm.move_choice == MoveChoice::None
             {
                 continue;
             }
-            let slot = state.get_side(&rtm.side_ref).get_slot(&rtm.slot_ref);
+            let slot = state.get_side(rtm.side_ref).get_slot(&rtm.slot_ref);
             incoming_instructions
                 .instruction_list
                 .push(Instruction::SetSwitchOutMove(
@@ -1365,7 +1363,7 @@ fn get_instructions_from_pivot(
 
 fn get_instructions_from_drag(
     state: &mut State,
-    target_side_reference: &SideReference,
+    target_side_reference: SideReference,
     target_slot_reference: &SlotReference,
     incoming_instructions: StateInstructions,
     frozen_instructions: &mut Vec<(StateInstructions, Vec<RemainingToMove>)>,
@@ -1398,7 +1396,7 @@ fn get_instructions_from_drag(
             state,
             target_slot_reference,
             pkmn_id,
-            *target_side_reference,
+            target_side_reference,
             &mut cloned_instructions,
         );
         cloned_instructions.update_percentage(1.0 / num_alive_reserve as f32);
@@ -1408,7 +1406,7 @@ fn get_instructions_from_drag(
 
 fn reset_damage_dealt(
     slot: &SideSlot,
-    side_reference: &SideReference,
+    side_reference: SideReference,
     slot_reference: &SlotReference,
     incoming_instructions: &mut StateInstructions,
 ) {
@@ -1419,7 +1417,7 @@ fn reset_damage_dealt(
             .instruction_list
             .push(Instruction::ChangeDamageDealtDamage(
                 ChangeDamageDealtDamageInstruction {
-                    side_ref: *side_reference,
+                    side_ref: side_reference,
                     slot_ref: *slot_reference,
                     damage_change: 0 - slot.damage_dealt.damage,
                 },
@@ -1430,7 +1428,7 @@ fn reset_damage_dealt(
             .instruction_list
             .push(Instruction::ChangeDamageDealtMoveCatagory(
                 ChangeDamageDealtMoveCategoryInstruction {
-                    side_ref: *side_reference,
+                    side_ref: side_reference,
                     slot_ref: *slot_reference,
                     move_category: MoveCategory::Physical,
                     previous_move_category: slot.damage_dealt.move_category,
@@ -1442,7 +1440,7 @@ fn reset_damage_dealt(
             .instruction_list
             .push(Instruction::ToggleDamageDealtHitSubstitute(
                 ToggleDamageDealtHitSubstituteInstruction {
-                    side_ref: *side_reference,
+                    side_ref: side_reference,
                     slot_ref: *slot_reference,
                 },
             ));
@@ -1451,7 +1449,7 @@ fn reset_damage_dealt(
 
 fn set_damage_dealt(
     attacking_slot: &mut SideSlot,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
     damage_dealt: i16,
     choice: &Choice,
@@ -1463,7 +1461,7 @@ fn set_damage_dealt(
             .instruction_list
             .push(Instruction::ChangeDamageDealtDamage(
                 ChangeDamageDealtDamageInstruction {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     slot_ref: *attacking_slot_ref,
                     damage_change: damage_dealt - attacking_slot.damage_dealt.damage,
                 },
@@ -1476,7 +1474,7 @@ fn set_damage_dealt(
             .instruction_list
             .push(Instruction::ChangeDamageDealtMoveCatagory(
                 ChangeDamageDealtMoveCategoryInstruction {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     slot_ref: *attacking_slot_ref,
                     move_category: choice.category,
                     previous_move_category: attacking_slot.damage_dealt.move_category,
@@ -1490,7 +1488,7 @@ fn set_damage_dealt(
             .instruction_list
             .push(Instruction::ToggleDamageDealtHitSubstitute(
                 ToggleDamageDealtHitSubstituteInstruction {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     slot_ref: *attacking_slot_ref,
                 },
             ));
@@ -1502,9 +1500,9 @@ fn generate_instructions_from_damage(
     mut state: &mut State,
     choice: &mut Choice,
     calculated_damage: i16,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
-    target_side_ref: &SideReference,
+    target_side_ref: SideReference,
     target_slot_ref: &SlotReference,
     mut incoming_instructions: &mut StateInstructions,
 ) -> bool {
@@ -1525,7 +1523,7 @@ fn generate_instructions_from_damage(
             let crash_amount = (attacking_pokemon.maxhp as f32 * crash_fraction) as i16;
             let damage_taken = cmp::min(crash_amount, attacking_pokemon.hp);
             let crash_instruction = Instruction::Damage(DamageInstruction {
-                side_ref: *attacking_side_ref,
+                side_ref: attacking_side_ref,
                 pokemon_index: attacking_pkmn_index,
                 damage_amount: damage_taken,
             });
@@ -1557,7 +1555,7 @@ fn generate_instructions_from_damage(
             let substitute_damage_dealt = cmp::min(calculated_damage, damage_dealt);
             let substitute_instruction =
                 Instruction::DamageSubstitute(DamageSubstituteInstruction {
-                    side_ref: *target_side_ref,
+                    side_ref: target_side_ref,
                     slot_ref: *target_slot_ref,
                     damage_amount: substitute_damage_dealt,
                 });
@@ -1590,7 +1588,7 @@ fn generate_instructions_from_damage(
                     .instruction_list
                     .push(Instruction::RemoveVolatileStatus(
                         RemoveVolatileStatusInstruction {
-                            side_ref: *target_side_ref,
+                            side_ref: target_side_ref,
                             slot_ref: *target_slot_ref,
                             volatile_status: PokemonVolatileStatus::SUBSTITUTE,
                         },
@@ -1624,7 +1622,7 @@ fn generate_instructions_from_damage(
                 }
 
                 let damage_instruction = Instruction::Damage(DamageInstruction {
-                    side_ref: *target_side_ref,
+                    side_ref: target_side_ref,
                     pokemon_index: defending_active_index,
                     damage_amount: damage_dealt,
                 });
@@ -1642,7 +1640,7 @@ fn generate_instructions_from_damage(
                     let attacking_side = state.get_side(attacking_side_ref);
                     let attacking_pokemon = attacking_side.get_active(attacking_slot_ref);
                     let damage_instruction = Instruction::Damage(DamageInstruction {
-                        side_ref: *attacking_side_ref,
+                        side_ref: attacking_side_ref,
                         pokemon_index: defending_active_index,
                         damage_amount: attacking_pokemon.hp,
                     });
@@ -1689,7 +1687,7 @@ fn generate_instructions_from_damage(
                 cmp::min(drain_amount, attacking_pokemon.maxhp - attacking_pokemon.hp);
             if heal_amount != 0 {
                 let drain_instruction = Instruction::Heal(HealInstruction {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     pokemon_index: active_index,
                     heal_amount,
                 });
@@ -1709,7 +1707,7 @@ fn generate_instructions_from_damage(
             let recoil_amount = (damage_dealt as f32 * recoil_fraction) as i16;
             let damage_amount = cmp::min(recoil_amount, attacking_pokemon.hp);
             let recoil_instruction = Instruction::Damage(DamageInstruction {
-                side_ref: *attacking_side_ref,
+                side_ref: attacking_side_ref,
                 pokemon_index: active_index,
                 damage_amount,
             });
@@ -1735,7 +1733,7 @@ fn generate_instructions_from_damage(
 fn move_has_no_effect(
     state: &State,
     choice: &Choice,
-    target_side_ref: &SideReference,
+    target_side_ref: SideReference,
     target_slot_ref: &SlotReference,
 ) -> bool {
     let target_side = state.get_side_immutable(target_side_ref);
@@ -1793,9 +1791,9 @@ fn move_has_no_effect(
 fn cannot_use_move(
     state: &State,
     choice: &Choice,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
-    target_side_ref: &SideReference,
+    target_side_ref: SideReference,
     target_slot_ref: &SlotReference,
 ) -> bool {
     // If the opponent has 0 hp, you can't use a non-status move
@@ -1858,7 +1856,7 @@ fn cannot_use_move(
 fn terastallized_base_power_floor(
     state: &mut State,
     choice: &mut Choice,
-    attacking_side: &SideReference,
+    attacking_side: SideReference,
     attacking_slot: &SlotReference,
 ) {
     let attacker = state
@@ -1880,9 +1878,9 @@ fn before_move(
     state: &mut State,
     choice: &mut Choice,
     target_choice: &Choice,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
-    target_side: &SideReference,
+    target_side: SideReference,
     target_slot: &SlotReference,
     final_run_move: bool,
     target_has_moved: bool,
@@ -2082,7 +2080,7 @@ fn before_move(
                     .instruction_list
                     .push(Instruction::InsertStellarBoostedType(
                         InsertStellarBoostedTypeInstruction {
-                            side_ref: *attacking_side_ref,
+                            side_ref: attacking_side_ref,
                             pokemon_index: attacker_index,
                             pkmn_type: choice.move_type,
                         },
@@ -2095,7 +2093,7 @@ fn before_move(
 
 fn generate_instructions_from_existing_status_conditions(
     state: &mut State,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
     attacker_choice: &Choice,
     incoming_instructions: &mut StateInstructions,
@@ -2144,7 +2142,7 @@ fn generate_instructions_from_existing_status_conditions(
                         incoming_instructions
                             .instruction_list
                             .push(Instruction::ChangeStatus(ChangeStatusInstruction {
-                                side_ref: *attacking_side_ref,
+                                side_ref: attacking_side_ref,
                                 pokemon_index: current_active_index,
                                 old_status: PokemonStatus::SLEEP,
                                 new_status: PokemonStatus::NONE,
@@ -2152,7 +2150,7 @@ fn generate_instructions_from_existing_status_conditions(
                         incoming_instructions
                             .instruction_list
                             .push(Instruction::SetSleepTurns(SetSleepTurnsInstruction {
-                                side_ref: *attacking_side_ref,
+                                side_ref: attacking_side_ref,
                                 pokemon_index: current_active_index,
                                 new_turns: 0,
                                 previous_turns: current_sleep_turns,
@@ -2162,7 +2160,7 @@ fn generate_instructions_from_existing_status_conditions(
                             // if we are using sleeptalk we want to continue using this move
                             incoming_instructions.instruction_list.push(
                                 Instruction::SetSleepTurns(SetSleepTurnsInstruction {
-                                    side_ref: *attacking_side_ref,
+                                    side_ref: attacking_side_ref,
                                     pokemon_index: current_active_index,
                                     new_turns: current_sleep_turns + 1,
                                     previous_turns: current_sleep_turns,
@@ -2173,7 +2171,7 @@ fn generate_instructions_from_existing_status_conditions(
                             still_asleep_instruction.update_percentage(1.0);
                             still_asleep_instruction.instruction_list.push(
                                 Instruction::SetSleepTurns(SetSleepTurnsInstruction {
-                                    side_ref: *attacking_side_ref,
+                                    side_ref: attacking_side_ref,
                                     pokemon_index: current_active_index,
                                     new_turns: current_sleep_turns + 1,
                                     previous_turns: current_sleep_turns,
@@ -2196,7 +2194,7 @@ fn generate_instructions_from_existing_status_conditions(
                             do_nothing_percentage = chance_to_wake;
                             do_nothing_instructions.instruction_list.push(
                                 Instruction::ChangeStatus(ChangeStatusInstruction {
-                                    side_ref: *attacking_side_ref,
+                                    side_ref: attacking_side_ref,
                                     pokemon_index: current_active_index,
                                     old_status: PokemonStatus::SLEEP,
                                     new_status: PokemonStatus::NONE,
@@ -2204,7 +2202,7 @@ fn generate_instructions_from_existing_status_conditions(
                             );
                             do_nothing_instructions.instruction_list.push(
                                 Instruction::SetSleepTurns(SetSleepTurnsInstruction {
-                                    side_ref: *attacking_side_ref,
+                                    side_ref: attacking_side_ref,
                                     pokemon_index: current_active_index,
                                     new_turns: 0,
                                     previous_turns: current_sleep_turns,
@@ -2212,7 +2210,7 @@ fn generate_instructions_from_existing_status_conditions(
                             );
                             incoming_instructions.instruction_list.push(
                                 Instruction::SetSleepTurns(SetSleepTurnsInstruction {
-                                    side_ref: *attacking_side_ref,
+                                    side_ref: attacking_side_ref,
                                     pokemon_index: current_active_index,
                                     new_turns: current_sleep_turns + 1,
                                     previous_turns: current_sleep_turns,
@@ -2223,7 +2221,7 @@ fn generate_instructions_from_existing_status_conditions(
                             do_nothing_percentage = 1.0 - chance_to_wake;
                             do_nothing_instructions.instruction_list.push(
                                 Instruction::SetSleepTurns(SetSleepTurnsInstruction {
-                                    side_ref: *attacking_side_ref,
+                                    side_ref: attacking_side_ref,
                                     pokemon_index: current_active_index,
                                     new_turns: current_sleep_turns + 1,
                                     previous_turns: current_sleep_turns,
@@ -2232,14 +2230,14 @@ fn generate_instructions_from_existing_status_conditions(
                             incoming_instructions
                                 .instruction_list
                                 .push(Instruction::ChangeStatus(ChangeStatusInstruction {
-                                    side_ref: *attacking_side_ref,
+                                    side_ref: attacking_side_ref,
                                     pokemon_index: current_active_index,
                                     old_status: PokemonStatus::SLEEP,
                                     new_status: PokemonStatus::NONE,
                                 }));
                             incoming_instructions.instruction_list.push(
                                 Instruction::SetSleepTurns(SetSleepTurnsInstruction {
-                                    side_ref: *attacking_side_ref,
+                                    side_ref: attacking_side_ref,
                                     pokemon_index: current_active_index,
                                     new_turns: 0,
                                     previous_turns: current_sleep_turns,
@@ -2261,7 +2259,7 @@ fn generate_instructions_from_existing_status_conditions(
                     incoming_instructions
                         .instruction_list
                         .push(Instruction::ChangeStatus(ChangeStatusInstruction {
-                            side_ref: *attacking_side_ref,
+                            side_ref: attacking_side_ref,
                             pokemon_index: current_active_index,
                             old_status: PokemonStatus::SLEEP,
                             new_status: PokemonStatus::NONE,
@@ -2270,7 +2268,7 @@ fn generate_instructions_from_existing_status_conditions(
                         .instruction_list
                         .push(Instruction::DecrementRestTurns(
                             DecrementRestTurnsInstruction {
-                                side_ref: *attacking_side_ref,
+                                side_ref: attacking_side_ref,
                                 pokemon_index: current_active_index,
                             },
                         ));
@@ -2282,7 +2280,7 @@ fn generate_instructions_from_existing_status_conditions(
                         .instruction_list
                         .push(Instruction::DecrementRestTurns(
                             DecrementRestTurnsInstruction {
-                                side_ref: *attacking_side_ref,
+                                side_ref: attacking_side_ref,
                                 pokemon_index: current_active_index,
                             },
                         ));
@@ -2334,7 +2332,7 @@ fn generate_instructions_from_existing_status_conditions(
 
         let damage_dealt = cmp::min(damage_dealt as i16, attacker_active.hp);
         let damage_instruction = Instruction::Damage(DamageInstruction {
-            side_ref: *attacking_side_ref,
+            side_ref: attacking_side_ref,
             pokemon_index: current_active_index,
             damage_amount: damage_dealt,
         });
@@ -2368,7 +2366,7 @@ pub fn generate_instructions_from_move(
             // find all targets with more than 1 hp
             // if num targets is 2, reduce damage by 25%
             let mut choices = Vec::with_capacity(3);
-            let target_side = state.get_side_immutable(&attacking_side.get_other_side());
+            let target_side = state.get_side_immutable(attacking_side.get_other_side());
             let slot_a_alive = target_side.get_active_immutable(&SlotReference::SlotA).hp > 0;
             let slot_b_alive = target_side.get_active_immutable(&SlotReference::SlotB).hp > 0;
             if slot_a_alive && slot_b_alive {
@@ -2404,7 +2402,7 @@ pub fn generate_instructions_from_move(
             let mut choices = Vec::with_capacity(3);
             let other_side_ref = attacking_side.get_other_side();
             if state
-                .get_side_immutable(&other_side_ref)
+                .get_side_immutable(other_side_ref)
                 .get_active_immutable(&SlotReference::SlotA)
                 .hp
                 > 0
@@ -2412,7 +2410,7 @@ pub fn generate_instructions_from_move(
                 choices.push((choice.clone(), other_side_ref, SlotReference::SlotA))
             }
             if state
-                .get_side_immutable(&other_side_ref)
+                .get_side_immutable(other_side_ref)
                 .get_active_immutable(&SlotReference::SlotB)
                 .hp
                 > 0
@@ -2420,7 +2418,7 @@ pub fn generate_instructions_from_move(
                 choices.push((choice.clone(), other_side_ref, SlotReference::SlotB))
             }
             let ally_pkmn = state
-                .get_side_immutable(&attacking_side)
+                .get_side_immutable(attacking_side)
                 .get_active_immutable(&attacking_slot.get_other_slot());
             if ally_pkmn.hp > 0 && ally_pkmn.ability != Abilities::TELEPATHY {
                 choices.push((
@@ -2484,7 +2482,7 @@ pub fn generate_instructions_from_move(
         // this check needs to be done after every move, not at the end of the turn
         for side_ref in [SideReference::SideOne, SideReference::SideTwo] {
             for slot_ref in [SlotReference::SlotA, SlotReference::SlotB] {
-                let side = state.get_side(&side_ref);
+                let side = state.get_side(side_ref);
                 let active_has_whiteherb =
                     side.get_active_immutable(&slot_ref).item == Items::WHITEHERB;
                 let slot = side.get_slot(&slot_ref);
@@ -2554,9 +2552,9 @@ fn run_move(
     if state.use_damage_dealt {
         reset_damage_dealt(
             state
-                .get_side_immutable(&attacking_side)
+                .get_side_immutable(attacking_side)
                 .get_slot_immutable(&attacking_slot),
-            &attacking_side,
+            attacking_side,
             &attacking_slot,
             &mut incoming_instructions,
         );
@@ -2574,7 +2572,7 @@ fn run_move(
         return;
     }
 
-    let attacker_side = state.get_side(&attacking_side);
+    let attacker_side = state.get_side(attacking_side);
     let attacker_slot = attacker_side.get_slot(&attacking_slot);
     if choice.move_id == Choices::NONE {
         if attacker_slot
@@ -2620,7 +2618,7 @@ fn run_move(
 
     state.apply_instructions(&incoming_instructions.instruction_list);
 
-    let side = state.get_side(&attacking_side);
+    let side = state.get_side(attacking_side);
     let slot = side.get_slot(&attacking_slot);
     if slot
         .volatile_statuses
@@ -2725,7 +2723,7 @@ fn run_move(
                 );
                 slot.volatile_status_durations.taunt = 0;
                 state.re_enable_disabled_moves(
-                    &attacking_side,
+                    attacking_side,
                     &attacking_slot,
                     &mut incoming_instructions.instruction_list,
                 );
@@ -2746,12 +2744,12 @@ fn run_move(
                 continue;
             }
             if state
-                .get_side_immutable(&side_ref)
+                .get_side_immutable(side_ref)
                 .get_slot_immutable(&slot_ref)
                 .force_switch
             {
                 state
-                    .get_side(&attacking_side)
+                    .get_side(attacking_side)
                     .get_slot(&attacking_slot)
                     .switch_out_move_second_saved_move =
                     MoveChoice::Move(target_slot, target_side, choice.move_index);
@@ -2763,7 +2761,7 @@ fn run_move(
     }
 
     if state
-        .get_side_immutable(&attacking_side)
+        .get_side_immutable(attacking_side)
         .get_active_immutable(&attacking_slot)
         .hp
         == 0
@@ -2775,7 +2773,7 @@ fn run_move(
 
     // If the move is a charge move, remove the volatile status if damage was done
     if choice.flags.charge {
-        let side = state.get_side(&attacking_side);
+        let side = state.get_side(attacking_side);
         let slot = side.get_slot(&attacking_slot);
         let volatile_status = charge_choice_to_volatile(&choice.move_id);
         if slot.volatile_statuses.contains(&volatile_status) {
@@ -2794,31 +2792,31 @@ fn run_move(
     // need to pull out the things in abilities/items/choice_effects that change the type of a move
     // these type changes need to be done _before_ this redirection logic because the type of a
     // move may change the target of a move
-    ability_change_type(state, choice, &attacking_side, &attacking_slot);
-    item_change_type(state, choice, &attacking_side, &attacking_slot);
-    choice_change_type(state, choice, &attacking_side, &attacking_slot);
+    ability_change_type(state, choice, attacking_side, &attacking_slot);
+    item_change_type(state, choice, attacking_side, &attacking_slot);
+    choice_change_type(state, choice, attacking_side, &attacking_slot);
 
     if choice.move_choice_target == MoveChoiceTarget::Normal {
         let attacker = state
-            .get_side_immutable(&attacking_side)
+            .get_side_immutable(attacking_side)
             .get_active_immutable(&attacking_slot);
         let attacker_partner = state
-            .get_side_immutable(&attacking_side)
+            .get_side_immutable(attacking_side)
             .get_active_immutable(&attacking_slot.get_other_slot());
         let target = state
-            .get_side_immutable(&target_side)
+            .get_side_immutable(target_side)
             .get_active_immutable(&target_slot);
         let _target_partner = state
-            .get_side_immutable(&target_side)
+            .get_side_immutable(target_side)
             .get_active_immutable(&target_slot.get_other_slot());
         let target_partner_slot = state
-            .get_side_immutable(&target_side)
+            .get_side_immutable(target_side)
             .get_slot_immutable(&target_slot.get_other_slot());
         let other_side_a = state
-            .get_side_immutable(&attacking_side.get_other_side())
+            .get_side_immutable(attacking_side.get_other_side())
             .get_active_immutable(&SlotReference::SlotA);
         let other_side_b = state
-            .get_side_immutable(&attacking_side.get_other_side())
+            .get_side_immutable(attacking_side.get_other_side())
             .get_active_immutable(&SlotReference::SlotB);
 
         let target_partner_alive = _target_partner.hp > 0;
@@ -2864,9 +2862,9 @@ fn run_move(
         state,
         choice,
         defender_choice,
-        &attacking_side,
+        attacking_side,
         &attacking_slot,
-        &target_side,
+        target_side,
         &target_slot,
         final_run_move,
         target_has_moved,
@@ -2879,7 +2877,7 @@ fn run_move(
 
     if state.use_last_used_move {
         set_last_used_move_as_move(
-            state.get_side(&attacking_side),
+            state.get_side(attacking_side),
             attacking_slot,
             choice.move_index,
             attacking_side,
@@ -2890,9 +2888,9 @@ fn run_move(
     if cannot_use_move(
         state,
         &choice,
-        &attacking_side,
+        attacking_side,
         &attacking_slot,
-        &target_side,
+        target_side,
         &target_slot,
     ) {
         state.reverse_instructions(&incoming_instructions.instruction_list);
@@ -2934,7 +2932,7 @@ fn run_move(
     if final_run_move && !choice.sleep_talk_move {
         generate_instructions_from_existing_status_conditions(
             state,
-            &attacking_side,
+            attacking_side,
             &attacking_slot,
             &choice,
             &mut incoming_instructions,
@@ -2943,7 +2941,7 @@ fn run_move(
         );
     }
     let attacker = state
-        .get_side_immutable(&attacking_side)
+        .get_side_immutable(attacking_side)
         .get_active_immutable(&attacking_slot);
     if choice.move_id == Choices::SLEEPTALK && attacker.status == PokemonStatus::SLEEP {
         let new_choices = attacker.get_sleep_talk_choices();
@@ -2977,7 +2975,7 @@ fn run_move(
         return;
     }
 
-    if move_has_no_effect(state, &choice, &target_side, &target_slot) {
+    if move_has_no_effect(state, &choice, target_side, &target_slot) {
         state.reverse_instructions(&incoming_instructions.instruction_list);
         final_instructions.push((incoming_instructions, remaining_to_move));
         return;
@@ -2985,17 +2983,17 @@ fn run_move(
     choice_special_effect(
         state,
         choice,
-        &attacking_side,
+        attacking_side,
         &attacking_slot,
-        &target_side,
+        target_side,
         &target_slot,
         &mut incoming_instructions,
     );
     let damage = calculate_damage(
         state,
-        &attacking_side,
+        attacking_side,
         &attacking_slot,
-        &target_side,
+        target_side,
         &target_slot,
         &choice,
         DamageRolls::Max,
@@ -3003,7 +3001,7 @@ fn run_move(
     check_move_hit_or_miss(
         state,
         &choice,
-        &attacking_side,
+        attacking_side,
         &attacking_slot,
         damage,
         &mut incoming_instructions,
@@ -3030,14 +3028,14 @@ fn run_move(
         }
         MultiHitMove::TwoToFiveHits => {
             hit_count = if state
-                .get_side(&attacking_side)
+                .get_side(attacking_side)
                 .get_active(&attacking_slot)
                 .ability
                 == Abilities::SKILLLINK
             {
                 5
             } else if state
-                .get_side(&attacking_side)
+                .get_side(attacking_side)
                 .get_active(&attacking_slot)
                 .item
                 == Items::LOADEDDICE
@@ -3050,7 +3048,7 @@ fn run_move(
         MultiHitMove::BeatUp => {
             // beat up hits once for each non-fainted pokemon in the party
             hit_count = 0;
-            let attacking_side = state.get_side_immutable(&attacking_side);
+            let attacking_side = state.get_side_immutable(attacking_side);
             for pkmn in attacking_side.pokemon.pkmn.iter() {
                 if pkmn.hp > 0 {
                     hit_count += 1;
@@ -3060,7 +3058,7 @@ fn run_move(
         MultiHitMove::PopulationBomb => {
             // population bomb checks accuracy each time but lets approximate
             hit_count = if state
-                .get_side(&attacking_side)
+                .get_side(attacking_side)
                 .get_active(&attacking_slot)
                 .item
                 == Items::WIDELENS
@@ -3077,7 +3075,7 @@ fn run_move(
         }
     }
 
-    let (attacker_side, defender_side) = state.get_both_sides(&attacking_side);
+    let (attacker_side, defender_side) = state.get_both_sides(attacking_side);
     let attacker = attacker_side.get_active(&attacking_slot);
     let defender_active = defender_side.get_active(&target_slot);
     let mut does_damage = false;
@@ -3207,7 +3205,7 @@ fn combine_duplicate_instructions(
 
 pub fn get_effective_speed(
     state: &State,
-    side_reference: &SideReference,
+    side_reference: SideReference,
     slot_reference: &SlotReference,
 ) -> i16 {
     let side = state.get_side_immutable(side_reference);
@@ -3281,7 +3279,7 @@ pub fn get_effective_speed(
 
 fn get_effective_priority(
     state: &State,
-    side_reference: &SideReference,
+    side_reference: SideReference,
     slot_reference: &SlotReference,
     choice: &Choice,
 ) -> i8 {
@@ -3309,7 +3307,7 @@ fn get_effective_priority(
 
 fn modify_choice_before_move(
     state: &State,
-    side_reference: &SideReference,
+    side_reference: SideReference,
     slot_reference: &SlotReference,
     choice: &mut Choice,
     pkmn_just_used_tera: bool,
@@ -3350,7 +3348,7 @@ fn next_to_move(
         let is_switch = remaining_to_move.choice.category == MoveCategory::Switch;
         let speed = get_effective_speed(
             state,
-            &remaining_to_move.side_ref,
+            remaining_to_move.side_ref,
             &remaining_to_move.slot_ref,
         );
         let priority = if is_switch {
@@ -3358,7 +3356,7 @@ fn next_to_move(
         } else {
             get_effective_priority(
                 state,
-                &remaining_to_move.side_ref,
+                remaining_to_move.side_ref,
                 &remaining_to_move.slot_ref,
                 &remaining_to_move.choice,
             )
@@ -3458,7 +3456,7 @@ fn get_active_quarkdrive(slot: &SideSlot) -> Option<PokemonVolatileStatus> {
 
 fn on_weather_end(
     state: &mut State,
-    sides: [&SideReference; 2],
+    sides: [SideReference; 2],
     incoming_instructions: &mut StateInstructions,
 ) {
     match state.weather.weather_type {
@@ -3474,7 +3472,7 @@ fn on_weather_end(
                             if active.item == Items::BOOSTERENERGY {
                                 incoming_instructions.instruction_list.push(
                                     Instruction::ChangeItem(ChangeItemInstruction {
-                                        side_ref: *side_ref,
+                                        side_ref,
                                         pokemon_index: active_index,
                                         current_item: Items::BOOSTERENERGY,
                                         new_item: Items::NONE,
@@ -3485,7 +3483,7 @@ fn on_weather_end(
                                 incoming_instructions.instruction_list.push(
                                     Instruction::RemoveVolatileStatus(
                                         RemoveVolatileStatusInstruction {
-                                            side_ref: *side_ref,
+                                            side_ref,
                                             slot_ref: *slot_ref,
                                             volatile_status,
                                         },
@@ -3506,7 +3504,7 @@ fn on_weather_end(
 
 fn on_terrain_end(
     state: &mut State,
-    sides: [&SideReference; 2],
+    sides: [SideReference; 2],
     incoming_instructions: &mut StateInstructions,
 ) {
     match state.terrain.terrain_type {
@@ -3522,7 +3520,7 @@ fn on_terrain_end(
                             if active.item == Items::BOOSTERENERGY {
                                 incoming_instructions.instruction_list.push(
                                     Instruction::ChangeItem(ChangeItemInstruction {
-                                        side_ref: *side_ref,
+                                        side_ref,
                                         pokemon_index: active_index,
                                         current_item: Items::BOOSTERENERGY,
                                         new_item: Items::NONE,
@@ -3533,7 +3531,7 @@ fn on_terrain_end(
                                 incoming_instructions.instruction_list.push(
                                     Instruction::RemoveVolatileStatus(
                                         RemoveVolatileStatusInstruction {
-                                            side_ref: *side_ref,
+                                            side_ref,
                                             slot_ref: *slot_ref,
                                             volatile_status,
                                         },
@@ -3555,17 +3553,17 @@ fn on_terrain_end(
 fn add_end_of_turn_instructions(
     state: &mut State,
     mut incoming_instructions: &mut StateInstructions,
-    first_move_side: &SideReference,
+    first_move_side: SideReference,
 ) {
-    if state.side_one.slot_a.force_switch
-        || state.side_one.slot_b.force_switch
-        || state.side_two.slot_a.force_switch
-        || state.side_two.slot_b.force_switch
+    if state.sides[0].slot_a.force_switch
+        || state.sides[0].slot_b.force_switch
+        || state.sides[1].slot_a.force_switch
+        || state.sides[1].slot_b.force_switch
     {
         return;
     }
 
-    let sides = [first_move_side, &first_move_side.get_other_side()];
+    let sides = [first_move_side, first_move_side.get_other_side()];
     let slots = [&SlotReference::SlotA, &SlotReference::SlotB];
 
     // Weather decrement / dissipation
@@ -3625,7 +3623,7 @@ fn add_end_of_turn_instructions(
                     );
                     if heal_amount > 0 {
                         let heal_instruction = Instruction::Heal(HealInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             pokemon_index: active_index,
                             heal_amount,
                         });
@@ -3666,7 +3664,7 @@ fn add_end_of_turn_instructions(
                 .instruction_list
                 .push(Instruction::ChangeSideCondition(
                     ChangeSideConditionInstruction {
-                        side_ref: *side_ref,
+                        side_ref,
                         side_condition: PokemonSideCondition::WideGuard,
                         amount: -1,
                     },
@@ -3678,7 +3676,7 @@ fn add_end_of_turn_instructions(
                 .instruction_list
                 .push(Instruction::ChangeSideCondition(
                     ChangeSideConditionInstruction {
-                        side_ref: *side_ref,
+                        side_ref,
                         side_condition: PokemonSideCondition::Reflect,
                         amount: -1,
                     },
@@ -3690,7 +3688,7 @@ fn add_end_of_turn_instructions(
                 .instruction_list
                 .push(Instruction::ChangeSideCondition(
                     ChangeSideConditionInstruction {
-                        side_ref: *side_ref,
+                        side_ref,
                         side_condition: PokemonSideCondition::LightScreen,
                         amount: -1,
                     },
@@ -3702,7 +3700,7 @@ fn add_end_of_turn_instructions(
                 .instruction_list
                 .push(Instruction::ChangeSideCondition(
                     ChangeSideConditionInstruction {
-                        side_ref: *side_ref,
+                        side_ref,
                         side_condition: PokemonSideCondition::AuroraVeil,
                         amount: -1,
                     },
@@ -3714,7 +3712,7 @@ fn add_end_of_turn_instructions(
                 .instruction_list
                 .push(Instruction::ChangeSideCondition(
                     ChangeSideConditionInstruction {
-                        side_ref: *side_ref,
+                        side_ref,
                         side_condition: PokemonSideCondition::Tailwind,
                         amount: -1,
                     },
@@ -3743,7 +3741,7 @@ fn add_end_of_turn_instructions(
                 let damage_amount =
                     cmp::min((active_pkmn.maxhp as f32 * 0.0625) as i16, active_pkmn.hp);
                 let sand_damage_instruction = Instruction::Damage(DamageInstruction {
-                    side_ref: *side_ref,
+                    side_ref,
                     pokemon_index: active_index,
                     damage_amount,
                 });
@@ -3761,7 +3759,7 @@ fn add_end_of_turn_instructions(
     //     if attacking_side.future_sight.0 > 0 {
     //         let decrement_future_sight_instruction =
     //             Instruction::DecrementFutureSight(DecrementFutureSightInstruction {
-    //                 side_ref: *side_ref,
+    //                 side_ref,
     //             });
     //         if attacking_side.future_sight.0 == 1 {
     //             let mut damage = calculate_futuresight_damage(
@@ -3795,7 +3793,7 @@ fn add_end_of_turn_instructions(
     //
     //     if side_wish.0 > 0 {
     //         let decrement_wish_instruction = Instruction::DecrementWish(DecrementWishInstruction {
-    //             side_ref: *side_ref,
+    //             side_ref,
     //         });
     //         if side_wish.0 == 1 && 0 < active_pkmn.hp && active_pkmn.hp < active_pkmn.maxhp {
     //             #[cfg(not(feature = "gen4"))]
@@ -3806,7 +3804,7 @@ fn add_end_of_turn_instructions(
     //                 cmp::min(active_pkmn.maxhp - active_pkmn.hp, active_pkmn.maxhp / 2);
     //
     //             let wish_heal_instruction = Instruction::Heal(HealInstruction {
-    //                 side_ref: *side_ref,
+    //                 side_ref,
     //                 heal_amount: heal_amount,
     //             });
     //             incoming_instructions
@@ -3848,7 +3846,7 @@ fn add_end_of_turn_instructions(
                         1,
                     );
                     let burn_damage_instruction = Instruction::Damage(DamageInstruction {
-                        side_ref: *side_ref,
+                        side_ref,
                         pokemon_index: active_pkmn_index,
                         damage_amount,
                     });
@@ -3864,7 +3862,7 @@ fn add_end_of_turn_instructions(
                     );
 
                     let poison_damage_instruction = Instruction::Damage(DamageInstruction {
-                        side_ref: *side_ref,
+                        side_ref,
                         pokemon_index: active_pkmn_index,
                         damage_amount,
                     });
@@ -3884,7 +3882,7 @@ fn add_end_of_turn_instructions(
                             1,
                         );
                         let toxic_damage_instruction = Instruction::Damage(DamageInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             pokemon_index: active_pkmn_index,
                             damage_amount,
                         });
@@ -3898,7 +3896,7 @@ fn add_end_of_turn_instructions(
                     // toxic counter is always incremented, even if the pokemon has poison heal
                     let toxic_counter_increment_instruction =
                         Instruction::ChangeSideCondition(ChangeSideConditionInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             side_condition: PokemonSideCondition::ToxicCount,
                             amount: 1,
                         });
@@ -3944,7 +3942,7 @@ fn add_end_of_turn_instructions(
     //
     //         let health_sapped = cmp::min((active_pkmn.maxhp as f32 * 0.125) as i16, active_pkmn.hp);
     //         let damage_ins = Instruction::Damage(DamageInstruction {
-    //             side_ref: *side_ref,
+    //             side_ref,
     //             damage_amount: health_sapped,
     //         });
     //         active_pkmn.hp -= health_sapped;
@@ -4022,7 +4020,7 @@ fn add_end_of_turn_instructions(
                     .instruction_list
                     .push(Instruction::RemoveVolatileStatus(
                         RemoveVolatileStatusInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: PokemonVolatileStatus::FOLLOWME,
                         },
@@ -4035,7 +4033,7 @@ fn add_end_of_turn_instructions(
                     .instruction_list
                     .push(Instruction::RemoveVolatileStatus(
                         RemoveVolatileStatusInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: PokemonVolatileStatus::RAGEPOWDER,
                         },
@@ -4049,7 +4047,7 @@ fn add_end_of_turn_instructions(
                     .instruction_list
                     .push(Instruction::RemoveVolatileStatus(
                         RemoveVolatileStatusInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: PokemonVolatileStatus::HELPINGHAND,
                         },
@@ -4062,7 +4060,7 @@ fn add_end_of_turn_instructions(
                 incoming_instructions.instruction_list.push(
                     Instruction::ChangeVolatileStatusDuration(
                         ChangeVolatileStatusDurationInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: PokemonVolatileStatus::SLOWSTART,
                             amount: -1,
@@ -4075,7 +4073,7 @@ fn add_end_of_turn_instructions(
                         .instruction_list
                         .push(Instruction::RemoveVolatileStatus(
                             RemoveVolatileStatusInstruction {
-                                side_ref: *side_ref,
+                                side_ref,
                                 slot_ref: *slot_ref,
                                 volatile_status: PokemonVolatileStatus::SLOWSTART,
                             },
@@ -4096,7 +4094,7 @@ fn add_end_of_turn_instructions(
                     incoming_instructions.instruction_list.push(
                         Instruction::ChangeVolatileStatusDuration(
                             ChangeVolatileStatusDurationInstruction {
-                                side_ref: *side_ref,
+                                side_ref,
                                 slot_ref: *slot_ref,
                                 volatile_status: PokemonVolatileStatus::LOCKEDMOVE,
                                 amount: -2,
@@ -4107,7 +4105,7 @@ fn add_end_of_turn_instructions(
                         .instruction_list
                         .push(Instruction::RemoveVolatileStatus(
                             RemoveVolatileStatusInstruction {
-                                side_ref: *side_ref,
+                                side_ref,
                                 slot_ref: *slot_ref,
                                 volatile_status: PokemonVolatileStatus::LOCKEDMOVE,
                             },
@@ -4118,7 +4116,7 @@ fn add_end_of_turn_instructions(
                     {
                         incoming_instructions.instruction_list.push(
                             Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
-                                side_ref: *side_ref,
+                                side_ref,
                                 slot_ref: *slot_ref,
                                 volatile_status: PokemonVolatileStatus::CONFUSION,
                             }),
@@ -4131,7 +4129,7 @@ fn add_end_of_turn_instructions(
                     incoming_instructions.instruction_list.push(
                         Instruction::ChangeVolatileStatusDuration(
                             ChangeVolatileStatusDurationInstruction {
-                                side_ref: *side_ref,
+                                side_ref,
                                 slot_ref: *slot_ref,
                                 volatile_status: PokemonVolatileStatus::LOCKEDMOVE,
                                 amount: 1,
@@ -4147,7 +4145,7 @@ fn add_end_of_turn_instructions(
                         incoming_instructions.instruction_list.push(
                             Instruction::ChangeVolatileStatusDuration(
                                 ChangeVolatileStatusDurationInstruction {
-                                    side_ref: *side_ref,
+                                    side_ref,
                                     slot_ref: *slot_ref,
                                     volatile_status: PokemonVolatileStatus::YAWN,
                                     amount: 1,
@@ -4160,7 +4158,7 @@ fn add_end_of_turn_instructions(
                         slot.volatile_statuses.remove(&PokemonVolatileStatus::YAWN);
                         incoming_instructions.instruction_list.push(
                             Instruction::RemoveVolatileStatus(RemoveVolatileStatusInstruction {
-                                side_ref: *side_ref,
+                                side_ref,
                                 slot_ref: *slot_ref,
                                 volatile_status: PokemonVolatileStatus::YAWN,
                             }),
@@ -4168,7 +4166,7 @@ fn add_end_of_turn_instructions(
                         incoming_instructions.instruction_list.push(
                             Instruction::ChangeVolatileStatusDuration(
                                 ChangeVolatileStatusDurationInstruction {
-                                    side_ref: *side_ref,
+                                    side_ref,
                                     slot_ref: *slot_ref,
                                     volatile_status: PokemonVolatileStatus::YAWN,
                                     amount: -1,
@@ -4183,7 +4181,7 @@ fn add_end_of_turn_instructions(
                             incoming_instructions
                                 .instruction_list
                                 .push(Instruction::ChangeStatus(ChangeStatusInstruction {
-                                    side_ref: *side_ref,
+                                    side_ref,
                                     pokemon_index: active_index,
                                     old_status: PokemonStatus::NONE,
                                     new_status: PokemonStatus::SLEEP,
@@ -4202,7 +4200,7 @@ fn add_end_of_turn_instructions(
                 incoming_instructions
                     .instruction_list
                     .push(Instruction::Damage(DamageInstruction {
-                        side_ref: *side_ref,
+                        side_ref,
                         pokemon_index: active_index,
                         damage_amount: active_pkmn.hp,
                     }));
@@ -4219,7 +4217,7 @@ fn add_end_of_turn_instructions(
                     .instruction_list
                     .push(Instruction::RemoveVolatileStatus(
                         RemoveVolatileStatusInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: PokemonVolatileStatus::PERISH2,
                         },
@@ -4228,7 +4226,7 @@ fn add_end_of_turn_instructions(
                     .instruction_list
                     .push(Instruction::ApplyVolatileStatus(
                         ApplyVolatileStatusInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: PokemonVolatileStatus::PERISH1,
                         },
@@ -4243,7 +4241,7 @@ fn add_end_of_turn_instructions(
                     .instruction_list
                     .push(Instruction::RemoveVolatileStatus(
                         RemoveVolatileStatusInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: PokemonVolatileStatus::PERISH3,
                         },
@@ -4252,7 +4250,7 @@ fn add_end_of_turn_instructions(
                     .instruction_list
                     .push(Instruction::ApplyVolatileStatus(
                         ApplyVolatileStatusInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: PokemonVolatileStatus::PERISH2,
                         },
@@ -4267,7 +4265,7 @@ fn add_end_of_turn_instructions(
                     .instruction_list
                     .push(Instruction::RemoveVolatileStatus(
                         RemoveVolatileStatusInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: PokemonVolatileStatus::PERISH4,
                         },
@@ -4276,7 +4274,7 @@ fn add_end_of_turn_instructions(
                     .instruction_list
                     .push(Instruction::ApplyVolatileStatus(
                         ApplyVolatileStatusInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: PokemonVolatileStatus::PERISH3,
                         },
@@ -4290,7 +4288,7 @@ fn add_end_of_turn_instructions(
                     .instruction_list
                     .push(Instruction::RemoveVolatileStatus(
                         RemoveVolatileStatusInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: PokemonVolatileStatus::FLINCH,
                         },
@@ -4302,7 +4300,7 @@ fn add_end_of_turn_instructions(
                     .instruction_list
                     .push(Instruction::RemoveVolatileStatus(
                         RemoveVolatileStatusInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: PokemonVolatileStatus::ROOST,
                         },
@@ -4318,7 +4316,7 @@ fn add_end_of_turn_instructions(
                 incoming_instructions
                     .instruction_list
                     .push(Instruction::Damage(DamageInstruction {
-                        side_ref: *side_ref,
+                        side_ref,
                         pokemon_index: active_index,
                         damage_amount,
                     }));
@@ -4337,7 +4335,7 @@ fn add_end_of_turn_instructions(
                 incoming_instructions
                     .instruction_list
                     .push(Instruction::Damage(DamageInstruction {
-                        side_ref: *side_ref,
+                        side_ref,
                         pokemon_index: active_index,
                         damage_amount,
                     }));
@@ -4367,7 +4365,7 @@ fn add_end_of_turn_instructions(
                     .instruction_list
                     .push(Instruction::RemoveVolatileStatus(
                         RemoveVolatileStatusInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             volatile_status: protect_vs,
                         },
@@ -4376,7 +4374,7 @@ fn add_end_of_turn_instructions(
                 incoming_instructions.instruction_list.push(
                     Instruction::ChangeVolatileStatusDuration(
                         ChangeVolatileStatusDurationInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             amount: 1,
                             volatile_status: PokemonVolatileStatus::PROTECT,
@@ -4388,7 +4386,7 @@ fn add_end_of_turn_instructions(
                 incoming_instructions.instruction_list.push(
                     Instruction::ChangeVolatileStatusDuration(
                         ChangeVolatileStatusDurationInstruction {
-                            side_ref: *side_ref,
+                            side_ref,
                             slot_ref: *slot_ref,
                             amount: -1 * slot.volatile_status_durations.protect,
                             volatile_status: PokemonVolatileStatus::PROTECT,
@@ -4424,9 +4422,9 @@ fn execute_move_effects(
                 state,
                 choice,
                 damage_amount,
-                &attacking_side,
+                attacking_side,
                 &attacking_slot,
-                &target_side,
+                target_side,
                 &target_slot,
                 &mut instructions,
             );
@@ -4435,15 +4433,15 @@ fn execute_move_effects(
             generate_instructions_from_side_conditions(
                 state,
                 side_condition,
-                &attacking_side,
+                attacking_side,
                 &mut instructions,
             );
         }
         choice_hazard_clear(
             state,
             &choice,
-            &attacking_side,
-            &target_side,
+            attacking_side,
+            target_side,
             &target_slot,
             &mut instructions,
         );
@@ -4452,9 +4450,9 @@ fn execute_move_effects(
                 state,
                 &choice,
                 volatile_status,
-                &attacking_side,
+                attacking_side,
                 &attacking_slot,
-                &target_side,
+                target_side,
                 &target_slot,
                 &mut instructions,
             );
@@ -4463,9 +4461,9 @@ fn execute_move_effects(
             get_instructions_from_status_effects(
                 state,
                 status,
-                &attacking_side,
+                attacking_side,
                 &attacking_slot,
-                &target_side,
+                target_side,
                 &target_slot,
                 &mut instructions,
                 hit_sub,
@@ -4475,9 +4473,9 @@ fn execute_move_effects(
             get_instructions_from_heal(
                 state,
                 heal,
-                &attacking_side,
+                attacking_side,
                 &attacking_slot,
-                &target_side,
+                target_side,
                 &target_slot,
                 &mut instructions,
             );
@@ -4493,9 +4491,9 @@ fn execute_move_effects(
             get_instructions_from_boosts(
                 state,
                 boost,
-                &attacking_side,
+                attacking_side,
                 &attacking_slot,
-                &target_side,
+                target_side,
                 &target_slot,
                 &mut instructions,
             );
@@ -4504,14 +4502,14 @@ fn execute_move_effects(
 
     if choice.flags.drag
         && state
-            .get_side_immutable(&target_side)
+            .get_side_immutable(target_side)
             .get_active_immutable(&target_slot)
             .ability
             != Abilities::GUARDDOG
     {
         get_instructions_from_drag(
             state,
-            &target_side,
+            target_side,
             &target_slot,
             instructions,
             final_instructions,
@@ -4524,7 +4522,7 @@ fn execute_move_effects(
         get_instructions_from_pivot(
             state,
             &choice,
-            &attacking_side,
+            attacking_side,
             &attacking_slot,
             &mut instructions,
             remaining_to_move,
@@ -4532,7 +4530,7 @@ fn execute_move_effects(
     }
 
     if state
-        .get_side_immutable(&target_side)
+        .get_side_immutable(target_side)
         .get_active_immutable(&target_slot)
         .item
         == Items::COVERTCLOAK
@@ -4545,9 +4543,9 @@ fn execute_move_effects(
             state,
             &choice,
             secondaries_vec,
-            &attacking_side,
+            attacking_side,
             &attacking_slot,
-            &target_side,
+            target_side,
             &target_slot,
             instructions,
             hit_sub,
@@ -4593,7 +4591,7 @@ pub fn generate_instructions_from_move_pair(
     let mut s1_b_replacing_fainted_pkmn = false;
     match side_one_a_move {
         MoveChoice::Switch(switch_id) => {
-            if state.side_one.pokemon[state.side_one.slot_a.active_index].hp == 0 {
+            if state.sides[0].pokemon[state.sides[0].slot_a.active_index].hp == 0 {
                 s1_a_replacing_fainted_pkmn = true;
             }
             side_one_a_choice = Choice::default();
@@ -4601,7 +4599,7 @@ pub fn generate_instructions_from_move_pair(
             side_one_a_choice.category = MoveCategory::Switch;
         }
         MoveChoice::Move(target_slot, target_side, move_index) => {
-            side_one_a_choice = state.side_one.get_active(&SlotReference::SlotA).moves[move_index]
+            side_one_a_choice = state.sides[0].get_active(&SlotReference::SlotA).moves[move_index]
                 .choice
                 .clone();
             side_one_a_choice.move_index = *move_index;
@@ -4609,7 +4607,7 @@ pub fn generate_instructions_from_move_pair(
             side_one_a_target_slot = *target_slot;
         }
         MoveChoice::MoveTera(target_slot, target_side, move_index) => {
-            side_one_a_choice = state.side_one.get_active(&SlotReference::SlotA).moves[move_index]
+            side_one_a_choice = state.sides[0].get_active(&SlotReference::SlotA).moves[move_index]
                 .choice
                 .clone();
             side_one_a_choice.move_index = *move_index;
@@ -4623,7 +4621,7 @@ pub fn generate_instructions_from_move_pair(
     }
     match side_one_b_move {
         MoveChoice::Switch(switch_id) => {
-            if state.side_one.pokemon[state.side_one.slot_b.active_index].hp == 0 {
+            if state.sides[0].pokemon[state.sides[0].slot_b.active_index].hp == 0 {
                 s1_b_replacing_fainted_pkmn = true;
             }
             side_one_b_choice = Choice::default();
@@ -4631,7 +4629,7 @@ pub fn generate_instructions_from_move_pair(
             side_one_b_choice.category = MoveCategory::Switch;
         }
         MoveChoice::Move(target_slot, target_side, move_index) => {
-            side_one_b_choice = state.side_one.get_active(&SlotReference::SlotB).moves[move_index]
+            side_one_b_choice = state.sides[0].get_active(&SlotReference::SlotB).moves[move_index]
                 .choice
                 .clone();
             side_one_b_choice.move_index = *move_index;
@@ -4639,7 +4637,7 @@ pub fn generate_instructions_from_move_pair(
             side_one_b_target_slot = *target_slot;
         }
         MoveChoice::MoveTera(target_slot, target_side, move_index) => {
-            side_one_b_choice = state.side_one.get_active(&SlotReference::SlotB).moves[move_index]
+            side_one_b_choice = state.sides[0].get_active(&SlotReference::SlotB).moves[move_index]
                 .choice
                 .clone();
             side_one_b_choice.move_index = *move_index;
@@ -4660,7 +4658,7 @@ pub fn generate_instructions_from_move_pair(
     let mut s2_b_replacing_fainted_pkmn = false;
     match side_two_a_move {
         MoveChoice::Switch(switch_id) => {
-            if state.side_two.pokemon[state.side_two.slot_a.active_index].hp == 0 {
+            if state.sides[1].pokemon[state.sides[1].slot_a.active_index].hp == 0 {
                 s2_a_replacing_fainted_pkmn = true;
             }
             side_two_a_choice = Choice::default();
@@ -4668,7 +4666,7 @@ pub fn generate_instructions_from_move_pair(
             side_two_a_choice.category = MoveCategory::Switch;
         }
         MoveChoice::Move(target_slot, target_side, move_index) => {
-            side_two_a_choice = state.side_two.get_active(&SlotReference::SlotA).moves[move_index]
+            side_two_a_choice = state.sides[1].get_active(&SlotReference::SlotA).moves[move_index]
                 .choice
                 .clone();
             side_two_a_choice.move_index = *move_index;
@@ -4676,7 +4674,7 @@ pub fn generate_instructions_from_move_pair(
             side_two_a_target_slot = *target_slot;
         }
         MoveChoice::MoveTera(target_slot, target_side, move_index) => {
-            side_two_a_choice = state.side_two.get_active(&SlotReference::SlotA).moves[move_index]
+            side_two_a_choice = state.sides[1].get_active(&SlotReference::SlotA).moves[move_index]
                 .choice
                 .clone();
             side_two_a_choice.move_index = *move_index;
@@ -4690,7 +4688,7 @@ pub fn generate_instructions_from_move_pair(
     }
     match side_two_b_move {
         MoveChoice::Switch(switch_id) => {
-            if state.side_two.pokemon[state.side_two.slot_b.active_index].hp == 0 {
+            if state.sides[1].pokemon[state.sides[1].slot_b.active_index].hp == 0 {
                 s2_b_replacing_fainted_pkmn = true;
             }
             side_two_b_choice = Choice::default();
@@ -4698,7 +4696,7 @@ pub fn generate_instructions_from_move_pair(
             side_two_b_choice.category = MoveCategory::Switch;
         }
         MoveChoice::Move(target_slot, target_side, move_index) => {
-            side_two_b_choice = state.side_two.get_active(&SlotReference::SlotB).moves[move_index]
+            side_two_b_choice = state.sides[1].get_active(&SlotReference::SlotB).moves[move_index]
                 .choice
                 .clone();
             side_two_b_choice.move_index = *move_index;
@@ -4706,7 +4704,7 @@ pub fn generate_instructions_from_move_pair(
             side_two_b_target_slot = *target_slot;
         }
         MoveChoice::MoveTera(target_slot, target_side, move_index) => {
-            side_two_b_choice = state.side_two.get_active(&SlotReference::SlotB).moves[move_index]
+            side_two_b_choice = state.sides[1].get_active(&SlotReference::SlotB).moves[move_index]
                 .choice
                 .clone();
             side_two_b_choice.move_index = *move_index;
@@ -4729,64 +4727,64 @@ pub fn generate_instructions_from_move_pair(
     if s1_a_tera {
         generate_instructions_from_tera(
             state,
-            &SideReference::SideOne,
+            SideReference::SideOne,
             &SlotReference::SlotA,
-            state.side_one.slot_a.active_index,
+            state.sides[0].slot_a.active_index,
             &mut incoming_instructions,
         );
     }
     if s1_b_tera {
         generate_instructions_from_tera(
             state,
-            &SideReference::SideOne,
+            SideReference::SideOne,
             &SlotReference::SlotB,
-            state.side_one.slot_b.active_index,
+            state.sides[0].slot_b.active_index,
             &mut incoming_instructions,
         );
     }
     if s2_a_tera {
         generate_instructions_from_tera(
             state,
-            &SideReference::SideTwo,
+            SideReference::SideTwo,
             &SlotReference::SlotA,
-            state.side_two.slot_a.active_index,
+            state.sides[1].slot_a.active_index,
             &mut incoming_instructions,
         );
     }
     if s2_b_tera {
         generate_instructions_from_tera(
             state,
-            &SideReference::SideTwo,
+            SideReference::SideTwo,
             &SlotReference::SlotB,
-            state.side_two.slot_b.active_index,
+            state.sides[1].slot_b.active_index,
             &mut incoming_instructions,
         );
     }
 
     modify_choice_before_move(
         &state,
-        &SideReference::SideOne,
+        SideReference::SideOne,
         &SlotReference::SlotA,
         &mut side_one_a_choice,
         s1_a_tera,
     );
     modify_choice_before_move(
         &state,
-        &SideReference::SideOne,
+        SideReference::SideOne,
         &SlotReference::SlotB,
         &mut side_one_b_choice,
         s1_b_tera,
     );
     modify_choice_before_move(
         &state,
-        &SideReference::SideTwo,
+        SideReference::SideTwo,
         &SlotReference::SlotA,
         &mut side_two_a_choice,
         s2_a_tera,
     );
     modify_choice_before_move(
         &state,
-        &SideReference::SideTwo,
+        SideReference::SideTwo,
         &SlotReference::SlotB,
         &mut side_two_b_choice,
         s2_b_tera,
@@ -4936,13 +4934,13 @@ pub fn generate_instructions_from_move_pair(
             || s1_b_replacing_fainted_pkmn
             || s2_a_replacing_fainted_pkmn
             || s2_b_replacing_fainted_pkmn
-            || state.side_one.slot_a.force_switch
-            || state.side_one.slot_b.force_switch
-            || state.side_two.slot_a.force_switch
-            || state.side_two.slot_b.force_switch)
+            || state.sides[0].slot_a.force_switch
+            || state.sides[0].slot_b.force_switch
+            || state.sides[1].slot_a.force_switch
+            || state.sides[1].slot_b.force_switch)
         {
             state_instruction.end_of_turn_triggered = true;
-            add_end_of_turn_instructions(state, state_instruction, &SideReference::SideOne);
+            add_end_of_turn_instructions(state, state_instruction, SideReference::SideOne);
         }
         state.reverse_instructions(&state_instruction.instruction_list);
     }
@@ -4962,9 +4960,9 @@ there will be only one element in the vector.
 */
 pub fn calculate_damage_rolls(
     state: &mut State,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
-    target_side_ref: &SideReference,
+    target_side_ref: SideReference,
     target_slot_ref: &SlotReference,
     mut choice: Choice,
     mut defending_choice: &Choice,
@@ -4989,15 +4987,15 @@ pub fn calculate_damage_rolls(
         false,
     );
 
-    ability_change_type(state, &mut choice, &attacking_side_ref, &attacking_slot_ref);
-    item_change_type(state, &mut choice, &attacking_side_ref, &attacking_slot_ref);
-    choice_change_type(state, &mut choice, &attacking_side_ref, &attacking_slot_ref);
+    ability_change_type(state, &mut choice, attacking_side_ref, &attacking_slot_ref);
+    item_change_type(state, &mut choice, attacking_side_ref, &attacking_slot_ref);
+    choice_change_type(state, &mut choice, attacking_side_ref, &attacking_slot_ref);
 
     let attacker_active = state
         .get_side_immutable(attacking_side_ref)
         .get_active_immutable(attacking_slot_ref);
     let defender_active = state
-        .get_side_immutable(&target_side_ref)
+        .get_side_immutable(target_side_ref)
         .get_active_immutable(target_slot_ref);
     match choice.move_id {
         Choices::SEISMICTOSS => {
@@ -5057,7 +5055,7 @@ pub fn calculate_damage_rolls(
         defending_choice,
         attacking_side_ref,
         attacking_slot_ref,
-        &target_side_ref,
+        target_side_ref,
         target_slot_ref,
         true,
         false,
@@ -5068,10 +5066,10 @@ pub fn calculate_damage_rolls(
     if choice.move_choice_target == MoveChoiceTarget::AllFoes
         || choice.move_choice_target == MoveChoiceTarget::AllOther
     {
-        let target_side = if *attacking_side_ref == SideReference::SideOne {
-            &state.side_two
+        let target_side = if attacking_side_ref == SideReference::SideOne {
+            &state.sides[1]
         } else {
-            &state.side_one
+            &state.sides[0]
         };
         if target_side.get_active_immutable(&SlotReference::SlotA).hp > 0
             && target_side.get_active_immutable(&SlotReference::SlotB).hp > 0
@@ -5089,7 +5087,7 @@ pub fn calculate_damage_rolls(
         &state,
         attacking_side_ref,
         attacking_slot_ref,
-        &target_side_ref,
+        target_side_ref,
         target_slot_ref,
         &choice,
         DamageRolls::Max,

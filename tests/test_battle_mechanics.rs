@@ -72,20 +72,16 @@ fn set_moves_on_pkmn_and_call_generate_instructions(
     move_two_a: TestMoveChoice,
     move_two_b: TestMoveChoice,
 ) -> Vec<StateInstructions> {
-    state
-        .side_one
+    state.sides[0]
         .get_active(&SlotReference::SlotA)
         .replace_move(PokemonMoveIndex::M0, move_one_a.choice);
-    state
-        .side_one
+    state.sides[0]
         .get_active(&SlotReference::SlotB)
         .replace_move(PokemonMoveIndex::M0, move_one_b.choice);
-    state
-        .side_two
+    state.sides[1]
         .get_active(&SlotReference::SlotA)
         .replace_move(PokemonMoveIndex::M0, move_two_a.choice);
-    state
-        .side_two
+    state.sides[1]
         .get_active(&SlotReference::SlotB)
         .replace_move(PokemonMoveIndex::M0, move_two_b.choice);
 
@@ -258,7 +254,7 @@ fn test_basic_switching() {
 #[test]
 fn test_taunt_into_aromaveil() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::AROMAVEIL;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::AROMAVEIL;
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
         TestMoveChoice {
@@ -291,10 +287,10 @@ fn test_taunt_into_aromaveil() {
 #[test]
 fn test_switching_with_volatile_status_durations() {
     let mut state = State::default();
-    state.side_one.slot_a.volatile_status_durations.confusion = 1;
-    state.side_one.slot_a.volatile_status_durations.protect = 1;
-    state.side_one.slot_a.volatile_status_durations.encore = 2;
-    state.side_one.slot_a.volatile_status_durations.taunt = 3;
+    state.sides[0].slot_a.volatile_status_durations.confusion = 1;
+    state.sides[0].slot_a.volatile_status_durations.protect = 1;
+    state.sides[0].slot_a.volatile_status_durations.encore = 2;
+    state.sides[0].slot_a.volatile_status_durations.taunt = 3;
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
         TestMoveChoice {
@@ -349,7 +345,7 @@ fn test_switching_in_terrain_activates_seed() {
     let mut state = State::default();
     state.terrain.terrain_type = Terrain::ELECTRICTERRAIN;
     state.terrain.turns_remaining = 5;
-    state.side_one.pokemon.pkmn[2].item = Items::ELECTRICSEED;
+    state.sides[0].pokemon.pkmn[2].item = Items::ELECTRICSEED;
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
         TestMoveChoice {
@@ -391,8 +387,8 @@ fn test_switching_in_terrain_activates_seed() {
 #[test]
 fn test_boost_berry() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].item = Items::SALACBERRY;
-    state.side_two.pokemon.pkmn[0].speed = 1;
+    state.sides[1].pokemon.pkmn[0].item = Items::SALACBERRY;
+    state.sides[1].pokemon.pkmn[0].speed = 1;
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
         TestMoveChoice {
@@ -462,7 +458,7 @@ fn test_boost_berry() {
 #[test]
 fn test_choice_item_locking_and_boost() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].item = Items::CHOICEBAND;
+    state.sides[0].pokemon.pkmn[0].item = Items::CHOICEBAND;
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
         TestMoveChoice {
@@ -509,8 +505,8 @@ fn test_choice_item_locking_and_boost() {
 #[test]
 fn test_leftovers_heal() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].item = Items::LEFTOVERS;
-    state.side_one.pokemon.pkmn[0].hp = 50;
+    state.sides[0].pokemon.pkmn[0].item = Items::LEFTOVERS;
+    state.sides[0].pokemon.pkmn[0].hp = 50;
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
         TestMoveChoice::default(),
@@ -534,10 +530,10 @@ fn test_leftovers_heal() {
 fn test_neutralizing_gas_blocks_abilities() {
     let mut state = State::default();
     // Set target to have Neutralizing Gas
-    state.side_two.pokemon.pkmn[0].ability = Abilities::NEUTRALIZINGGAS;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::NEUTRALIZINGGAS;
     // Set attacker to have Ice Face (should be blocked)
-    state.side_one.pokemon.pkmn[0].ability = Abilities::ICEFACE;
-    state.side_one.pokemon.pkmn[0].id = PokemonName::EISCUE;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::ICEFACE;
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::EISCUE;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -570,8 +566,8 @@ fn test_neutralizing_gas_blocks_abilities() {
 #[test]
 fn test_ice_face_blocks_physical_move() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::ICEFACE;
-    state.side_two.pokemon.pkmn[0].id = PokemonName::EISCUE;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::ICEFACE;
+    state.sides[1].pokemon.pkmn[0].id = PokemonName::EISCUE;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -630,8 +626,8 @@ fn test_ice_face_blocks_physical_move() {
 #[test]
 fn test_ice_face_does_not_block_special_move() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::ICEFACE;
-    state.side_two.pokemon.pkmn[0].id = PokemonName::EISCUE;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::ICEFACE;
+    state.sides[1].pokemon.pkmn[0].id = PokemonName::EISCUE;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -664,8 +660,8 @@ fn test_ice_face_does_not_block_special_move() {
 #[test]
 fn test_disguise_blocks_damaging_move() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::DISGUISE;
-    state.side_two.pokemon.pkmn[0].id = PokemonName::MIMIKYU;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::DISGUISE;
+    state.sides[1].pokemon.pkmn[0].id = PokemonName::MIMIKYU;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -744,10 +740,10 @@ fn test_captivate() {
 #[test]
 fn test_scrappy_can_hit_terastallized_ghost_type() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::SCRAPPY;
-    state.side_two.pokemon.pkmn[0].types = (PokemonType::NORMAL, PokemonType::TYPELESS);
-    state.side_two.pokemon.pkmn[0].terastallized = true;
-    state.side_two.pokemon.pkmn[0].tera_type = PokemonType::GHOST;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::SCRAPPY;
+    state.sides[1].pokemon.pkmn[0].types = (PokemonType::NORMAL, PokemonType::TYPELESS);
+    state.sides[1].pokemon.pkmn[0].terastallized = true;
+    state.sides[1].pokemon.pkmn[0].tera_type = PokemonType::GHOST;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -779,8 +775,8 @@ fn test_scrappy_can_hit_terastallized_ghost_type() {
 #[test]
 fn test_scald_always_thaws_user() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].status = PokemonStatus::FREEZE;
-    state.side_two.pokemon.pkmn[0].types.0 = PokemonType::FIRE;
+    state.sides[0].pokemon.pkmn[0].status = PokemonStatus::FREEZE;
+    state.sides[1].pokemon.pkmn[0].types.0 = PokemonType::FIRE;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -819,8 +815,8 @@ fn test_scald_always_thaws_user() {
 #[test]
 fn test_disguise_totem_form() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::DISGUISE;
-    state.side_two.pokemon.pkmn[0].id = PokemonName::MIMIKYUTOTEM;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::DISGUISE;
+    state.sides[1].pokemon.pkmn[0].id = PokemonName::MIMIKYUTOTEM;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -859,9 +855,9 @@ fn test_disguise_totem_form() {
 #[test]
 fn test_gulp_missile_surf_high_hp() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::GULPMISSILE;
-    state.side_one.pokemon.pkmn[0].id = PokemonName::CRAMORANT;
-    state.side_one.pokemon.pkmn[0].hp = 80;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::GULPMISSILE;
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::CRAMORANT;
+    state.sides[0].pokemon.pkmn[0].hp = 80;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -910,9 +906,9 @@ fn test_gulp_missile_surf_high_hp() {
 #[test]
 fn test_gulp_missile_dive_low_hp() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::GULPMISSILE;
-    state.side_one.pokemon.pkmn[0].id = PokemonName::CRAMORANT;
-    state.side_one.pokemon.pkmn[0].hp = 40; // Less than half of max HP (100)
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::GULPMISSILE;
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::CRAMORANT;
+    state.sides[0].pokemon.pkmn[0].hp = 40; // Less than half of max HP (100)
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -961,8 +957,8 @@ fn test_gulp_missile_dive_low_hp() {
 #[test]
 fn test_protean_changes_type() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::PROTEAN;
-    state.side_one.pokemon.pkmn[0].types = (PokemonType::NORMAL, PokemonType::TYPELESS);
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::PROTEAN;
+    state.sides[0].pokemon.pkmn[0].types = (PokemonType::NORMAL, PokemonType::TYPELESS);
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1007,8 +1003,8 @@ fn test_protean_changes_type() {
 #[test]
 fn test_libero_changes_type() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::LIBERO;
-    state.side_one.pokemon.pkmn[0].types = (PokemonType::NORMAL, PokemonType::TYPELESS);
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::LIBERO;
+    state.sides[0].pokemon.pkmn[0].types = (PokemonType::NORMAL, PokemonType::TYPELESS);
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1053,8 +1049,8 @@ fn test_libero_changes_type() {
 #[test]
 fn test_protean_does_not_activate_if_already_same_type() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::PROTEAN;
-    state.side_one.pokemon.pkmn[0].types = (PokemonType::WATER, PokemonType::TYPELESS);
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::PROTEAN;
+    state.sides[0].pokemon.pkmn[0].types = (PokemonType::WATER, PokemonType::TYPELESS);
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1087,9 +1083,9 @@ fn test_protean_does_not_activate_if_already_same_type() {
 #[test]
 fn test_protean_does_not_activate_if_terastallized() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::PROTEAN;
-    state.side_one.pokemon.pkmn[0].types = (PokemonType::NORMAL, PokemonType::TYPELESS);
-    state.side_one.pokemon.pkmn[0].terastallized = true;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::PROTEAN;
+    state.sides[0].pokemon.pkmn[0].types = (PokemonType::NORMAL, PokemonType::TYPELESS);
+    state.sides[0].pokemon.pkmn[0].terastallized = true;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1121,10 +1117,9 @@ fn test_protean_does_not_activate_if_terastallized() {
 #[test]
 fn test_protean_does_not_activate_with_typechange_status() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::PROTEAN;
-    state.side_one.pokemon.pkmn[0].types = (PokemonType::NORMAL, PokemonType::TYPELESS);
-    state
-        .side_one
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::PROTEAN;
+    state.sides[0].pokemon.pkmn[0].types = (PokemonType::NORMAL, PokemonType::TYPELESS);
+    state.sides[0]
         .get_slot(&SlotReference::SlotA)
         .volatile_statuses
         .insert(PokemonVolatileStatus::TYPECHANGE);
@@ -1159,7 +1154,7 @@ fn test_protean_does_not_activate_with_typechange_status() {
 #[test]
 fn test_gorilla_tactics_disables_other_moves() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::GORILLATACTICS;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::GORILLATACTICS;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1208,7 +1203,7 @@ fn test_gorilla_tactics_disables_other_moves() {
 #[test]
 fn test_mummy_spreads_on_contact() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::MUMMY;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::MUMMY;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1247,7 +1242,7 @@ fn test_mummy_spreads_on_contact() {
 #[test]
 fn test_mummy_does_not_spread_on_non_contact() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::MUMMY;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::MUMMY;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1279,7 +1274,7 @@ fn test_mummy_does_not_spread_on_non_contact() {
 #[test]
 fn test_lingering_aroma_spreads_on_contact() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::LINGERINGAROMA;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::LINGERINGAROMA;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1318,7 +1313,7 @@ fn test_lingering_aroma_spreads_on_contact() {
 #[test]
 fn test_wandering_spirit_spreads_on_contact() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::WANDERINGSPIRIT;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::WANDERINGSPIRIT;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1357,8 +1352,8 @@ fn test_wandering_spirit_spreads_on_contact() {
 #[test]
 fn test_gulp_missile_gorging_form_changes_and_paralyzes() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::GULPMISSILE;
-    state.side_two.pokemon.pkmn[0].id = PokemonName::CRAMORANTGORGING;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::GULPMISSILE;
+    state.sides[1].pokemon.pkmn[0].id = PokemonName::CRAMORANTGORGING;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1408,8 +1403,8 @@ fn test_gulp_missile_gorging_form_changes_and_paralyzes() {
 #[test]
 fn test_gulp_missile_gulping_form_changes_and_lowers_defense() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::GULPMISSILE;
-    state.side_two.pokemon.pkmn[0].id = PokemonName::CRAMORANTGULPING;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::GULPMISSILE;
+    state.sides[1].pokemon.pkmn[0].id = PokemonName::CRAMORANTGULPING;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1459,8 +1454,8 @@ fn test_gulp_missile_gulping_form_changes_and_lowers_defense() {
 #[test]
 fn test_color_change_changes_type_to_move_type() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::COLORCHANGE;
-    state.side_one.pokemon.pkmn[0].types = (PokemonType::NORMAL, PokemonType::TYPELESS);
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::COLORCHANGE;
+    state.sides[0].pokemon.pkmn[0].types = (PokemonType::NORMAL, PokemonType::TYPELESS);
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1500,8 +1495,8 @@ fn test_color_change_changes_type_to_move_type() {
 #[test]
 fn test_color_change_does_not_activate_if_already_same_type() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::COLORCHANGE;
-    state.side_two.pokemon.pkmn[0].types = (PokemonType::WATER, PokemonType::TYPELESS);
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::COLORCHANGE;
+    state.sides[1].pokemon.pkmn[0].types = (PokemonType::WATER, PokemonType::TYPELESS);
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1533,8 +1528,8 @@ fn test_color_change_does_not_activate_if_already_same_type() {
 #[test]
 fn test_color_change_does_not_activate_if_pokemon_faints() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::COLORCHANGE;
-    state.side_two.pokemon.pkmn[0].hp = 1; // Will faint from damage
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::COLORCHANGE;
+    state.sides[1].pokemon.pkmn[0].hp = 1; // Will faint from damage
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1566,7 +1561,7 @@ fn test_color_change_does_not_activate_if_pokemon_faints() {
 #[test]
 fn test_stamina_boosts_defense_when_hit() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::STAMINA;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::STAMINA;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1606,7 +1601,7 @@ fn test_stamina_boosts_defense_when_hit() {
 #[test]
 fn test_cotton_down_lowers_attacker_speed() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::COTTONDOWN;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::COTTONDOWN;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1646,13 +1641,13 @@ fn test_cotton_down_lowers_attacker_speed() {
 #[test]
 fn test_sand_spit_sets_sandstorm() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::SANDSPIT;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::SANDSPIT;
     state.weather.weather_type = Weather::NONE;
     // so no weather damage is applied
-    state.side_one.pokemon.pkmn[0].types.0 = PokemonType::GROUND;
-    state.side_one.pokemon.pkmn[1].types.0 = PokemonType::GROUND;
-    state.side_two.pokemon.pkmn[0].types.0 = PokemonType::GROUND;
-    state.side_two.pokemon.pkmn[1].types.0 = PokemonType::GROUND;
+    state.sides[0].pokemon.pkmn[0].types.0 = PokemonType::GROUND;
+    state.sides[0].pokemon.pkmn[1].types.0 = PokemonType::GROUND;
+    state.sides[1].pokemon.pkmn[0].types.0 = PokemonType::GROUND;
+    state.sides[1].pokemon.pkmn[1].types.0 = PokemonType::GROUND;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1693,14 +1688,14 @@ fn test_sand_spit_sets_sandstorm() {
 #[test]
 fn test_sand_spit_does_not_activate_if_sandstorm_already_active() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::SANDSPIT;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::SANDSPIT;
     state.weather.weather_type = Weather::SAND;
     state.weather.turns_remaining = 3;
     // so no weather damage is applied
-    state.side_one.pokemon.pkmn[0].types.0 = PokemonType::GROUND;
-    state.side_one.pokemon.pkmn[1].types.0 = PokemonType::GROUND;
-    state.side_two.pokemon.pkmn[0].types.0 = PokemonType::GROUND;
-    state.side_two.pokemon.pkmn[1].types.0 = PokemonType::GROUND;
+    state.sides[0].pokemon.pkmn[0].types.0 = PokemonType::GROUND;
+    state.sides[0].pokemon.pkmn[1].types.0 = PokemonType::GROUND;
+    state.sides[1].pokemon.pkmn[0].types.0 = PokemonType::GROUND;
+    state.sides[1].pokemon.pkmn[1].types.0 = PokemonType::GROUND;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -1735,7 +1730,7 @@ fn test_sand_spit_does_not_activate_if_sandstorm_already_active() {
 #[test]
 fn test_seed_sower_sets_grassy_terrain() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::SEEDSOWER;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::SEEDSOWER;
     state.terrain.terrain_type = Terrain::NONE;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
@@ -1782,7 +1777,7 @@ fn test_seed_sower_sets_grassy_terrain() {
 #[test]
 fn test_grassyterrain_does_not_overheal() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].hp = 97;
+    state.sides[1].pokemon.pkmn[0].hp = 97;
     state.terrain.terrain_type = Terrain::GRASSYTERRAIN;
     state.terrain.turns_remaining = 3;
 
@@ -1812,7 +1807,7 @@ fn test_grassyterrain_does_not_overheal() {
 #[test]
 fn test_grassyterrain_does_not_heal_when_dead() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].hp = 40;
+    state.sides[1].pokemon.pkmn[0].hp = 40;
     state.terrain.terrain_type = Terrain::GRASSYTERRAIN;
     state.terrain.turns_remaining = 3;
 
@@ -1849,8 +1844,8 @@ fn test_grassyterrain_does_not_heal_when_dead() {
 #[test]
 fn test_grassyterrain_does_not_heal_when_airborne() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].hp = 40;
-    state.side_two.pokemon.pkmn[0].types.0 = PokemonType::FLYING;
+    state.sides[1].pokemon.pkmn[0].hp = 40;
+    state.sides[1].pokemon.pkmn[0].types.0 = PokemonType::FLYING;
     state.terrain.terrain_type = Terrain::GRASSYTERRAIN;
     state.terrain.turns_remaining = 3;
 
@@ -1883,8 +1878,7 @@ fn test_increased_crit_move() {
         ),
     };
 
-    state
-        .side_one
+    state.sides[0]
         .get_active(&SlotReference::SlotA)
         .replace_move(PokemonMoveIndex::M0, move_one_a.choice);
 
@@ -1923,7 +1917,7 @@ fn test_increased_crit_move() {
 #[test]
 fn test_increased_crit_move_with_scope_lens() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].item = Items::SCOPELENS;
+    state.sides[0].pokemon.pkmn[0].item = Items::SCOPELENS;
 
     let move_one_a = TestMoveChoice {
         choice: Choices::SLASH,
@@ -1934,8 +1928,7 @@ fn test_increased_crit_move_with_scope_lens() {
         ),
     };
 
-    state
-        .side_one
+    state.sides[0]
         .get_active(&SlotReference::SlotA)
         .replace_move(PokemonMoveIndex::M0, move_one_a.choice);
 
@@ -1974,7 +1967,7 @@ fn test_increased_crit_move_with_scope_lens() {
 #[test]
 fn test_toxic_debris_sets_toxic_spikes_on_physical_hit() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::TOXICDEBRIS;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::TOXICDEBRIS;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2013,7 +2006,7 @@ fn test_toxic_debris_sets_toxic_spikes_on_physical_hit() {
 #[test]
 fn test_toxic_debris_does_not_activate_on_special_move() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::TOXICDEBRIS;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::TOXICDEBRIS;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2045,8 +2038,8 @@ fn test_toxic_debris_does_not_activate_on_special_move() {
 #[test]
 fn test_berserk_boosts_special_attack_when_crossing_half_hp() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::BERSERK;
-    state.side_two.pokemon.pkmn[0].hp = 60; // Above half HP (maxhp is 100)
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::BERSERK;
+    state.sides[1].pokemon.pkmn[0].hp = 60; // Above half HP (maxhp is 100)
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2086,8 +2079,8 @@ fn test_berserk_boosts_special_attack_when_crossing_half_hp() {
 #[test]
 fn test_berserk_does_not_activate_if_already_below_half_hp() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::BERSERK;
-    state.side_two.pokemon.pkmn[0].hp = 40; // Already below half HP
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::BERSERK;
+    state.sides[1].pokemon.pkmn[0].hp = 40; // Already below half HP
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2119,7 +2112,7 @@ fn test_berserk_does_not_activate_if_already_below_half_hp() {
 #[test]
 fn test_rough_skin_damages_attacker_on_contact() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::ROUGHSKIN;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::ROUGHSKIN;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2158,7 +2151,7 @@ fn test_rough_skin_damages_attacker_on_contact() {
 #[test]
 fn test_iron_barbs_damages_attacker_on_contact() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::IRONBARBS;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::IRONBARBS;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2197,7 +2190,7 @@ fn test_iron_barbs_damages_attacker_on_contact() {
 #[test]
 fn test_basic_spread_move_damages_both_targets() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::IRONBARBS;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::IRONBARBS;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2236,8 +2229,8 @@ fn test_basic_spread_move_damages_both_targets() {
 #[test]
 fn test_aftermath_damages_attacker_when_knocked_out_by_contact() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::AFTERMATH;
-    state.side_two.pokemon.pkmn[0].hp = 1; // Will be knocked out
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::AFTERMATH;
+    state.sides[1].pokemon.pkmn[0].hp = 1; // Will be knocked out
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2276,8 +2269,8 @@ fn test_aftermath_damages_attacker_when_knocked_out_by_contact() {
 #[test]
 fn test_innards_out_damages_attacker_when_knocked_out() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::INNARDSOUT;
-    state.side_two.pokemon.pkmn[0].hp = 30; // Will be knocked out by 48 damage
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::INNARDSOUT;
+    state.sides[1].pokemon.pkmn[0].hp = 30; // Will be knocked out by 48 damage
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2371,8 +2364,8 @@ fn test_surf_spread_move() {
 #[test]
 fn test_surf_spread_move_single_target() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[1].hp = 0;
-    state.side_two.pokemon.pkmn[1].hp = 0;
+    state.sides[0].pokemon.pkmn[1].hp = 0;
+    state.sides[1].pokemon.pkmn[1].hp = 0;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2404,7 +2397,7 @@ fn test_surf_spread_move_single_target() {
 #[test]
 fn test_surf_spread_move_does_not_hit_telepathy_ally() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[1].ability = Abilities::TELEPATHY;
+    state.sides[0].pokemon.pkmn[1].ability = Abilities::TELEPATHY;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2455,7 +2448,7 @@ fn test_surf_spread_move_does_not_hit_telepathy_ally() {
 #[test]
 fn test_spread_move_while_sleeping() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].status = PokemonStatus::SLEEP;
+    state.sides[0].pokemon.pkmn[0].status = PokemonStatus::SLEEP;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2535,7 +2528,7 @@ fn test_being_slept_into_spread_move() {
 #[test]
 fn test_being_slept_into_lumberry() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].item = Items::LUMBERRY;
+    state.sides[0].pokemon.pkmn[0].item = Items::LUMBERRY;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2568,7 +2561,7 @@ fn test_being_slept_into_lumberry() {
 #[test]
 fn test_switching_out_while_slept() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].status = PokemonStatus::SLEEP;
+    state.sides[0].pokemon.pkmn[0].status = PokemonStatus::SLEEP;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2597,7 +2590,7 @@ fn test_switching_out_while_slept() {
 #[test]
 fn test_fainting_target_does_not_allow_them_to_move() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].hp = 1;
+    state.sides[0].pokemon.pkmn[0].hp = 1;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2636,7 +2629,7 @@ fn test_fainting_target_does_not_allow_them_to_move() {
 #[test]
 fn test_lifeorb_with_spread_move_only_damages_once() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].item = Items::LIFEORB;
+    state.sides[0].pokemon.pkmn[0].item = Items::LIFEORB;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2777,8 +2770,8 @@ fn test_spread_move_into_wideguard_during_psychicterrain() {
 #[test]
 fn test_trick_opposite_side() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].item = Items::CHARCOAL;
-    state.side_two.pokemon.pkmn[0].item = Items::ABSORBBULB;
+    state.sides[0].pokemon.pkmn[0].item = Items::CHARCOAL;
+    state.sides[1].pokemon.pkmn[0].item = Items::ABSORBBULB;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2819,8 +2812,8 @@ fn test_trick_opposite_side() {
 #[test]
 fn test_trick_same_side() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].item = Items::CHARCOAL;
-    state.side_one.pokemon.pkmn[1].item = Items::ABSORBBULB;
+    state.sides[0].pokemon.pkmn[0].item = Items::CHARCOAL;
+    state.sides[0].pokemon.pkmn[1].item = Items::ABSORBBULB;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2861,7 +2854,7 @@ fn test_trick_same_side() {
 #[test]
 fn test_single_target_move_is_redirected_if_target_faints() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].hp = 10;
+    state.sides[1].pokemon.pkmn[0].hp = 10;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2907,7 +2900,7 @@ fn test_single_target_move_is_redirected_if_target_faints() {
 #[test]
 fn test_lightningrod_redirect_electric_move() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[1].ability = Abilities::LIGHTNINGROD;
+    state.sides[1].pokemon.pkmn[1].ability = Abilities::LIGHTNINGROD;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2940,8 +2933,8 @@ fn test_lightningrod_redirect_electric_move() {
 #[test]
 fn test_lightningrod_redirects_galvanized_move() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[1].ability = Abilities::LIGHTNINGROD;
-    state.side_one.pokemon.pkmn[0].ability = Abilities::GALVANIZE;
+    state.sides[1].pokemon.pkmn[1].ability = Abilities::LIGHTNINGROD;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::GALVANIZE;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -2974,8 +2967,8 @@ fn test_lightningrod_redirects_galvanized_move() {
 #[test]
 fn test_stormdrain_redirects_liquidmoved_move() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[1].ability = Abilities::STORMDRAIN;
-    state.side_one.pokemon.pkmn[0].ability = Abilities::LIQUIDVOICE;
+    state.sides[1].pokemon.pkmn[1].ability = Abilities::STORMDRAIN;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::LIQUIDVOICE;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -3008,8 +3001,8 @@ fn test_stormdrain_redirects_liquidmoved_move() {
 #[test]
 fn test_tailwind_as_prankster_dark_type() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::PRANKSTER;
-    state.side_one.pokemon.pkmn[0].types.0 = PokemonType::DARK;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::PRANKSTER;
+    state.sides[0].pokemon.pkmn[0].types.0 = PokemonType::DARK;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -3048,7 +3041,7 @@ fn test_tailwind_as_prankster_dark_type() {
 #[test]
 fn test_tailwind_when_ally_has_windrider() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[1].ability = Abilities::WINDRIDER;
+    state.sides[0].pokemon.pkmn[1].ability = Abilities::WINDRIDER;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -3093,7 +3086,7 @@ fn test_tailwind_when_ally_has_windrider() {
 #[test]
 fn test_armortail_stop_increased_priority_single_target() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::ARMORTAIL;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::ARMORTAIL;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -3128,9 +3121,9 @@ fn test_armortail_stop_increased_priority_single_target() {
 #[test]
 fn test_prankster_status_move_into_armortail() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::PRANKSTER;
-    state.side_one.pokemon.pkmn[1].ability = Abilities::PRANKSTER;
-    state.side_two.pokemon.pkmn[0].ability = Abilities::ARMORTAIL;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::PRANKSTER;
+    state.sides[0].pokemon.pkmn[1].ability = Abilities::PRANKSTER;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::ARMORTAIL;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -3165,8 +3158,8 @@ fn test_prankster_status_move_into_armortail() {
 #[test]
 fn test_moldbreaker_ignores_armortail() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::MOLDBREAKER;
-    state.side_two.pokemon.pkmn[0].ability = Abilities::ARMORTAIL;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::MOLDBREAKER;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::ARMORTAIL;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -3205,7 +3198,7 @@ fn test_moldbreaker_ignores_armortail() {
 #[test]
 fn test_friendguard_reduces_damage() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[1].ability = Abilities::FRIENDGUARD;
+    state.sides[1].pokemon.pkmn[1].ability = Abilities::FRIENDGUARD;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -3237,7 +3230,7 @@ fn test_friendguard_reduces_damage() {
 #[test]
 fn test_friendguard_does_not_reduce_damage_to_self() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::FRIENDGUARD;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::FRIENDGUARD;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -3428,7 +3421,7 @@ fn test_electroshot_charges() {
 #[test]
 fn test_electroshot_with_powerherb() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].item = Items::POWERHERB;
+    state.sides[0].pokemon.pkmn[0].item = Items::POWERHERB;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -3516,8 +3509,7 @@ fn test_electroshot_does_not_charge_in_rain() {
 #[test]
 fn test_electroshot_executes_from_charge() {
     let mut state = State::default();
-    state
-        .side_one
+    state.sides[0]
         .slot_a
         .volatile_statuses
         .insert(PokemonVolatileStatus::ELECTROSHOT);
@@ -3748,7 +3740,7 @@ fn test_followme_causes_move_to_target_this_pkmn() {
 #[test]
 fn test_ragepowder_does_not_redirect_grass_pokemon_moves() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].types = (PokemonType::GRASS, PokemonType::NORMAL);
+    state.sides[1].pokemon.pkmn[0].types = (PokemonType::GRASS, PokemonType::NORMAL);
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -3799,7 +3791,7 @@ fn test_ragepowder_does_not_redirect_grass_pokemon_moves() {
 #[test]
 fn test_sandstorm_does_not_affect_safetygoggles() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].item = Items::SAFETYGOGGLES;
+    state.sides[0].pokemon.pkmn[0].item = Items::SAFETYGOGGLES;
     state.weather.weather_type = Weather::SAND;
     state.weather.turns_remaining = 5;
 
@@ -3839,7 +3831,7 @@ fn test_sandstorm_does_not_affect_safetygoggles() {
 #[test]
 fn test_ragepowder_does_not_redirect_safetygoggles() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].item = Items::SAFETYGOGGLES;
+    state.sides[1].pokemon.pkmn[0].item = Items::SAFETYGOGGLES;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -3890,7 +3882,7 @@ fn test_ragepowder_does_not_redirect_safetygoggles() {
 #[test]
 fn test_ragepowder_does_not_redirect_overcoat() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::OVERCOAT;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::OVERCOAT;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -3996,7 +3988,7 @@ fn test_ragepowder_does_not_affect_spread_move() {
 #[test]
 fn test_knockoff() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].item = Items::LIFEORB;
+    state.sides[1].pokemon.pkmn[0].item = Items::LIFEORB;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -4097,7 +4089,7 @@ fn test_protect_setting_volatile() {
 #[test]
 fn test_consequtive_protect_chance_to_fail() {
     let mut state = State::default();
-    state.side_two.slot_a.volatile_status_durations.protect = 1;
+    state.sides[1].slot_a.volatile_status_durations.protect = 1;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -4192,7 +4184,7 @@ fn test_consequtive_protect_chance_to_fail() {
 #[test]
 fn test_consequtive_spikyshield_chance_to_fail() {
     let mut state = State::default();
-    state.side_two.slot_a.volatile_status_durations.protect = 1;
+    state.sides[1].slot_a.volatile_status_durations.protect = 1;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -4470,7 +4462,7 @@ fn test_pollen_puff_damaging_other_side() {
 #[test]
 fn test_pollen_puff_healing_own_side() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[1].hp = 25;
+    state.sides[0].pokemon.pkmn[1].hp = 25;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -4502,7 +4494,7 @@ fn test_pollen_puff_healing_own_side() {
 #[test]
 fn test_pollenpuff_cannot_heal_ally_when_protected() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[1].hp = 25;
+    state.sides[0].pokemon.pkmn[1].hp = 25;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -4554,8 +4546,8 @@ fn test_pollenpuff_cannot_heal_ally_when_protected() {
 #[test]
 fn test_floral_healing_own_side_and_other_side() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[1].hp = 25;
-    state.side_two.pokemon.pkmn[1].hp = 25;
+    state.sides[0].pokemon.pkmn[1].hp = 25;
+    state.sides[1].pokemon.pkmn[1].hp = 25;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -4601,7 +4593,7 @@ fn test_floral_healing_own_side_and_other_side() {
 #[test]
 fn test_covertcloak_prevents_flinch() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[1].item = Items::COVERTCLOAK;
+    state.sides[1].pokemon.pkmn[1].item = Items::COVERTCLOAK;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -4754,13 +4746,13 @@ fn test_suckerpunch_fails_if_target_moves_before_user() {
 #[test]
 fn test_tera_starstorm_targets_all_foes_if_terastallized() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].id = PokemonName::TERAPAGOSSTELLAR;
-    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
-    state.side_one.pokemon.pkmn[0].terastallized = true;
-    state.side_two.pokemon.pkmn[0].maxhp = 500;
-    state.side_two.pokemon.pkmn[0].hp = 500;
-    state.side_two.pokemon.pkmn[1].maxhp = 500;
-    state.side_two.pokemon.pkmn[1].hp = 500;
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::TERAPAGOSSTELLAR;
+    state.sides[0].pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.sides[0].pokemon.pkmn[0].terastallized = true;
+    state.sides[1].pokemon.pkmn[0].maxhp = 500;
+    state.sides[1].pokemon.pkmn[0].hp = 500;
+    state.sides[1].pokemon.pkmn[1].maxhp = 500;
+    state.sides[1].pokemon.pkmn[1].hp = 500;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -4799,12 +4791,12 @@ fn test_tera_starstorm_targets_all_foes_if_terastallized() {
 #[test]
 fn test_tera_starstorm_targets_one_pkmn_if_not_terastallized() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
-    state.side_one.pokemon.pkmn[0].terastallized = false;
-    state.side_two.pokemon.pkmn[0].maxhp = 500;
-    state.side_two.pokemon.pkmn[0].hp = 500;
-    state.side_two.pokemon.pkmn[1].maxhp = 500;
-    state.side_two.pokemon.pkmn[1].hp = 500;
+    state.sides[0].pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.sides[0].pokemon.pkmn[0].terastallized = false;
+    state.sides[1].pokemon.pkmn[0].maxhp = 500;
+    state.sides[1].pokemon.pkmn[0].hp = 500;
+    state.sides[1].pokemon.pkmn[1].maxhp = 500;
+    state.sides[1].pokemon.pkmn[1].hp = 500;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -4836,15 +4828,15 @@ fn test_tera_starstorm_targets_one_pkmn_if_not_terastallized() {
 #[test]
 fn test_tera_starstorm_uses_attack_if_it_is_higher() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].id = PokemonName::TERAPAGOSSTELLAR;
-    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
-    state.side_one.pokemon.pkmn[0].terastallized = true;
-    state.side_one.pokemon.pkmn[0].attack = 150;
-    state.side_one.pokemon.pkmn[0].special_attack = 100;
-    state.side_two.pokemon.pkmn[0].maxhp = 500;
-    state.side_two.pokemon.pkmn[0].hp = 500;
-    state.side_two.pokemon.pkmn[1].maxhp = 500;
-    state.side_two.pokemon.pkmn[1].hp = 500;
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::TERAPAGOSSTELLAR;
+    state.sides[0].pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.sides[0].pokemon.pkmn[0].terastallized = true;
+    state.sides[0].pokemon.pkmn[0].attack = 150;
+    state.sides[0].pokemon.pkmn[0].special_attack = 100;
+    state.sides[1].pokemon.pkmn[0].maxhp = 500;
+    state.sides[1].pokemon.pkmn[0].hp = 500;
+    state.sides[1].pokemon.pkmn[1].maxhp = 500;
+    state.sides[1].pokemon.pkmn[1].hp = 500;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -4883,11 +4875,11 @@ fn test_tera_starstorm_uses_attack_if_it_is_higher() {
 #[test]
 fn test_tera_starstorm_without_terastallizing() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
-    state.side_two.pokemon.pkmn[0].maxhp = 500;
-    state.side_two.pokemon.pkmn[0].hp = 500;
-    state.side_two.pokemon.pkmn[1].maxhp = 500;
-    state.side_two.pokemon.pkmn[1].hp = 500;
+    state.sides[0].pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.sides[1].pokemon.pkmn[0].maxhp = 500;
+    state.sides[1].pokemon.pkmn[0].hp = 500;
+    state.sides[1].pokemon.pkmn[1].maxhp = 500;
+    state.sides[1].pokemon.pkmn[1].hp = 500;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -4919,11 +4911,11 @@ fn test_tera_starstorm_without_terastallizing() {
 #[test]
 fn test_tera_starstorm_while_terastallizing() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
-    state.side_two.pokemon.pkmn[0].maxhp = 500;
-    state.side_two.pokemon.pkmn[0].hp = 500;
-    state.side_two.pokemon.pkmn[1].maxhp = 500;
-    state.side_two.pokemon.pkmn[1].hp = 500;
+    state.sides[0].pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.sides[1].pokemon.pkmn[0].maxhp = 500;
+    state.sides[1].pokemon.pkmn[0].hp = 500;
+    state.sides[1].pokemon.pkmn[1].maxhp = 500;
+    state.sides[1].pokemon.pkmn[1].hp = 500;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -4971,11 +4963,11 @@ fn test_tera_starstorm_while_terastallizing() {
 #[test]
 fn test_water_move_when_terastallized() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
-    state.side_two.pokemon.pkmn[0].maxhp = 500;
-    state.side_two.pokemon.pkmn[0].hp = 500;
-    state.side_two.pokemon.pkmn[1].maxhp = 500;
-    state.side_two.pokemon.pkmn[1].hp = 500;
+    state.sides[0].pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.sides[1].pokemon.pkmn[0].maxhp = 500;
+    state.sides[1].pokemon.pkmn[0].hp = 500;
+    state.sides[1].pokemon.pkmn[1].maxhp = 500;
+    state.sides[1].pokemon.pkmn[1].hp = 500;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5018,13 +5010,13 @@ fn test_water_move_when_terastallized() {
 #[test]
 fn test_larger_stellar_boost_when_move_type_is_in_original_types() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
-    state.side_one.pokemon.pkmn[0].terastallized = true;
-    state.side_one.pokemon.pkmn[0].types.0 = PokemonType::WATER;
-    state.side_two.pokemon.pkmn[0].maxhp = 500;
-    state.side_two.pokemon.pkmn[0].hp = 500;
-    state.side_two.pokemon.pkmn[1].maxhp = 500;
-    state.side_two.pokemon.pkmn[1].hp = 500;
+    state.sides[0].pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.sides[0].pokemon.pkmn[0].terastallized = true;
+    state.sides[0].pokemon.pkmn[0].types.0 = PokemonType::WATER;
+    state.sides[1].pokemon.pkmn[0].maxhp = 500;
+    state.sides[1].pokemon.pkmn[0].hp = 500;
+    state.sides[1].pokemon.pkmn[1].maxhp = 500;
+    state.sides[1].pokemon.pkmn[1].hp = 500;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5063,13 +5055,13 @@ fn test_larger_stellar_boost_when_move_type_is_in_original_types() {
 #[test]
 fn test_does_not_boost_status_move() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
-    state.side_one.pokemon.pkmn[0].terastallized = true;
-    state.side_one.pokemon.pkmn[0].types.0 = PokemonType::WATER;
-    state.side_two.pokemon.pkmn[0].maxhp = 500;
-    state.side_two.pokemon.pkmn[0].hp = 500;
-    state.side_two.pokemon.pkmn[1].maxhp = 500;
-    state.side_two.pokemon.pkmn[1].hp = 500;
+    state.sides[0].pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.sides[0].pokemon.pkmn[0].terastallized = true;
+    state.sides[0].pokemon.pkmn[0].types.0 = PokemonType::WATER;
+    state.sides[1].pokemon.pkmn[0].maxhp = 500;
+    state.sides[1].pokemon.pkmn[0].hp = 500;
+    state.sides[1].pokemon.pkmn[1].maxhp = 500;
+    state.sides[1].pokemon.pkmn[1].hp = 500;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5097,13 +5089,13 @@ fn test_does_not_boost_status_move() {
 #[test]
 fn test_stellar_boost_does_not_work_if_target_protects() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
-    state.side_one.pokemon.pkmn[0].terastallized = true;
-    state.side_one.pokemon.pkmn[0].types.0 = PokemonType::WATER;
-    state.side_two.pokemon.pkmn[0].maxhp = 500;
-    state.side_two.pokemon.pkmn[0].hp = 500;
-    state.side_two.pokemon.pkmn[1].maxhp = 500;
-    state.side_two.pokemon.pkmn[1].hp = 500;
+    state.sides[0].pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.sides[0].pokemon.pkmn[0].terastallized = true;
+    state.sides[0].pokemon.pkmn[0].types.0 = PokemonType::WATER;
+    state.sides[1].pokemon.pkmn[0].maxhp = 500;
+    state.sides[1].pokemon.pkmn[0].hp = 500;
+    state.sides[1].pokemon.pkmn[1].maxhp = 500;
+    state.sides[1].pokemon.pkmn[1].hp = 500;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5155,15 +5147,15 @@ fn test_stellar_boost_does_not_work_if_target_protects() {
 #[test]
 fn test_no_boost_when_using_already_stellar_boosted_water_move() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
-    state.side_one.pokemon.pkmn[0].terastallized = true;
-    state.side_one.pokemon.pkmn[0]
+    state.sides[0].pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.sides[0].pokemon.pkmn[0].terastallized = true;
+    state.sides[0].pokemon.pkmn[0]
         .stellar_boosted_types
         .insert(PokemonType::WATER);
-    state.side_two.pokemon.pkmn[0].maxhp = 500;
-    state.side_two.pokemon.pkmn[0].hp = 500;
-    state.side_two.pokemon.pkmn[1].maxhp = 500;
-    state.side_two.pokemon.pkmn[1].hp = 500;
+    state.sides[1].pokemon.pkmn[0].maxhp = 500;
+    state.sides[1].pokemon.pkmn[0].hp = 500;
+    state.sides[1].pokemon.pkmn[1].maxhp = 500;
+    state.sides[1].pokemon.pkmn[1].hp = 500;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5204,9 +5196,9 @@ fn test_mid_turn_priority_change() {
     let mut state = State::default();
     state.terrain.terrain_type = Terrain::GRASSYTERRAIN;
     state.terrain.turns_remaining = 3;
-    state.side_two.pokemon.pkmn[2].ability = Abilities::PSYCHICSURGE;
-    state.side_one.pokemon.pkmn[0].speed = 100;
-    state.side_two.pokemon.pkmn[0].speed = 105;
+    state.sides[1].pokemon.pkmn[2].ability = Abilities::PSYCHICSURGE;
+    state.sides[0].pokemon.pkmn[0].speed = 100;
+    state.sides[1].pokemon.pkmn[0].speed = 105;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5269,8 +5261,8 @@ fn test_mid_turn_priority_change() {
 #[test]
 fn test_lifedew_heals_both_pkmn_on_your_side() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].hp = 50;
-    state.side_one.pokemon.pkmn[1].hp = 50;
+    state.sides[0].pokemon.pkmn[0].hp = 50;
+    state.sides[0].pokemon.pkmn[1].hp = 50;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5309,8 +5301,8 @@ fn test_lifedew_heals_both_pkmn_on_your_side() {
 #[test]
 fn test_lifedew_does_not_overheal() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].hp = 50;
-    state.side_one.pokemon.pkmn[1].hp = 80;
+    state.sides[0].pokemon.pkmn[0].hp = 50;
+    state.sides[0].pokemon.pkmn[1].hp = 80;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5349,8 +5341,8 @@ fn test_lifedew_does_not_overheal() {
 #[test]
 fn test_lifedew_heals_single_ally() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].hp = 50;
-    state.side_one.pokemon.pkmn[1].hp = 100;
+    state.sides[0].pokemon.pkmn[0].hp = 50;
+    state.sides[0].pokemon.pkmn[1].hp = 100;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5382,9 +5374,9 @@ fn test_lifedew_heals_single_ally() {
 #[test]
 fn test_junglehealing_heals_and_removes_status() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].hp = 50;
-    state.side_one.pokemon.pkmn[0].status = PokemonStatus::BURN;
-    state.side_one.pokemon.pkmn[1].hp = 50;
+    state.sides[0].pokemon.pkmn[0].hp = 50;
+    state.sides[0].pokemon.pkmn[0].status = PokemonStatus::BURN;
+    state.sides[0].pokemon.pkmn[1].hp = 50;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5429,9 +5421,9 @@ fn test_junglehealing_heals_and_removes_status() {
 #[test]
 fn test_teraform_zero_removes_weather() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
-    state.side_one.pokemon.pkmn[0].id = PokemonName::TERAPAGOSTERASTAL;
-    state.side_one.pokemon.pkmn[0].ability = Abilities::TERASHELL;
+    state.sides[0].pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::TERAPAGOSTERASTAL;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::TERASHELL;
     state.weather.weather_type = Weather::SUN;
     state.weather.turns_remaining = 5;
     state.terrain.terrain_type = Terrain::ELECTRICTERRAIN;
@@ -5521,13 +5513,13 @@ fn test_teraform_zero_removes_weather() {
 #[test]
 fn test_terapagos_terastal_formechange_with_starstorm() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].id = PokemonName::TERAPAGOSTERASTAL;
-    state.side_one.pokemon.pkmn[0].ability = Abilities::TERASHELL;
-    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
-    state.side_two.pokemon.pkmn[0].maxhp = 500;
-    state.side_two.pokemon.pkmn[0].hp = 500;
-    state.side_two.pokemon.pkmn[1].maxhp = 500;
-    state.side_two.pokemon.pkmn[1].hp = 500;
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::TERAPAGOSTERASTAL;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::TERASHELL;
+    state.sides[0].pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.sides[1].pokemon.pkmn[0].maxhp = 500;
+    state.sides[1].pokemon.pkmn[0].hp = 500;
+    state.sides[1].pokemon.pkmn[1].maxhp = 500;
+    state.sides[1].pokemon.pkmn[1].hp = 500;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5606,14 +5598,14 @@ fn test_terapagos_terastal_formechange_with_starstorm() {
 #[test]
 fn test_tera_starstorm_stellar_does_more_damage_to_terastallized_target() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].id = PokemonName::TERAPAGOSTERASTAL;
-    state.side_one.pokemon.pkmn[0].ability = Abilities::TERASHELL;
-    state.side_one.pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
-    state.side_two.pokemon.pkmn[0].maxhp = 500;
-    state.side_two.pokemon.pkmn[0].hp = 500;
-    state.side_two.pokemon.pkmn[0].terastallized = true;
-    state.side_two.pokemon.pkmn[1].maxhp = 500;
-    state.side_two.pokemon.pkmn[1].hp = 500;
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::TERAPAGOSTERASTAL;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::TERASHELL;
+    state.sides[0].pokemon.pkmn[0].tera_type = PokemonType::STELLAR;
+    state.sides[1].pokemon.pkmn[0].maxhp = 500;
+    state.sides[1].pokemon.pkmn[0].hp = 500;
+    state.sides[1].pokemon.pkmn[0].terastallized = true;
+    state.sides[1].pokemon.pkmn[1].maxhp = 500;
+    state.sides[1].pokemon.pkmn[1].hp = 500;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5692,7 +5684,7 @@ fn test_tera_starstorm_stellar_does_more_damage_to_terastallized_target() {
 #[test]
 fn test_terashell_halves_normal_effectiveness_damage() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::TERASHELL;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::TERASHELL;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5724,8 +5716,8 @@ fn test_terashell_halves_normal_effectiveness_damage() {
 #[test]
 fn test_terashell_quarters_double_effectiveness_damage() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].types.0 = PokemonType::FIGHTING;
-    state.side_two.pokemon.pkmn[0].ability = Abilities::TERASHELL;
+    state.sides[0].pokemon.pkmn[0].types.0 = PokemonType::FIGHTING;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::TERASHELL;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5757,8 +5749,8 @@ fn test_terashell_quarters_double_effectiveness_damage() {
 #[test]
 fn test_clearamulet_blocks_intimidate() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[2].ability = Abilities::INTIMIDATE;
-    state.side_two.pokemon.pkmn[0].item = Items::CLEARAMULET;
+    state.sides[0].pokemon.pkmn[2].ability = Abilities::INTIMIDATE;
+    state.sides[1].pokemon.pkmn[0].item = Items::CLEARAMULET;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5795,8 +5787,8 @@ fn test_clearamulet_blocks_intimidate() {
 #[test]
 fn test_scrappy_blocks_intimidate() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[2].ability = Abilities::INTIMIDATE;
-    state.side_two.pokemon.pkmn[0].ability = Abilities::SCRAPPY;
+    state.sides[0].pokemon.pkmn[2].ability = Abilities::INTIMIDATE;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::SCRAPPY;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5833,8 +5825,8 @@ fn test_scrappy_blocks_intimidate() {
 #[test]
 fn test_intimidate_into_defiant() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[2].ability = Abilities::INTIMIDATE;
-    state.side_two.pokemon.pkmn[0].ability = Abilities::DEFIANT;
+    state.sides[0].pokemon.pkmn[2].ability = Abilities::INTIMIDATE;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::DEFIANT;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5883,8 +5875,8 @@ fn test_intimidate_into_defiant() {
 #[test]
 fn test_intimidate_into_whiteherb() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[2].ability = Abilities::INTIMIDATE;
-    state.side_two.pokemon.pkmn[0].item = Items::WHITEHERB;
+    state.sides[0].pokemon.pkmn[2].ability = Abilities::INTIMIDATE;
+    state.sides[1].pokemon.pkmn[0].item = Items::WHITEHERB;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -5939,7 +5931,7 @@ fn test_intimidate_into_whiteherb() {
 #[test]
 fn test_closecombat_with_whiteherb() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].item = Items::WHITEHERB;
+    state.sides[0].pokemon.pkmn[0].item = Items::WHITEHERB;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6003,7 +5995,7 @@ fn test_closecombat_with_whiteherb() {
 #[test]
 fn test_shellsmash_with_whiteherb() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].item = Items::WHITEHERB;
+    state.sides[0].pokemon.pkmn[0].item = Items::WHITEHERB;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6080,8 +6072,8 @@ fn test_shellsmash_with_whiteherb() {
 #[test]
 fn test_intimidate_into_adrenalineorb() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[2].ability = Abilities::INTIMIDATE;
-    state.side_two.pokemon.pkmn[0].item = Items::ADRENALINEORB;
+    state.sides[0].pokemon.pkmn[2].ability = Abilities::INTIMIDATE;
+    state.sides[1].pokemon.pkmn[0].item = Items::ADRENALINEORB;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6136,9 +6128,9 @@ fn test_intimidate_into_adrenalineorb() {
 #[test]
 fn test_trickroom_inverts_speed_order() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].speed = 100;
-    state.side_one.pokemon.pkmn[0].hp = 5;
-    state.side_two.pokemon.pkmn[0].speed = 50;
+    state.sides[0].pokemon.pkmn[0].speed = 100;
+    state.sides[0].pokemon.pkmn[0].hp = 5;
+    state.sides[1].pokemon.pkmn[0].speed = 50;
     state.trick_room.active = true;
     state.trick_room.turns_remaining = 5;
 
@@ -6182,9 +6174,9 @@ fn test_trickroom_inverts_speed_order() {
 #[test]
 fn test_priority_bypasses_trickroom() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].speed = 100;
-    state.side_one.pokemon.pkmn[0].hp = 5;
-    state.side_two.pokemon.pkmn[0].speed = 50;
+    state.sides[0].pokemon.pkmn[0].speed = 100;
+    state.sides[0].pokemon.pkmn[0].hp = 5;
+    state.sides[1].pokemon.pkmn[0].speed = 50;
     state.trick_room.active = true;
     state.trick_room.turns_remaining = 5;
 
@@ -6233,7 +6225,7 @@ fn test_priority_bypasses_trickroom() {
 #[test]
 fn test_faster_disable_blocking_move_being_reused() {
     let mut state = State::default();
-    state.side_one.slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
+    state.sides[0].slot_a.last_used_move = LastUsedMove::Move(PokemonMoveIndex::M0);
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6274,8 +6266,8 @@ fn test_faster_disable_blocking_move_being_reused() {
 #[test]
 fn test_actual_speed_tie() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].speed = 100;
-    state.side_two.pokemon.pkmn[0].speed = 100;
+    state.sides[0].pokemon.pkmn[0].speed = 100;
+    state.sides[1].pokemon.pkmn[0].speed = 100;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6363,7 +6355,7 @@ fn test_mistyterrain_move_blocks_spore() {
 #[test]
 fn test_ally_sweetveil_blocks_spore() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::SWEETVEIL;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::SWEETVEIL;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6398,7 +6390,7 @@ fn test_ally_sweetveil_blocks_spore() {
 #[test]
 fn test_steely_spirit_boosts_ally_move() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[1].ability = Abilities::STEELYSPIRIT;
+    state.sides[0].pokemon.pkmn[1].ability = Abilities::STEELYSPIRIT;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6430,7 +6422,7 @@ fn test_steely_spirit_boosts_ally_move() {
 #[test]
 fn test_battery_damage_boost() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[1].ability = Abilities::BATTERY;
+    state.sides[0].pokemon.pkmn[1].ability = Abilities::BATTERY;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6462,7 +6454,7 @@ fn test_battery_damage_boost() {
 #[test]
 fn test_powerspot_damage_boost() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[1].ability = Abilities::POWERSPOT;
+    state.sides[0].pokemon.pkmn[1].ability = Abilities::POWERSPOT;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6494,7 +6486,7 @@ fn test_powerspot_damage_boost() {
 #[test]
 fn test_parting_shot_into_clear_amulet_interaction() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].item = Items::CLEARAMULET;
+    state.sides[1].pokemon.pkmn[0].item = Items::CLEARAMULET;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6522,7 +6514,7 @@ fn test_parting_shot_into_clear_amulet_interaction() {
 #[test]
 fn test_parting_shot_into_magic_bounce_interaction() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::MAGICBOUNCE;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::MAGICBOUNCE;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6567,7 +6559,7 @@ fn test_parting_shot_into_magic_bounce_interaction() {
 #[test]
 fn test_parting_shot_into_defiant() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::DEFIANT;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::DEFIANT;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6624,8 +6616,8 @@ fn test_parting_shot_into_defiant() {
 #[test]
 fn test_partingshot_into_defiant_when_at_max_attack() {
     let mut state = State::default();
-    state.side_two.pokemon.pkmn[0].ability = Abilities::DEFIANT;
-    state.side_two.slot_a.attack_boost = 6;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::DEFIANT;
+    state.sides[1].slot_a.attack_boost = 6;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6677,8 +6669,8 @@ fn test_partingshot_into_defiant_when_at_max_attack() {
 fn test_fakeout_into_fakeout_sets_last_used_move() {
     let mut state = State::default();
     state.use_last_used_move = true;
-    state.side_one.slot_a.last_used_move = LastUsedMove::Switch(PokemonIndex::P0);
-    state.side_two.slot_a.last_used_move = LastUsedMove::Switch(PokemonIndex::P0);
+    state.sides[0].slot_a.last_used_move = LastUsedMove::Switch(PokemonIndex::P0);
+    state.sides[1].slot_a.last_used_move = LastUsedMove::Switch(PokemonIndex::P0);
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6741,9 +6733,9 @@ fn test_fakeout_into_fakeout_sets_last_used_move() {
 #[test]
 fn test_being_hit_with_ragefist_increases_ragefist_damage() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].types.0 = PokemonType::FIGHTING;
-    state.side_two.pokemon.pkmn[0].types.0 = PokemonType::NORMAL;
-    state.side_one.pokemon.pkmn[0].speed = 150;
+    state.sides[0].pokemon.pkmn[0].types.0 = PokemonType::FIGHTING;
+    state.sides[1].pokemon.pkmn[0].types.0 = PokemonType::NORMAL;
+    state.sides[0].pokemon.pkmn[0].speed = 150;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6858,7 +6850,7 @@ fn test_basic_end_of_turn_gets_triggered() {
 #[test]
 fn test_switches_to_replace_fainted_pkmn_do_not_trigger_end_of_turn() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].hp = 0;
+    state.sides[0].pokemon.pkmn[0].hp = 0;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6908,7 +6900,7 @@ fn test_switches_to_replace_fainted_pkmn_do_not_trigger_end_of_turn() {
 #[test]
 fn test_pivot_move_does_not_trigger_end_of_turn() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].speed = 150;
+    state.sides[0].pokemon.pkmn[0].speed = 150;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -6997,8 +6989,8 @@ fn test_pivot_move_does_not_trigger_end_of_turn() {
 #[test]
 fn test_switching_from_pivot_sets_end_of_turn() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].speed = 150;
-    state.side_one.slot_a.force_switch = true;
+    state.sides[0].pokemon.pkmn[0].speed = 150;
+    state.sides[0].slot_a.force_switch = true;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -7107,10 +7099,10 @@ fn test_multiple_none_moves_does_not_set_end_of_turn() {
 #[test]
 fn test_beatup_on_ally_with_ragefist_and_times_attacked_cap() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[1].id = PokemonName::ANNIHILAPE;
-    state.side_one.pokemon.pkmn[1].times_attacked = 4;
-    state.side_one.pokemon.pkmn[4].hp = 0;
-    state.side_one.pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[1].id = PokemonName::ANNIHILAPE;
+    state.sides[0].pokemon.pkmn[1].times_attacked = 4;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -7180,9 +7172,9 @@ fn test_beatup_on_ally_with_ragefist_and_times_attacked_cap() {
 #[test]
 fn test_fainted_followme_does_not_redirect() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].speed = 150;
-    state.side_one.pokemon.pkmn[1].speed = 150;
-    state.side_two.pokemon.pkmn[0].hp = 5;
+    state.sides[0].pokemon.pkmn[0].speed = 150;
+    state.sides[0].pokemon.pkmn[1].speed = 150;
+    state.sides[1].pokemon.pkmn[0].hp = 5;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -7247,8 +7239,8 @@ fn test_fainted_followme_does_not_redirect() {
 #[test]
 fn test_switching_in_with_hospitality_heals_ally_without_overhealing() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].hp -= 10;
-    state.side_one.pokemon.pkmn[2].ability = Abilities::HOSPITALITY;
+    state.sides[0].pokemon.pkmn[0].hp -= 10;
+    state.sides[0].pokemon.pkmn[2].ability = Abilities::HOSPITALITY;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -7284,9 +7276,9 @@ fn test_switching_in_with_hospitality_heals_ally_without_overhealing() {
 #[test]
 fn test_commander_switch_in_when_dondozo_is_on_the_field() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].id = PokemonName::DONDOZO;
-    state.side_one.pokemon.pkmn[2].id = PokemonName::TATSUGIRI;
-    state.side_one.pokemon.pkmn[2].ability = Abilities::COMMANDER;
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::DONDOZO;
+    state.sides[0].pokemon.pkmn[2].id = PokemonName::TATSUGIRI;
+    state.sides[0].pokemon.pkmn[2].ability = Abilities::COMMANDER;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -7357,10 +7349,10 @@ fn test_commander_switch_in_when_dondozo_is_on_the_field() {
 #[test]
 fn test_neutralizinggas_prevents_commander_for_tatsu_switchin() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].id = PokemonName::DONDOZO;
-    state.side_one.pokemon.pkmn[2].id = PokemonName::TATSUGIRI;
-    state.side_one.pokemon.pkmn[2].ability = Abilities::COMMANDER;
-    state.side_two.pokemon.pkmn[0].ability = Abilities::NEUTRALIZINGGAS;
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::DONDOZO;
+    state.sides[0].pokemon.pkmn[2].id = PokemonName::TATSUGIRI;
+    state.sides[0].pokemon.pkmn[2].ability = Abilities::COMMANDER;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::NEUTRALIZINGGAS;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -7389,10 +7381,10 @@ fn test_neutralizinggas_prevents_commander_for_tatsu_switchin() {
 #[test]
 fn test_commander_switch_in_when_one_stat_cannot_be_boosted_twice() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].id = PokemonName::DONDOZO;
-    state.side_one.slot_a.attack_boost = 5;
-    state.side_one.pokemon.pkmn[2].id = PokemonName::TATSUGIRI;
-    state.side_one.pokemon.pkmn[2].ability = Abilities::COMMANDER;
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::DONDOZO;
+    state.sides[0].slot_a.attack_boost = 5;
+    state.sides[0].pokemon.pkmn[2].id = PokemonName::TATSUGIRI;
+    state.sides[0].pokemon.pkmn[2].ability = Abilities::COMMANDER;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -7463,8 +7455,8 @@ fn test_commander_switch_in_when_one_stat_cannot_be_boosted_twice() {
 #[test]
 fn test_dondozo_switch_in_when_tatsugiri_is_on_the_field() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
-    state.side_one.pokemon.pkmn[2].id = PokemonName::DONDOZO;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.sides[0].pokemon.pkmn[2].id = PokemonName::DONDOZO;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -7535,9 +7527,9 @@ fn test_dondozo_switch_in_when_tatsugiri_is_on_the_field() {
 #[test]
 fn test_neutralizinggas_prevents_commander_when_dondozo_switches_in() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
-    state.side_one.pokemon.pkmn[2].id = PokemonName::DONDOZO;
-    state.side_two.pokemon.pkmn[0].ability = Abilities::NEUTRALIZINGGAS;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.sides[0].pokemon.pkmn[2].id = PokemonName::DONDOZO;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::NEUTRALIZINGGAS;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -7566,10 +7558,10 @@ fn test_neutralizinggas_prevents_commander_when_dondozo_switches_in() {
 #[test]
 fn test_neutralizinggas_nullified_by_abilityshield_for_commander() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
-    state.side_one.pokemon.pkmn[0].item = Items::ABILITYSHIELD;
-    state.side_one.pokemon.pkmn[2].id = PokemonName::DONDOZO;
-    state.side_two.pokemon.pkmn[0].ability = Abilities::NEUTRALIZINGGAS;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.sides[0].pokemon.pkmn[0].item = Items::ABILITYSHIELD;
+    state.sides[0].pokemon.pkmn[2].id = PokemonName::DONDOZO;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::NEUTRALIZINGGAS;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,
@@ -7640,9 +7632,8 @@ fn test_neutralizinggas_nullified_by_abilityshield_for_commander() {
 #[test]
 fn test_move_executed_on_commanding_fails() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
-    state
-        .side_one
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.sides[0]
         .slot_a
         .volatile_statuses
         .insert(PokemonVolatileStatus::COMMANDING);
@@ -7673,9 +7664,8 @@ fn test_move_executed_on_commanding_fails() {
 #[test]
 fn test_commanding_pokemon_cannot_use_move() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
-    state
-        .side_one
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.sides[0]
         .slot_a
         .volatile_statuses
         .insert(PokemonVolatileStatus::COMMANDING);
@@ -7713,16 +7703,14 @@ fn test_commanding_pokemon_cannot_use_move() {
 #[test]
 fn test_fainting_commanded_pokemon_removes_commanding_from_ally() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
-    state.side_one.pokemon.pkmn[1].id = PokemonName::DONDOZO;
-    state.side_one.pokemon.pkmn[1].hp = 1;
-    state
-        .side_one
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.sides[0].pokemon.pkmn[1].id = PokemonName::DONDOZO;
+    state.sides[0].pokemon.pkmn[1].hp = 1;
+    state.sides[0]
         .slot_a
         .volatile_statuses
         .insert(PokemonVolatileStatus::COMMANDING);
-    state
-        .side_one
+    state.sides[0]
         .slot_b
         .volatile_statuses
         .insert(PokemonVolatileStatus::COMMANDED);
@@ -7764,16 +7752,14 @@ fn test_fainting_commanded_pokemon_removes_commanding_from_ally() {
 #[test]
 fn test_orderup_boost_with_commanded_pkmn() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
-    state.side_one.pokemon.pkmn[0].id = PokemonName::TATSUGIRI;
-    state.side_one.pokemon.pkmn[1].id = PokemonName::DONDOZO;
-    state
-        .side_one
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::TATSUGIRI;
+    state.sides[0].pokemon.pkmn[1].id = PokemonName::DONDOZO;
+    state.sides[0]
         .slot_a
         .volatile_statuses
         .insert(PokemonVolatileStatus::COMMANDING);
-    state
-        .side_one
+    state.sides[0]
         .slot_b
         .volatile_statuses
         .insert(PokemonVolatileStatus::COMMANDED);
@@ -7816,17 +7802,15 @@ fn test_orderup_boost_with_commanded_pkmn() {
 #[test]
 fn test_commanding_pkmn_takes_damage_from_poison() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
-    state.side_one.pokemon.pkmn[0].id = PokemonName::TATSUGIRI;
-    state.side_one.pokemon.pkmn[0].status = PokemonStatus::POISON;
-    state.side_one.pokemon.pkmn[1].id = PokemonName::DONDOZO;
-    state
-        .side_one
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::TATSUGIRI;
+    state.sides[0].pokemon.pkmn[0].status = PokemonStatus::POISON;
+    state.sides[0].pokemon.pkmn[1].id = PokemonName::DONDOZO;
+    state.sides[0]
         .slot_a
         .volatile_statuses
         .insert(PokemonVolatileStatus::COMMANDING);
-    state
-        .side_one
+    state.sides[0]
         .slot_b
         .volatile_statuses
         .insert(PokemonVolatileStatus::COMMANDED);
@@ -7854,19 +7838,17 @@ fn test_commanding_pkmn_takes_damage_from_poison() {
 #[test]
 fn test_fainted_commanding_pokemon_switching_out() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].hp = 0;
-    state.side_one.pokemon.pkmn[0].ability = Abilities::COMMANDER;
-    state.side_one.pokemon.pkmn[0].base_ability = Abilities::COMMANDER;
-    state.side_one.pokemon.pkmn[0].id = PokemonName::TATSUGIRI;
-    state.side_one.pokemon.pkmn[0].status = PokemonStatus::POISON;
-    state.side_one.pokemon.pkmn[1].id = PokemonName::DONDOZO;
-    state
-        .side_one
+    state.sides[0].pokemon.pkmn[0].hp = 0;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::COMMANDER;
+    state.sides[0].pokemon.pkmn[0].base_ability = Abilities::COMMANDER;
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::TATSUGIRI;
+    state.sides[0].pokemon.pkmn[0].status = PokemonStatus::POISON;
+    state.sides[0].pokemon.pkmn[1].id = PokemonName::DONDOZO;
+    state.sides[0]
         .slot_a
         .volatile_statuses
         .insert(PokemonVolatileStatus::COMMANDING);
-    state
-        .side_one
+    state.sides[0]
         .slot_b
         .volatile_statuses
         .insert(PokemonVolatileStatus::COMMANDED);
@@ -7905,10 +7887,10 @@ fn test_fainted_commanding_pokemon_switching_out() {
 #[test]
 fn test_abilityshield_prevents_neutralizinggas() {
     let mut state = State::default();
-    state.side_one.pokemon.pkmn[0].item = Items::ABILITYSHIELD;
-    state.side_one.pokemon.pkmn[0].ability = Abilities::GALVANIZE;
-    state.side_one.pokemon.pkmn[1].ability = Abilities::NEUTRALIZINGGAS;
-    state.side_two.pokemon.pkmn[0].types.0 = PokemonType::GROUND;
+    state.sides[0].pokemon.pkmn[0].item = Items::ABILITYSHIELD;
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::GALVANIZE;
+    state.sides[0].pokemon.pkmn[1].ability = Abilities::NEUTRALIZINGGAS;
+    state.sides[1].pokemon.pkmn[0].types.0 = PokemonType::GROUND;
 
     let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
         &mut state,

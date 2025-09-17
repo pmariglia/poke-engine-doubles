@@ -599,9 +599,9 @@ fn common_pkmn_damage_calc(
 // be reflected in the `Choice`
 pub fn calculate_damage(
     state: &State,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
-    target_side_ref: &SideReference,
+    target_side_ref: SideReference,
     target_slot_ref: &SlotReference,
     choice: &Choice,
     _damage_rolls: DamageRolls,

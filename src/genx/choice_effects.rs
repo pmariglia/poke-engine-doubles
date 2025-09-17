@@ -39,7 +39,7 @@ const CHOICE_THAWS_USER: [Choices; 10] = [
 pub fn choice_change_type(
     state: &mut State,
     attacker_choice: &mut Choice,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
 ) {
     /*
@@ -159,9 +159,9 @@ pub fn modify_choice(
     state: &State,
     attacker_choice: &mut Choice,
     target_choice: &Choice,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
-    target_side_ref: &SideReference,
+    target_side_ref: SideReference,
     target_slot_ref: &SlotReference,
     target_has_moved: bool,
 ) {
@@ -778,9 +778,9 @@ pub fn modify_choice(
 pub fn choice_after_damage_hit(
     state: &mut State,
     choice: &Choice,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
-    target_side_ref: &SideReference,
+    target_side_ref: SideReference,
     target_slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
     hit_sub: bool,
@@ -793,7 +793,7 @@ pub fn choice_after_damage_hit(
             .instruction_list
             .push(Instruction::IncrementTimesAttacked(
                 IncrementTimesAttackedInstruction {
-                    side_ref: *target_side_ref,
+                    side_ref: target_side_ref,
                     pokemon_index: target_active_index,
                 },
             ));
@@ -803,7 +803,7 @@ pub fn choice_after_damage_hit(
     let attacking_side = state.get_side(attacking_side_ref);
     if choice.flags.recharge {
         let instruction = Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
-            side_ref: *attacking_side_ref,
+            side_ref: attacking_side_ref,
             slot_ref: *attacking_slot_ref,
             volatile_status: PokemonVolatileStatus::MUSTRECHARGE,
         });
@@ -832,14 +832,14 @@ pub fn choice_after_damage_hit(
                 attacking_side.get_active_with_index(attacking_slot_ref);
             let instruction = if attacker_active.types.0 == PokemonType::ELECTRIC {
                 Some(Instruction::ChangeType(ChangeType {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     pokemon_index: attacker_index,
                     new_types: (PokemonType::TYPELESS, attacker_active.types.1),
                     old_types: attacker_active.types,
                 }))
             } else if attacker_active.types.1 == PokemonType::ELECTRIC {
                 Some(Instruction::ChangeType(ChangeType {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     pokemon_index: attacker_index,
                     new_types: (attacker_active.types.0, PokemonType::TYPELESS),
                     old_types: attacker_active.types,
@@ -857,7 +857,7 @@ pub fn choice_after_damage_hit(
                         .instruction_list
                         .push(Instruction::ApplyVolatileStatus(
                             ApplyVolatileStatusInstruction {
-                                side_ref: *attacking_side_ref,
+                                side_ref: attacking_side_ref,
                                 slot_ref: *attacking_slot_ref,
                                 volatile_status: PokemonVolatileStatus::TYPECHANGE,
                             },
@@ -876,14 +876,14 @@ pub fn choice_after_damage_hit(
                 attacking_side.get_active_with_index(attacking_slot_ref);
             let instruction = if attacker_active.types.0 == PokemonType::FIRE {
                 Some(Instruction::ChangeType(ChangeType {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     pokemon_index: attacker_index,
                     new_types: (PokemonType::TYPELESS, attacker_active.types.1),
                     old_types: attacker_active.types,
                 }))
             } else if attacker_active.types.1 == PokemonType::FIRE {
                 Some(Instruction::ChangeType(ChangeType {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     pokemon_index: attacker_index,
                     new_types: (attacker_active.types.0, PokemonType::TYPELESS),
                     old_types: attacker_active.types,
@@ -921,7 +921,7 @@ pub fn choice_after_damage_hit(
                     .instruction_list
                     .push(Instruction::ChangeSideCondition(
                         ChangeSideConditionInstruction {
-                            side_ref: *target_side_ref,
+                            side_ref: target_side_ref,
                             side_condition: PokemonSideCondition::Reflect,
                             amount: -1 * target_side.side_conditions.reflect,
                         },
@@ -933,7 +933,7 @@ pub fn choice_after_damage_hit(
                     .instruction_list
                     .push(Instruction::ChangeSideCondition(
                         ChangeSideConditionInstruction {
-                            side_ref: *target_side_ref,
+                            side_ref: target_side_ref,
                             side_condition: PokemonSideCondition::LightScreen,
                             amount: -1 * target_side.side_conditions.light_screen,
                         },
@@ -960,7 +960,7 @@ pub fn choice_after_damage_hit(
             if target_active.item_can_be_removed() && target_active.item != Items::NONE && !hit_sub
             {
                 let instruction = Instruction::ChangeItem(ChangeItemInstruction {
-                    side_ref: *target_side_ref,
+                    side_ref: target_side_ref,
                     pokemon_index: target_active_index,
                     current_item: target_active.item,
                     new_item: Items::NONE,
@@ -980,7 +980,7 @@ pub fn choice_after_damage_hit(
                 let target_item = target_active.item;
 
                 let instruction = Instruction::ChangeItem(ChangeItemInstruction {
-                    side_ref: *target_side_ref,
+                    side_ref: target_side_ref,
                     pokemon_index: target_active_index,
                     current_item: target_item,
                     new_item: Items::NONE,
@@ -992,7 +992,7 @@ pub fn choice_after_damage_hit(
                     .get_side(attacking_side_ref)
                     .get_active_with_index(attacking_slot_ref);
                 let instruction = Instruction::ChangeItem(ChangeItemInstruction {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     pokemon_index: attacker_active_index,
                     current_item: Items::NONE,
                     new_item: target_item,
@@ -1028,7 +1028,7 @@ pub fn choice_after_damage_hit(
 
 fn destinybond_before_move(
     attacking_side: &mut Side,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
     choice: &mut Choice,
     instructions: &mut StateInstructions,
@@ -1043,7 +1043,7 @@ fn destinybond_before_move(
             .instruction_list
             .push(Instruction::RemoveVolatileStatus(
                 RemoveVolatileStatusInstruction {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     slot_ref: *attacking_slot_ref,
                     volatile_status: PokemonVolatileStatus::DESTINYBOND,
                 },
@@ -1060,9 +1060,9 @@ fn destinybond_before_move(
 pub fn choice_before_move(
     state: &mut State,
     choice: &mut Choice,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
-    target_side_ref: &SideReference,
+    target_side_ref: SideReference,
     instructions: &mut StateInstructions,
 ) {
     let defender_ability = state
@@ -1089,7 +1089,7 @@ pub fn choice_before_move(
             attacking_side
                 .get_slot_immutable(attacking_slot_ref)
                 .active_index,
-            *attacking_side_ref,
+            attacking_side_ref,
             attacking_side,
         );
     }
@@ -1103,7 +1103,7 @@ pub fn choice_before_move(
         //         instructions
         //             .instruction_list
         //             .push(Instruction::SetFutureSight(SetFutureSightInstruction {
-        //                 side_ref: *attacking_side_ref,
+        //                 side_ref: attacking_side_ref,
         //                 pokemon_index: attacking_side.active_index,
         //                 previous_pokemon_index: attacking_side.future_sight.1,
         //             }));
@@ -1132,7 +1132,7 @@ pub fn choice_before_move(
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     pokemon_index: attacker_index,
                     damage_amount,
                 }));
@@ -1143,7 +1143,7 @@ pub fn choice_before_move(
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     pokemon_index: attacker_index,
                     damage_amount,
                 }));
@@ -1169,7 +1169,7 @@ pub fn choice_before_move(
         && choice.move_id != Choices::SKYDROP
     {
         let instruction = Instruction::ChangeItem(ChangeItemInstruction {
-            side_ref: *attacking_side_ref,
+            side_ref: attacking_side_ref,
             pokemon_index: attacker_index,
             current_item: Items::POWERHERB,
             new_item: Items::NONE,
@@ -1199,8 +1199,8 @@ pub fn choice_before_move(
 pub fn choice_hazard_clear(
     state: &mut State,
     choice: &Choice,
-    attacking_side_ref: &SideReference,
-    target_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
+    target_side_ref: SideReference,
     target_slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) {
@@ -1226,7 +1226,7 @@ pub fn choice_hazard_clear(
             for side in [SideReference::SideOne, SideReference::SideTwo] {
                 for side_condition in courtchange_swaps {
                     let side_condition_num = state
-                        .get_side_immutable(&side)
+                        .get_side_immutable(side)
                         .get_side_condition(side_condition);
                     if side_condition_num > 0 {
                         instruction_list.push(Instruction::ChangeSideCondition(
@@ -1277,7 +1277,7 @@ pub fn choice_hazard_clear(
             for side in [SideReference::SideOne, SideReference::SideTwo] {
                 for side_condition in side_condition_clears {
                     let side_condition_num = state
-                        .get_side_immutable(&side)
+                        .get_side_immutable(side)
                         .get_side_condition(side_condition);
                     if side_condition_num > 0 {
                         let i = Instruction::ChangeSideCondition(ChangeSideConditionInstruction {
@@ -1301,7 +1301,7 @@ pub fn choice_hazard_clear(
             for side in [SideReference::SideOne, SideReference::SideTwo] {
                 for side_condition in side_condition_clears {
                     let side_condition_num = state
-                        .get_side_immutable(&side)
+                        .get_side_immutable(side)
                         .get_side_condition(side_condition);
                     if side_condition_num > 0 {
                         let i = Instruction::ChangeSideCondition(ChangeSideConditionInstruction {
@@ -1315,7 +1315,7 @@ pub fn choice_hazard_clear(
                 }
             }
             for (side_r, slot_r) in State::get_all_sides_and_slots() {
-                let slot = state.get_side(&side_r).get_slot(&slot_r);
+                let slot = state.get_side(side_r).get_slot(&slot_r);
                 if slot
                     .volatile_statuses
                     .contains(&PokemonVolatileStatus::SUBSTITUTE)
@@ -1350,7 +1350,7 @@ pub fn choice_hazard_clear(
                     .instruction_list
                     .push(Instruction::ChangeSideCondition(
                         ChangeSideConditionInstruction {
-                            side_ref: *attacking_side_ref,
+                            side_ref: attacking_side_ref,
                             side_condition: PokemonSideCondition::Stealthrock,
                             amount: -1 * attacking_side.side_conditions.stealth_rock,
                         },
@@ -1362,7 +1362,7 @@ pub fn choice_hazard_clear(
                     .instruction_list
                     .push(Instruction::ChangeSideCondition(
                         ChangeSideConditionInstruction {
-                            side_ref: *attacking_side_ref,
+                            side_ref: attacking_side_ref,
                             side_condition: PokemonSideCondition::Spikes,
                             amount: -1 * attacking_side.side_conditions.spikes,
                         },
@@ -1374,7 +1374,7 @@ pub fn choice_hazard_clear(
                     .instruction_list
                     .push(Instruction::ChangeSideCondition(
                         ChangeSideConditionInstruction {
-                            side_ref: *attacking_side_ref,
+                            side_ref: attacking_side_ref,
                             side_condition: PokemonSideCondition::ToxicSpikes,
                             amount: -1 * attacking_side.side_conditions.toxic_spikes,
                         },
@@ -1386,7 +1386,7 @@ pub fn choice_hazard_clear(
                     .instruction_list
                     .push(Instruction::ChangeSideCondition(
                         ChangeSideConditionInstruction {
-                            side_ref: *attacking_side_ref,
+                            side_ref: attacking_side_ref,
                             side_condition: PokemonSideCondition::StickyWeb,
                             amount: -1 * attacking_side.side_conditions.sticky_web,
                         },
@@ -1401,9 +1401,9 @@ pub fn choice_hazard_clear(
 pub fn choice_special_effect(
     state: &mut State,
     choice: &mut Choice,
-    attacking_side_ref: &SideReference,
+    attacking_side_ref: SideReference,
     attacking_slot_ref: &SlotReference,
-    target_side_ref: &SideReference,
+    target_side_ref: SideReference,
     target_slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) {
@@ -1416,7 +1416,7 @@ pub fn choice_special_effect(
                 instructions
                     .instruction_list
                     .push(Instruction::Boost(BoostInstruction {
-                        side_ref: *attacking_side_ref,
+                        side_ref: attacking_side_ref,
                         slot_ref: partner_slot_ref,
                         stat: PokemonBoostableStat::Attack,
                         amount: 1,
@@ -1457,7 +1457,7 @@ pub fn choice_special_effect(
                 add_remove_status_instructions(
                     instructions,
                     attacking_side.slot_a.active_index,
-                    *attacking_side_ref,
+                    attacking_side_ref,
                     attacking_side,
                 );
             }
@@ -1467,7 +1467,7 @@ pub fn choice_special_effect(
                 add_remove_status_instructions(
                     instructions,
                     attacking_side.slot_b.active_index,
-                    *attacking_side_ref,
+                    attacking_side_ref,
                     attacking_side,
                 );
             }
@@ -1511,7 +1511,7 @@ pub fn choice_special_effect(
                 instructions
                     .instruction_list
                     .push(Instruction::Damage(DamageInstruction {
-                        side_ref: *attacking_side_ref,
+                        side_ref: attacking_side_ref,
                         pokemon_index: attacker_index,
                         damage_amount: attacker.maxhp / 2,
                     }));
@@ -1523,7 +1523,7 @@ pub fn choice_special_effect(
                 instructions
                     .instruction_list
                     .push(Instruction::Boost(BoostInstruction {
-                        side_ref: *attacking_side_ref,
+                        side_ref: attacking_side_ref,
                         slot_ref: *attacking_slot_ref,
                         stat: PokemonBoostableStat::Attack,
                         amount: boost_amount,
@@ -1553,7 +1553,7 @@ pub fn choice_special_effect(
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: *target_side_ref,
+                    side_ref: target_side_ref,
                     pokemon_index: target_active_index,
                     damage_amount,
                 }));
@@ -1582,7 +1582,7 @@ pub fn choice_special_effect(
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: *target_side_ref,
+                    side_ref: target_side_ref,
                     pokemon_index: target_active_index,
                     damage_amount,
                 }));
@@ -1605,7 +1605,7 @@ pub fn choice_special_effect(
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: *target_side_ref,
+                    side_ref: target_side_ref,
                     pokemon_index: target_active_index,
                     damage_amount,
                 }));
@@ -1619,7 +1619,7 @@ pub fn choice_special_effect(
             if attacking_slot.wish.0 == 0 {
                 instructions.instruction_list.push(Instruction::ChangeWish(
                     ChangeWishInstruction {
-                        side_ref: *attacking_side_ref,
+                        side_ref: attacking_side_ref,
                         slot_ref: *attacking_slot_ref,
                         wish_amount_change: attacker_maxhp / 2 - attacking_slot.wish.1,
                     },
@@ -1634,7 +1634,7 @@ pub fn choice_special_effect(
                 add_remove_status_instructions(
                     instructions,
                     active_index,
-                    *attacking_side_ref,
+                    attacking_side_ref,
                     attacking_side,
                 );
             }
@@ -1645,7 +1645,7 @@ pub fn choice_special_effect(
                     add_remove_status_instructions(
                         instructions,
                         pkmn_index,
-                        *attacking_side_ref,
+                        attacking_side_ref,
                         attacking_side,
                     );
                 }
@@ -1653,22 +1653,22 @@ pub fn choice_special_effect(
         }
         Choices::HAZE => {
             state.reset_boosts(
-                &SideReference::SideOne,
+                SideReference::SideOne,
                 &SlotReference::SlotA,
                 &mut instructions.instruction_list,
             );
             state.reset_boosts(
-                &SideReference::SideOne,
+                SideReference::SideOne,
                 &SlotReference::SlotB,
                 &mut instructions.instruction_list,
             );
             state.reset_boosts(
-                &SideReference::SideTwo,
+                SideReference::SideTwo,
                 &SlotReference::SlotA,
                 &mut instructions.instruction_list,
             );
             state.reset_boosts(
-                &SideReference::SideTwo,
+                SideReference::SideTwo,
                 &SlotReference::SlotB,
                 &mut instructions.instruction_list,
             );
@@ -1681,7 +1681,7 @@ pub fn choice_special_effect(
                 instructions
                     .instruction_list
                     .push(Instruction::ChangeStatus(ChangeStatusInstruction {
-                        side_ref: *attacking_side_ref,
+                        side_ref: attacking_side_ref,
                         pokemon_index: active_index,
                         old_status: active_pkmn.status,
                         new_status: PokemonStatus::SLEEP,
@@ -1689,7 +1689,7 @@ pub fn choice_special_effect(
                 instructions
                     .instruction_list
                     .push(Instruction::SetRestTurns(SetSleepTurnsInstruction {
-                        side_ref: *attacking_side_ref,
+                        side_ref: attacking_side_ref,
                         pokemon_index: active_index,
                         new_turns: 3,
                         previous_turns: active_pkmn.rest_turns,
@@ -1697,7 +1697,7 @@ pub fn choice_special_effect(
                 instructions
                     .instruction_list
                     .push(Instruction::Heal(HealInstruction {
-                        side_ref: *attacking_side_ref,
+                        side_ref: attacking_side_ref,
                         pokemon_index: active_index,
                         heal_amount,
                     }));
@@ -1738,7 +1738,7 @@ pub fn choice_special_effect(
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: *target_side_ref,
+                    side_ref: target_side_ref,
                     pokemon_index: target_active_index,
                     damage_amount: target_pkmn.hp - target_hp,
                 }));
@@ -1759,7 +1759,7 @@ pub fn choice_special_effect(
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: *target_side_ref,
+                    side_ref: target_side_ref,
                     pokemon_index: target_active_index,
                     damage_amount,
                 }));
@@ -1780,7 +1780,7 @@ pub fn choice_special_effect(
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: *target_side_ref,
+                    side_ref: target_side_ref,
                     pokemon_index: target_active_index,
                     damage_amount,
                 }));
@@ -1802,7 +1802,7 @@ pub fn choice_special_effect(
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: *target_side_ref,
+                    side_ref: target_side_ref,
                     pokemon_index: target_active_index,
                     damage_amount,
                 }));
@@ -1822,7 +1822,7 @@ pub fn choice_special_effect(
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: *target_side_ref,
+                    side_ref: target_side_ref,
                     pokemon_index: target_active_index,
                     damage_amount,
                 }));
@@ -1834,7 +1834,7 @@ pub fn choice_special_effect(
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     pokemon_index: attacker_index,
                     damage_amount: attacker_hp,
                 }));
@@ -1853,7 +1853,7 @@ pub fn choice_special_effect(
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     pokemon_index: attacker_index,
                     damage_amount: attacker.hp - average_hp,
                 }));
@@ -1865,7 +1865,7 @@ pub fn choice_special_effect(
             instructions
                 .instruction_list
                 .push(Instruction::Damage(DamageInstruction {
-                    side_ref: *target_side_ref,
+                    side_ref: target_side_ref,
                     pokemon_index: target_index,
                     damage_amount: target.hp - average_hp,
                 }));
@@ -1894,19 +1894,19 @@ pub fn choice_special_effect(
                 }
 
                 let damage_instruction = Instruction::Damage(DamageInstruction {
-                    side_ref: *attacking_side_ref,
+                    side_ref: attacking_side_ref,
                     pokemon_index: active_index,
                     damage_amount: pkmn_health_reduction,
                 });
                 let set_sub_health_instruction =
                     Instruction::ChangeSubstituteHealth(ChangeSubsituteHealthInstruction {
-                        side_ref: *attacking_side_ref,
+                        side_ref: attacking_side_ref,
                         slot_ref: *attacking_slot_ref,
                         health_change: sub_target_health - sub_current_health,
                     });
                 let apply_vs_instruction =
                     Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
-                        side_ref: *attacking_side_ref,
+                        side_ref: attacking_side_ref,
                         slot_ref: *attacking_slot_ref,
                         volatile_status: PokemonVolatileStatus::SUBSTITUTE,
                     });
@@ -1925,7 +1925,7 @@ pub fn choice_special_effect(
         }
         Choices::PERISHSONG => {
             for (side_ref, slot_ref) in State::get_all_sides_and_slots() {
-                let side = state.get_side(&side_ref);
+                let side = state.get_side(side_ref);
                 let slot = side.get_slot(&slot_ref);
                 if slot
                     .volatile_statuses
@@ -1973,7 +1973,7 @@ pub fn choice_special_effect(
                 return;
             }
             let change_target_item_instruction = Instruction::ChangeItem(ChangeItemInstruction {
-                side_ref: *target_side_ref,
+                side_ref: target_side_ref,
                 pokemon_index: target_index,
                 current_item: target_item,
                 new_item: attacker_item,
@@ -1987,7 +1987,7 @@ pub fn choice_special_effect(
                 .get_side(attacking_side_ref)
                 .get_active_with_index(attacking_slot_ref);
             let change_attacker_item_instruction = Instruction::ChangeItem(ChangeItemInstruction {
-                side_ref: *attacking_side_ref,
+                side_ref: attacking_side_ref,
                 pokemon_index: attacker_index,
                 current_item: attacker_item,
                 new_item: target_item,

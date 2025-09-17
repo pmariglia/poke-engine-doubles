@@ -51,8 +51,8 @@ pub struct PyState {
 impl From<State> for PyState {
     fn from(other: State) -> Self {
         PyState {
-            side_one: PySide::from(other.side_one),
-            side_two: PySide::from(other.side_two),
+            side_one: PySide::from(other.sides[0].clone()),
+            side_two: PySide::from(other.sides[1].clone()),
             weather: other.weather.weather_type.to_string(),
             weather_turns_remaining: other.weather.turns_remaining,
             terrain: other.terrain.terrain_type.to_string(),
@@ -67,8 +67,7 @@ impl From<State> for PyState {
 impl Into<State> for PyState {
     fn into(self) -> State {
         let mut state = State {
-            side_one: self.side_one.into(),
-            side_two: self.side_two.into(),
+            sides: [self.side_one.into(), self.side_two.into()],
             weather: StateWeather {
                 weather_type: Weather::from_str(&self.weather).unwrap(),
                 turns_remaining: self.weather_turns_remaining,
@@ -938,12 +937,12 @@ impl PyMctsResult {
             side_one: result
                 .s1
                 .iter()
-                .map(|r| PyMctsSideResult::from_mcts_side_result(r.clone(), &state.side_one))
+                .map(|r| PyMctsSideResult::from_mcts_side_result(r.clone(), &state.sides[0]))
                 .collect(),
             side_two: result
                 .s2
                 .iter()
-                .map(|r| PyMctsSideResult::from_mcts_side_result(r.clone(), &state.side_two))
+                .map(|r| PyMctsSideResult::from_mcts_side_result(r.clone(), &state.sides[1]))
                 .collect(),
             iteration_count: result.iteration_count,
         }
@@ -1047,7 +1046,7 @@ fn generate_instructions(
 ) -> PyResult<Vec<PyStateInstructions>> {
     let mut state: State = py_state.into();
     let (s1_a_move, s1_b_move, s2_a_move, s2_b_move);
-    match MoveChoice::from_string(&side_one_a_move, &state.side_one, SlotReference::SlotA) {
+    match MoveChoice::from_string(&side_one_a_move, &state.sides[0], SlotReference::SlotA) {
         Some(m) => s1_a_move = m,
         None => {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
@@ -1056,7 +1055,7 @@ fn generate_instructions(
             )))
         }
     }
-    match MoveChoice::from_string(&side_one_b_move, &state.side_one, SlotReference::SlotB) {
+    match MoveChoice::from_string(&side_one_b_move, &state.sides[0], SlotReference::SlotB) {
         Some(m) => s1_b_move = m,
         None => {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
@@ -1065,7 +1064,7 @@ fn generate_instructions(
             )))
         }
     }
-    match MoveChoice::from_string(&side_two_a_move, &state.side_two, SlotReference::SlotA) {
+    match MoveChoice::from_string(&side_two_a_move, &state.sides[1], SlotReference::SlotA) {
         Some(m) => s2_a_move = m,
         None => {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
@@ -1074,7 +1073,7 @@ fn generate_instructions(
             )))
         }
     }
-    match MoveChoice::from_string(&side_two_b_move, &state.side_two, SlotReference::SlotB) {
+    match MoveChoice::from_string(&side_two_b_move, &state.sides[1], SlotReference::SlotB) {
         Some(m) => s2_b_move = m,
         None => {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
@@ -1140,9 +1139,9 @@ fn calculate_damage(
 
     let damage_rolls = calculate_damage_rolls(
         &mut state,
-        &attacking_side_ref,
+        attacking_side_ref,
         &attacking_slot_ref,
-        &target_side_ref,
+        target_side_ref,
         &target_slot_ref,
         s1_choice,
         &s2_choice,

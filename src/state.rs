@@ -12,8 +12,8 @@ use std::str::FromStr;
 #[derive(Debug, PartialEq, Copy, Eq, Hash, Clone)]
 #[repr(u8)]
 pub enum SideReference {
-    SideOne,
-    SideTwo,
+    SideOne = 0,
+    SideTwo = 1,
 }
 impl FromStr for SideReference {
     type Err = ();
@@ -44,9 +44,10 @@ impl SideReference {
 }
 
 #[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
+#[repr(u8)]
 pub enum SlotReference {
-    SlotA,
-    SlotB,
+    SlotA = 0,
+    SlotB = 1,
 }
 impl FromStr for SlotReference {
     type Err = ();
@@ -130,11 +131,12 @@ impl LastUsedMove {
 }
 
 #[derive(Debug, Copy, PartialEq, Clone, Eq, Hash)]
+#[repr(u8)]
 pub enum PokemonMoveIndex {
-    M0,
-    M1,
-    M2,
-    M3,
+    M0 = 0,
+    M1 = 1,
+    M2 = 2,
+    M3 = 3,
 }
 impl PokemonMoveIndex {
     pub fn serialize(&self) -> String {
@@ -327,12 +329,12 @@ impl<'a> IntoIterator for &'a PokemonMoves {
 #[derive(Debug, Copy, PartialEq, Clone, Eq, Hash)]
 #[repr(u8)]
 pub enum PokemonIndex {
-    P0,
-    P1,
-    P2,
-    P3,
-    P4,
-    P5,
+    P0 = 0,
+    P1 = 1,
+    P2 = 2,
+    P3 = 3,
+    P4 = 4,
+    P5 = 5,
 }
 impl PokemonIndex {
     pub fn serialize(&self) -> String {

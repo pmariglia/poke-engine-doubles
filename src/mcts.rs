@@ -9,9 +9,6 @@ use rand::thread_rng;
 use std::collections::HashMap;
 use std::time::Duration;
 
-const PRUNE_ITERVAL: u32 = 100_000_000; // How many iterations before pruning the tree
-const PRUNE_KEEP_COUNT: usize = 15; // Threshold for pruning based on visit counts
-
 const MIN_VISITS_BEFORE_SELECTION: usize = 50;
 
 fn sigmoid(x: f32) -> f32 {
@@ -24,13 +21,11 @@ pub struct Node {
     pub root: bool,
     pub depth: u8,
     pub parent: *mut Node,
-    pub children: HashMap<(usize, usize), Vec<Node>>,
+    pub children: HashMap<(u16, u16), Vec<Node>>,
     pub times_visited: u32,
 
-    // represents the instructions & s1/s2 moves that led to this node from the parent
+    // represents the instructions that led to this node from the parent
     pub instructions: StateInstructions,
-    pub s1_choice: u16,
-    pub s2_choice: u16,
 
     // represents the total score and number of visits for this node
     // de-coupled for s1 and s2
@@ -47,8 +42,6 @@ impl Node {
             instructions: StateInstructions::default(),
             times_visited: 0,
             children: HashMap::new(),
-            s1_choice: 0,
-            s2_choice: 0,
             s1_options: None,
             s2_options: None,
         }
@@ -106,6 +99,42 @@ impl Node {
         choice
     }
 
+    fn select_move_index(
+        options: &mut Vec<MoveNode>,
+        times_visited: u32,
+        times_visited_usize: usize,
+    ) -> usize {
+        if options.len() * MIN_VISITS_BEFORE_SELECTION == times_visited_usize {
+            options.sort_by(|a, b| b.total_score.total_cmp(&a.total_score));
+        }
+
+        if options.len() * MIN_VISITS_BEFORE_SELECTION > times_visited_usize {
+            times_visited_usize % options.len()
+        } else {
+            let first_item = &options[0];
+            let first_item_ucb1 = first_item.ucb1(times_visited);
+
+            let mut index = 1;
+            for i in 1..options.len() {
+                if first_item_ucb1 >= options[i].ucb1(times_visited) {
+                    break;
+                }
+                index += 1;
+            }
+            index -= 1;
+
+            if index > 0 {
+                if index == 1 {
+                    options.swap(0, 1);
+                } else {
+                    let first = options.remove(0);
+                    options.insert(index, first);
+                }
+            }
+            0
+        }
+    }
+
     pub unsafe fn selection(
         &mut self,
         state: &mut State,
@@ -120,21 +149,21 @@ impl Node {
             );
         }
 
-        let s1_options = self.s1_options.as_ref().unwrap();
-        let s2_options = self.s2_options.as_ref().unwrap();
         let times_visited_usize = self.times_visited as usize;
-        let s1_mc_index = if s1_options.len() * MIN_VISITS_BEFORE_SELECTION > times_visited_usize {
-            times_visited_usize % s1_options.len()
-        } else {
-            self.maximize_ucb_for_side(&s1_options)
-        };
-        let s2_mc_index = if s2_options.len() * MIN_VISITS_BEFORE_SELECTION > times_visited_usize {
-            times_visited_usize % s2_options.len()
-        } else {
-            self.maximize_ucb_for_side(&s2_options)
-        };
+        let s1_mc_index = Self::select_move_index(
+            self.s1_options.as_mut().unwrap(),
+            self.times_visited,
+            times_visited_usize,
+        );
+        let s2_mc_index = Self::select_move_index(
+            self.s2_options.as_mut().unwrap(),
+            self.times_visited,
+            times_visited_usize,
+        );
 
-        let child_vector = self.children.get_mut(&(s1_mc_index, s2_mc_index));
+        let s1_key = self.s1_options.as_ref().unwrap()[s1_mc_index].to_u16();
+        let s2_key = self.s2_options.as_ref().unwrap()[s2_mc_index].to_u16();
+        let child_vector = self.children.get_mut(&(s1_key, s2_key));
         match child_vector {
             Some(child_vector) => {
                 let child_vec_ptr = child_vector as *mut Vec<Node>;
@@ -183,11 +212,14 @@ impl Node {
         if self.depth >= 4 {
             return self as *mut Node;
         }
-        let s1_move = &self.s1_options.as_ref().unwrap()[s1_move_index].move_choice;
-        let s2_move = &self.s2_options.as_ref().unwrap()[s2_move_index].move_choice;
-        if self.should_not_expand(state, s1_move, s2_move) {
+        let s1_option = &self.s1_options.as_ref().unwrap()[s1_move_index];
+        let s2_option = &self.s2_options.as_ref().unwrap()[s2_move_index];
+        let s1_move = &s1_option.move_choice;
+        let s2_move = &s2_option.move_choice;
+        if self.should_not_expand(state, &s1_move, &s2_move) {
             return self as *mut Node;
         }
+        let key = (s1_option.to_u16(), s2_option.to_u16());
         let should_branch_on_damage = self.should_branch_on_damage();
         let mut new_instructions = generate_instructions_from_move_pair(
             state,
@@ -208,8 +240,6 @@ impl Node {
             let mut new_node = Node::new(new_depth);
             new_node.parent = self;
             new_node.instructions = state_instructions;
-            new_node.s1_choice = s1_move_index as u16;
-            new_node.s2_choice = s2_move_index as u16;
 
             this_pair_vec.push(new_node);
         }
@@ -218,8 +248,7 @@ impl Node {
         // this is the node that the rollout will be done on
         let new_node_ptr = self.sample_node(&mut this_pair_vec);
         state.apply_instructions(&(*new_node_ptr).instructions.instruction_list);
-        self.children
-            .insert((s1_move_index, s2_move_index), this_pair_vec);
+        self.children.insert(key, this_pair_vec);
         new_node_ptr
     }
 
@@ -228,14 +257,26 @@ impl Node {
         if self.root {
             return;
         }
+        let s1_choice_index = if (*self.parent).times_visited >= MIN_VISITS_BEFORE_SELECTION as u32
+        {
+            0
+        } else {
+            (*self.parent).times_visited as usize
+                % (*self.parent).s1_options.as_ref().unwrap().len()
+        };
+        let s2_choice_index = if (*self.parent).times_visited >= MIN_VISITS_BEFORE_SELECTION as u32
+        {
+            0
+        } else {
+            (*self.parent).times_visited as usize
+                % (*self.parent).s2_options.as_ref().unwrap().len()
+        };
 
-        let parent_s1_movenode =
-            &mut (*self.parent).s1_options.as_mut().unwrap()[self.s1_choice as usize];
+        let parent_s1_movenode = &mut (*self.parent).s1_options.as_mut().unwrap()[s1_choice_index];
         parent_s1_movenode.total_score += score;
         parent_s1_movenode.visits += 1;
 
-        let parent_s2_movenode =
-            &mut (*self.parent).s2_options.as_mut().unwrap()[self.s2_choice as usize];
+        let parent_s2_movenode = &mut (*self.parent).s2_options.as_mut().unwrap()[s2_choice_index];
         parent_s2_movenode.total_score += 1.0 - score;
         parent_s2_movenode.visits += 1;
 
@@ -266,6 +307,9 @@ pub struct MoveNode {
 }
 
 impl MoveNode {
+    pub fn to_u16(&self) -> u16 {
+        (self.move_choice.0.to_u8() as u16) << 8 | (self.move_choice.1.to_u8() as u16)
+    }
     pub fn ucb1(&self, parent_visits: u32) -> f32 {
         if self.visits == 0 {
             return f32::INFINITY;
@@ -303,103 +347,6 @@ pub struct MctsResult {
     pub iteration_count: u32,
 }
 
-unsafe fn prune_tree(root_node: &mut Node) {
-    if root_node.s1_options.as_ref().unwrap().len() <= PRUNE_KEEP_COUNT
-        || root_node.s2_options.as_ref().unwrap().len() <= PRUNE_KEEP_COUNT
-    {
-        return;
-    }
-
-    let mut s1_with_indices: Vec<(usize, u32)> = root_node
-        .s1_options
-        .as_ref()
-        .unwrap()
-        .iter()
-        .enumerate()
-        .map(|(idx, move_node)| (idx, move_node.visits))
-        .collect();
-    s1_with_indices.sort_by_key(|&(_, visits)| visits);
-
-    let mut s1_removed_set: std::collections::HashSet<usize> = std::collections::HashSet::new();
-    let mut s1_indices_to_remove: Vec<usize> = s1_with_indices
-        .iter()
-        .take(s1_with_indices.len() - PRUNE_KEEP_COUNT)
-        .map(|&(idx, _)| {
-            s1_removed_set.insert(idx);
-            idx
-        })
-        .collect();
-
-    s1_indices_to_remove.sort();
-    for idx in s1_indices_to_remove.iter().rev() {
-        root_node.s1_options.as_mut().unwrap().remove(*idx);
-    }
-
-    let mut s2_with_indices: Vec<(usize, u32)> = root_node
-        .s2_options
-        .as_ref()
-        .unwrap()
-        .iter()
-        .enumerate()
-        .map(|(idx, move_node)| (idx, move_node.visits))
-        .collect();
-    s2_with_indices.sort_by_key(|&(_, visits)| visits);
-
-    let mut s2_removed_set: std::collections::HashSet<usize> = std::collections::HashSet::new();
-    let mut s2_indices_to_remove: Vec<usize> = s2_with_indices
-        .iter()
-        .take(s2_with_indices.len() - PRUNE_KEEP_COUNT)
-        .map(|&(idx, _)| {
-            s2_removed_set.insert(idx);
-            idx
-        })
-        .collect();
-    s2_indices_to_remove.sort();
-    for idx in s2_indices_to_remove.iter().rev() {
-        root_node.s2_options.as_mut().unwrap().remove(*idx);
-    }
-
-    // Remove children from HashMap where either s1 or s2 index was pruned, and remap remaining keys
-    let old_children = std::mem::take(&mut root_node.children);
-    for ((old_s1_idx, old_s2_idx), mut children) in old_children {
-        // Skip if either index was removed
-        if s1_removed_set.contains(&old_s1_idx) || s2_removed_set.contains(&old_s2_idx) {
-            continue;
-        }
-
-        // Calculate new indices by counting how many lower indices were removed
-        let new_s1_idx = old_s1_idx
-            - s1_removed_set
-                .iter()
-                .filter(|&&removed| removed < old_s1_idx)
-                .count();
-        let new_s2_idx = old_s2_idx
-            - s2_removed_set
-                .iter()
-                .filter(|&&removed| removed < old_s2_idx)
-                .count();
-
-        // Update child node references
-        for child in &mut children {
-            child.s1_choice = new_s1_idx as u16;
-            child.s2_choice = new_s2_idx as u16;
-        }
-
-        root_node
-            .children
-            .insert((new_s1_idx, new_s2_idx), children);
-    }
-
-    // Recalculate times visited for the root node
-    // calculate it by summing the visits of all CHILDREN
-    root_node.times_visited = root_node
-        .children
-        .values()
-        .flatten()
-        .map(|child| child.times_visited)
-        .sum();
-}
-
 fn do_mcts(
     root_node: &mut Node,
     state: &mut State,
@@ -430,12 +377,6 @@ pub fn perform_mcts(
     while start_time.elapsed() < max_time {
         for _ in 0..1000 {
             do_mcts(&mut root_node, state, &root_eval, &mut combined_options);
-        }
-
-        if root_node.times_visited == PRUNE_ITERVAL {
-            unsafe {
-                prune_tree(&mut root_node);
-            }
         }
 
         /*

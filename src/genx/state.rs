@@ -129,6 +129,23 @@ pub enum MoveChoice {
 }
 
 impl MoveChoice {
+    // needs to return a unique u8 for each possible MoveChoice
+    pub fn to_u8(&self) -> u8 {
+        match self {
+            // 4 moves, 2 slots, 2 sides = 16 => 0-15
+            MoveChoice::MoveTera(slot, side, mv) => {
+                (*slot as u8) << 3 | (*side as u8) << 2 | (*mv as u8)
+            }
+            // 4 moves, 2 slots, 2 sides = 16 => 16-31
+            MoveChoice::Move(slot, side, mv) => {
+                0b00010000 | (*slot as u8) << 3 | (*side as u8) << 2 | (*mv as u8)
+            }
+            // 6 switches (0-5) = 6 => 32-37
+            MoveChoice::Switch(index) => 0b00100000 | (*index as u8),
+            MoveChoice::None => 0b00100110, // 38
+        }
+    }
+
     pub fn serialize(&self) -> String {
         match self {
             MoveChoice::MoveTera(target_slot, target_side, index) => {

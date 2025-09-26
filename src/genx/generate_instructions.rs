@@ -1278,7 +1278,14 @@ fn check_move_hit_or_miss(
         .active_index;
     let attacking_pokemon = attacking_side.get_active_immutable(attacking_slot_ref);
 
-    let mut percent_hit = (choice.accuracy / 100.0).min(1.0);
+    let mut percent_hit = ((choice.accuracy / 100.0)
+        * boosted_accuracy(
+            attacking_side
+                .get_slot_immutable(attacking_slot_ref)
+                .accuracy_boost,
+        ))
+    .min(1.0);
+
     if Some((0, 0)) == damage {
         percent_hit = 0.0;
     }
@@ -1524,6 +1531,14 @@ fn set_damage_dealt(
                 },
             ));
         attacking_slot.damage_dealt.hit_substitute = hit_substitute;
+    }
+}
+
+fn boosted_accuracy(accuracy_boost: i8) -> f32 {
+    if accuracy_boost < 0 {
+        3.0 / (3.0 - accuracy_boost as f32)
+    } else {
+        (3.0 + accuracy_boost as f32) / 3.0
     }
 }
 

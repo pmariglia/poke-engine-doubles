@@ -487,8 +487,10 @@ pub fn commander_activating(
         PokemonBoostableStat::SpecialDefense,
         PokemonBoostableStat::Speed,
     ] {
+        let (side, other_side) = state.get_both_sides(attacking_side_ref);
         apply_boost_instructions(
-            state.get_side(attacking_side_ref),
+            side,
+            other_side,
             &boost,
             &2,
             attacking_side_ref,
@@ -791,9 +793,10 @@ pub fn ability_after_damage_hit(
                         .hp
                         == 0
                 {
-                    let side = state.get_side(attacking_side_ref);
+                    let (side, other_side) = state.get_both_sides(attacking_side_ref);
                     apply_boost_instructions(
                         side,
+                        other_side,
                         &PokemonBoostableStat::Attack,
                         &1,
                         attacking_side_ref,
@@ -803,6 +806,7 @@ pub fn ability_after_damage_hit(
                     );
                     apply_boost_instructions(
                         side,
+                        other_side,
                         &PokemonBoostableStat::SpecialAttack,
                         &1,
                         attacking_side_ref,
@@ -812,6 +816,7 @@ pub fn ability_after_damage_hit(
                     );
                     apply_boost_instructions(
                         side,
+                        other_side,
                         &PokemonBoostableStat::Speed,
                         &1,
                         attacking_side_ref,
@@ -860,8 +865,10 @@ pub fn ability_after_damage_hit(
                         .hp
                         == 0
                 {
+                    let (side, other_side) = state.get_both_sides(attacking_side_ref);
                     apply_boost_instructions(
-                        state.get_side(attacking_side_ref),
+                        side,
+                        other_side,
                         &PokemonBoostableStat::Attack,
                         &1,
                         attacking_side_ref,
@@ -879,8 +886,10 @@ pub fn ability_after_damage_hit(
                         .hp
                         == 0
                 {
+                    let (side, other_side) = state.get_both_sides(attacking_side_ref);
                     apply_boost_instructions(
-                        state.get_side(attacking_side_ref),
+                        side,
+                        other_side,
                         &PokemonBoostableStat::SpecialAttack,
                         &1,
                         attacking_side_ref,
@@ -898,10 +907,11 @@ pub fn ability_after_damage_hit(
                         .hp
                         == 0
                 {
-                    let attacking_side = state.get_side(attacking_side_ref);
+                    let (attacking_side, other_side) = state.get_both_sides(attacking_side_ref);
                     let highest_stat = &attacking_side.calculate_highest_stat(attacking_slot_ref);
                     apply_boost_instructions(
                         attacking_side,
+                        other_side,
                         highest_stat,
                         &1,
                         attacking_side_ref,
@@ -914,7 +924,7 @@ pub fn ability_after_damage_hit(
             _ => {}
         }
     }
-    let defending_side = state.get_side(target_side_ref);
+    let (defending_side, other_side) = state.get_both_sides(target_side_ref);
     let (defending_pkmn, defender_active_index) =
         defending_side.get_active_with_index(target_slot_ref);
 
@@ -950,8 +960,10 @@ pub fn ability_after_damage_hit(
 
                     if defending_pkmn.id == PokemonName::CRAMORANTGULPING {
                         defending_pkmn.id = PokemonName::CRAMORANT;
+                        let (side, other_side) = state.get_both_sides(attacking_side_ref);
                         apply_boost_instructions(
-                            state.get_side(attacking_side_ref),
+                            side,
+                            other_side,
                             &PokemonBoostableStat::Defense,
                             &-1,
                             target_side_ref,
@@ -1000,6 +1012,7 @@ pub fn ability_after_damage_hit(
                 if damage_dealt > 0 && defending_pkmn.hp != 0 {
                     apply_boost_instructions(
                         defending_side,
+                        other_side,
                         &PokemonBoostableStat::Defense,
                         &1,
                         attacking_side_ref,
@@ -1011,8 +1024,10 @@ pub fn ability_after_damage_hit(
             }
             Abilities::COTTONDOWN => {
                 if damage_dealt > 0 {
+                    let (attacking_side, other_side) = state.get_both_sides(attacking_side_ref);
                     apply_boost_instructions(
-                        state.get_side(attacking_side_ref),
+                        attacking_side,
+                        other_side,
                         &PokemonBoostableStat::Speed,
                         &-1,
                         target_side_ref,
@@ -1076,6 +1091,7 @@ pub fn ability_after_damage_hit(
                 {
                     apply_boost_instructions(
                         defending_side,
+                        other_side,
                         &PokemonBoostableStat::SpecialAttack,
                         &1,
                         target_side_ref,
@@ -1584,7 +1600,7 @@ pub fn ability_on_switch_in(
         .get_side_immutable(side_ref.get_other_side())
         .get_active_immutable(slot_ref)
         .ability;
-    let attacking_side = state.get_side(side_ref);
+    let (attacking_side, other_side) = state.get_both_sides(side_ref);
     let (active_pkmn, active_index) = attacking_side.get_active_with_index(slot_ref);
     if !neutralizing_gas_active || active_pkmn.item == Items::ABILITYSHIELD {
         // trace copying an ability needs to happen before the ability check to activate on switch-in
@@ -1655,6 +1671,7 @@ pub fn ability_on_switch_in(
             Abilities::EMBODYASPECTTEAL => {
                 apply_boost_instructions(
                     attacking_side,
+                    other_side,
                     &PokemonBoostableStat::Speed,
                     &1,
                     side_ref,
@@ -1666,6 +1683,7 @@ pub fn ability_on_switch_in(
             Abilities::EMBODYASPECTWELLSPRING => {
                 apply_boost_instructions(
                     attacking_side,
+                    other_side,
                     &PokemonBoostableStat::SpecialDefense,
                     &1,
                     side_ref,
@@ -1677,6 +1695,7 @@ pub fn ability_on_switch_in(
             Abilities::EMBODYASPECTCORNERSTONE => {
                 apply_boost_instructions(
                     attacking_side,
+                    other_side,
                     &PokemonBoostableStat::Defense,
                     &1,
                     side_ref,
@@ -1688,6 +1707,7 @@ pub fn ability_on_switch_in(
             Abilities::EMBODYASPECTHEARTHFLAME => {
                 apply_boost_instructions(
                     attacking_side,
+                    other_side,
                     &PokemonBoostableStat::Attack,
                     &1,
                     side_ref,
@@ -1797,7 +1817,8 @@ pub fn ability_on_switch_in(
                 //   - apply adrenaline orb boost if they have it
 
                 for slot in [SlotReference::SlotA, SlotReference::SlotB] {
-                    let defending_side = state.get_side(side_ref.get_other_side());
+                    let (defending_side, other_side) =
+                        state.get_both_sides(side_ref.get_other_side());
 
                     // technically incorrect
                     // these abilities nullifying intimidate should check for adrenaline orb
@@ -1814,6 +1835,7 @@ pub fn ability_on_switch_in(
 
                     if apply_boost_instructions(
                         defending_side,
+                        other_side,
                         &PokemonBoostableStat::Attack,
                         &-1,
                         side_ref,
@@ -1825,6 +1847,7 @@ pub fn ability_on_switch_in(
                         if defender.item == Items::ADRENALINEORB {
                             if apply_boost_instructions(
                                 defending_side,
+                                other_side,
                                 &PokemonBoostableStat::Speed,
                                 &1,
                                 side_ref.get_other_side(),
@@ -1902,10 +1925,11 @@ pub fn ability_on_switch_in(
                     &SlotReference::SlotB,
                     PokemonBoostableStat::SpecialDefense,
                 );
-                let attacking_side = state.get_side(side_ref);
+                let (attacking_side, other_side) = state.get_both_sides(side_ref);
                 if defending_side_def_sum < defending_side_spdef_sum {
                     apply_boost_instructions(
                         attacking_side,
+                        other_side,
                         &PokemonBoostableStat::Attack,
                         &1,
                         side_ref,
@@ -1916,6 +1940,7 @@ pub fn ability_on_switch_in(
                 } else {
                     apply_boost_instructions(
                         attacking_side,
+                        other_side,
                         &PokemonBoostableStat::SpecialAttack,
                         &1,
                         side_ref,

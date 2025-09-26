@@ -335,7 +335,7 @@ fn generate_instructions_from_switch(
         next_index: new_pokemon_index,
     });
 
-    let side = state.get_side(switching_side_ref);
+    let (side, other_side) = state.get_both_sides(switching_side_ref);
     let slot = side.get_slot(&slot_ref);
     slot.active_index = new_pokemon_index;
     incoming_instructions
@@ -401,6 +401,7 @@ fn generate_instructions_from_switch(
             // so no need to check for going below -6
             apply_boost_instructions(
                 side,
+                other_side,
                 &PokemonBoostableStat::Speed,
                 &-1,
                 switching_side_ref,
@@ -914,6 +915,7 @@ pub fn get_boost_amount(
 
 pub fn apply_boost_instructions(
     target_side: &mut Side,
+    other_side: &mut Side,
     stat: &PokemonBoostableStat,
     boost: &i8,
     attacking_side_ref: SideReference,
@@ -941,6 +943,7 @@ pub fn apply_boost_instructions(
         }
         boost_amount = get_boost_amount(target_side, target_slot_ref, &stat, boost_amount);
         let target_slot = target_side.get_slot(target_slot_ref);
+        let mut stat_positively_boosted = false;
         if boost_amount != 0 {
             boost_was_applied = true;
             match stat {
@@ -965,6 +968,10 @@ pub fn apply_boost_instructions(
                     amount: boost_amount,
                 }));
 
+            if boost_amount > 0 {
+                stat_positively_boosted = true;
+            }
+
             if boost_amount < 0
                 && target_pkmn_ability == Abilities::DEFIANT
                 && attacking_side_ref != target_side_ref
@@ -980,6 +987,29 @@ pub fn apply_boost_instructions(
                         amount: defiant_boost_amount,
                     }));
                 target_slot.attack_boost += defiant_boost_amount;
+                stat_positively_boosted = true;
+            }
+            if stat_positively_boosted {
+                for slot_ref in [SlotReference::SlotA, SlotReference::SlotB] {
+                    let slot_active_item = other_side.get_active_immutable(&slot_ref).item;
+                    let mirror_herb_boost_slot = other_side.get_slot(&slot_ref);
+                    if slot_active_item != Items::MIRRORHERB
+                        || mirror_herb_boost_slot.attack_boost == 6
+                    {
+                        continue;
+                    }
+                    let mirrorherb_boost_amount =
+                        cmp::min(6 - mirror_herb_boost_slot.attack_boost, 2);
+                    instructions
+                        .instruction_list
+                        .push(Instruction::Boost(BoostInstruction {
+                            side_ref: target_side_ref.get_other_side(),
+                            slot_ref,
+                            stat: PokemonBoostableStat::Attack,
+                            amount: mirrorherb_boost_amount,
+                        }));
+                    mirror_herb_boost_slot.attack_boost += mirrorherb_boost_amount;
+                }
             }
         }
     }
@@ -1009,9 +1039,10 @@ fn get_instructions_from_boosts(
     }
     let boostable_stats = boosts.boosts.get_as_pokemon_boostable();
     for (pkmn_boostable_stat, boost) in boostable_stats.iter().filter(|(_, b)| b != &0) {
-        let side = state.get_side(target_side_ref);
+        let (side, other_side) = state.get_both_sides(target_side_ref);
         apply_boost_instructions(
             side,
+            other_side,
             pkmn_boostable_stat,
             boost,
             attacking_side_reference,

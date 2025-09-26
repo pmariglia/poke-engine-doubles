@@ -86,6 +86,7 @@ define_enum_with_from_str! {
         SHARPBEAK,
         SPELLTAG,
         MIRACLESEED,
+        MIRRORHERB,
         SAFETYGOGGLES,
         SHELLBELL,
         SHUCABERRY,
@@ -297,8 +298,10 @@ fn boost_berry(
     stat: PokemonBoostableStat,
     instructions: &mut StateInstructions,
 ) {
+    let (side, other_side) = state.get_both_sides(side_ref);
     apply_boost_instructions(
-        state.get_side(side_ref),
+        side,
+        other_side,
         &stat,
         &1,
         side_ref,
@@ -808,7 +811,7 @@ pub fn item_on_switch_in(
     instructions: &mut StateInstructions,
 ) {
     let active_terrain = state.get_terrain();
-    let switching_in_side = state.get_side(side_ref);
+    let (switching_in_side, other_side) = state.get_both_sides(side_ref);
     let switching_in_index = switching_in_side.get_slot_immutable(slot_ref).active_index;
     let switching_in_pkmn = switching_in_side.get_active_immutable(&slot_ref);
     match switching_in_pkmn.item {
@@ -816,6 +819,7 @@ pub fn item_on_switch_in(
             if active_terrain == Terrain::ELECTRICTERRAIN {
                 if apply_boost_instructions(
                     switching_in_side,
+                    other_side,
                     &PokemonBoostableStat::Defense,
                     &1,
                     side_ref,
@@ -839,6 +843,7 @@ pub fn item_on_switch_in(
             if active_terrain == Terrain::GRASSYTERRAIN {
                 if apply_boost_instructions(
                     switching_in_side,
+                    other_side,
                     &PokemonBoostableStat::Defense,
                     &1,
                     side_ref,
@@ -862,6 +867,7 @@ pub fn item_on_switch_in(
             if active_terrain == Terrain::MISTYTERRAIN {
                 if apply_boost_instructions(
                     switching_in_side,
+                    other_side,
                     &PokemonBoostableStat::SpecialDefense,
                     &1,
                     side_ref,
@@ -885,6 +891,7 @@ pub fn item_on_switch_in(
             if active_terrain == Terrain::PSYCHICTERRAIN {
                 if apply_boost_instructions(
                     switching_in_side,
+                    other_side,
                     &PokemonBoostableStat::SpecialDefense,
                     &1,
                     side_ref,

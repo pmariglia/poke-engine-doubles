@@ -1069,7 +1069,7 @@ pub fn choice_before_move(
         .get_side_immutable(target_side_ref)
         .get_active_immutable(attacking_slot_ref)
         .ability;
-    let attacking_side = state.get_side(attacking_side_ref);
+    let (attacking_side, other_side) = state.get_both_sides(attacking_side_ref);
     destinybond_before_move(
         attacking_side,
         attacking_side_ref,
@@ -1152,6 +1152,7 @@ pub fn choice_before_move(
         Choices::METEORBEAM | Choices::ELECTROSHOT if choice.flags.charge => {
             apply_boost_instructions(
                 attacking_side,
+                other_side,
                 &PokemonBoostableStat::SpecialAttack,
                 &1,
                 attacking_side_ref,

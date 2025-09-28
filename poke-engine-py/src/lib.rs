@@ -950,12 +950,15 @@ impl PyMctsResult {
 }
 
 #[pyfunction]
-fn mcts(py_state: PyState, duration_ms: u64) -> PyResult<PyMctsResult> {
+fn mcts(py_state: PyState, mut duration_ms: u64) -> PyResult<PyMctsResult> {
     let mut state: State = py_state.into();
-    let duration = Duration::from_millis(duration_ms);
     let (s1_options, s2_options) = state.root_get_all_options();
-    let mcts_result = perform_mcts(&mut state, s1_options, s2_options, duration);
+    if s1_options.len() <= 1 {
+        duration_ms = 100; // if there's only one option, no need to run MCTS for long
+    }
 
+    let duration = Duration::from_millis(duration_ms);
+    let mcts_result = perform_mcts(&mut state, s1_options, s2_options, duration);
     let py_mcts_result = PyMctsResult::from_mcts_result(mcts_result, &state);
     Ok(py_mcts_result)
 }

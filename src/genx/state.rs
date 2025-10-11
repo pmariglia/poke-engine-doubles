@@ -666,6 +666,7 @@ impl Pokemon {
             | Choices::ICICLESPEAR
             | Choices::POPULATIONBOMB
             | Choices::BULLETSEED
+            | Choices::WATERSHURIKEN
                 if partner_alive =>
             {
                 if partner.has_move(Choices::RAGEFIST) || partner.ability == Abilities::STAMINA {

@@ -6675,6 +6675,7 @@ lazy_static! {
                 ..Default::default()
             },
         );
+        // howl boosting implemented elsewhere
         moves.insert(
             Choices::HOWL,
             Choice {
@@ -6685,17 +6686,6 @@ lazy_static! {
                     sound: true,
                     ..Default::default()
                 },
-                boost: Some(Boost {
-                    target: MoveTarget::User,
-                    boosts: StatBoosts {
-                        attack: 1,
-                        defense: 0,
-                        special_attack: 0,
-                        special_defense: 0,
-                        speed: 0,
-                        accuracy: 0,
-                    },
-                }),
                 ..Default::default()
             },
         );

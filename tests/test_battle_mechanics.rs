@@ -6045,6 +6045,79 @@ fn test_accuracy_lowered_affects_move_hit_chance() {
 }
 
 #[test]
+fn test_howl() {
+    let mut state = State::default();
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::HOWL,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Attack,
+                amount: 1,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::Attack,
+                amount: 1,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_howl_does_not_overboost() {
+    let mut state = State::default();
+    state.sides[0].slot_a.attack_boost = 6;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::HOWL,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![Instruction::Boost(BoostInstruction {
+            side_ref: SideReference::SideOne,
+            slot_ref: SlotReference::SlotB,
+            stat: PokemonBoostableStat::Attack,
+            amount: 1,
+        })],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_muddywater_accuracy_lowers_opponents_chance_to_hit() {
     let mut state = State::default();
 

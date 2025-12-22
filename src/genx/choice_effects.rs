@@ -1408,7 +1408,7 @@ pub fn choice_special_effect(
     target_slot_ref: &SlotReference,
     instructions: &mut StateInstructions,
 ) {
-    let attacking_side = state.get_side(attacking_side_ref);
+    let (attacking_side, other_side) = state.get_both_sides(attacking_side_ref);
     match choice.move_id {
         Choices::TAILWIND => {
             let partner_slot_ref = attacking_slot_ref.get_other_slot();
@@ -1424,6 +1424,30 @@ pub fn choice_special_effect(
                     }));
                 attacking_side.get_slot(&partner_slot_ref).attack_boost += 1;
             }
+        }
+        Choices::HOWL => {
+            let slot_a = &SlotReference::SlotA;
+            let slot_b = &SlotReference::SlotB;
+            apply_boost_instructions(
+                attacking_side,
+                other_side,
+                &PokemonBoostableStat::Attack,
+                &1,
+                attacking_side_ref,
+                attacking_side_ref,
+                slot_a,
+                instructions,
+            );
+            apply_boost_instructions(
+                attacking_side,
+                other_side,
+                &PokemonBoostableStat::Attack,
+                &1,
+                attacking_side_ref,
+                attacking_side_ref,
+                slot_b,
+                instructions,
+            );
         }
         Choices::LIFEDEW => {
             get_instructions_from_heal(

@@ -576,12 +576,12 @@ impl Pokemon {
         &self,
         vec: &mut Vec<MoveChoice>,
         opponent_side_ref: SideReference,
-        opponent_slot_a_can_target: bool,
-        opponent_slot_b_can_target: bool,
+        opponent_slot_a: &Pokemon,
+        opponent_slot_b: &Pokemon,
         pkmn_move_index: PokemonMoveIndex,
         can_tera: bool,
     ) {
-        if opponent_slot_a_can_target {
+        if opponent_slot_a.hp > 0 {
             vec.push(MoveChoice::Move(
                 SlotReference::SlotA,
                 opponent_side_ref,
@@ -595,7 +595,7 @@ impl Pokemon {
                 ));
             }
         }
-        if opponent_slot_b_can_target {
+        if opponent_slot_b.hp > 0 {
             vec.push(MoveChoice::Move(
                 SlotReference::SlotB,
                 opponent_side_ref,
@@ -617,7 +617,7 @@ impl Pokemon {
         slot_ref: &SlotReference,
         last_used_move: &LastUsedMove,
         vec: &mut Vec<MoveChoice>,
-        opponent_targets: (bool, bool),
+        opponent_targets: (&Pokemon, &Pokemon),
         move_choice: &Choice,
         pokemon_move_index: PokemonMoveIndex,
         partner: &Pokemon,
@@ -731,6 +731,36 @@ impl Pokemon {
                     can_tera,
                 )
             }
+            Choices::TAUNT => {
+                if opponent_targets.0.tauntable() {
+                    vec.push(MoveChoice::Move(
+                        SlotReference::SlotA,
+                        side_ref.get_other_side(),
+                        pokemon_move_index,
+                    ));
+                    if can_tera {
+                        vec.push(MoveChoice::MoveTera(
+                            SlotReference::SlotA,
+                            side_ref.get_other_side(),
+                            pokemon_move_index,
+                        ));
+                    }
+                }
+                if opponent_targets.1.tauntable() {
+                    vec.push(MoveChoice::Move(
+                        SlotReference::SlotB,
+                        side_ref.get_other_side(),
+                        pokemon_move_index,
+                    ));
+                    if can_tera {
+                        vec.push(MoveChoice::MoveTera(
+                            SlotReference::SlotB,
+                            side_ref.get_other_side(),
+                            pokemon_move_index,
+                        ));
+                    }
+                }
+            }
             // default: only try to target opponents with single-target moves
             _ => self.add_moves_from_opponent_targets(
                 vec,
@@ -749,7 +779,7 @@ impl Pokemon {
         slot_ref: &SlotReference,
         vec: &mut Vec<MoveChoice>,
         last_used_move: &LastUsedMove,
-        opponent_targets: (bool, bool),
+        opponent_targets: (&Pokemon, &Pokemon),
         charging_mv_index: Option<PokemonMoveIndex>,
         partner: &Pokemon,
         encored: bool,
@@ -834,6 +864,16 @@ impl Pokemon {
                 }
             }
         }
+    }
+
+    // should we taunt this Pokémon? i.e. does it have any status moves that would be worth preventing with taunt?
+    pub fn tauntable(&self) -> bool {
+        for mv in self.moves.into_iter() {
+            if mv.choice.category == MoveCategory::Status && !mv.choice.flags.protect {
+                return true;
+            }
+        }
+        false
     }
 
     #[cfg(feature = "terastallization")]
@@ -1407,23 +1447,13 @@ impl State {
                 .volatile_statuses
                 .contains(&PokemonVolatileStatus::TAUNT);
 
-            let mut targets_opponent_slot_a = false;
-            let mut targets_opponent_slot_b = false;
-
             let partner = side.get_active_immutable(&slot_ref.get_other_slot());
-            if opponent_active_a.hp > 0 {
-                targets_opponent_slot_a = true;
-            }
-            if opponent_active_b.hp > 0 {
-                targets_opponent_slot_b = true;
-            }
-
             side.get_active_immutable(&slot_ref).add_available_moves(
                 side_ref,
                 &slot_ref,
                 slot_options,
                 &slot.last_used_move,
-                (targets_opponent_slot_a, targets_opponent_slot_b),
+                (&opponent_active_a, &opponent_active_b),
                 active_charging_mv_index,
                 partner,
                 encored,

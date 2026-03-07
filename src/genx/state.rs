@@ -659,12 +659,29 @@ impl Pokemon {
                     ));
                 }
             }
+            // only targeting ally makes sense (i.e. never target opponents)
+            Choices::BEATUP => {
+                if partner.has_move(Choices::RAGEFIST) || partner.ability == Abilities::STAMINA {
+                    if partner_alive {
+                        vec.push(MoveChoice::Move(
+                            slot_ref.get_other_slot(),
+                            side_ref,
+                            pokemon_move_index,
+                        ));
+                        if can_tera {
+                            vec.push(MoveChoice::MoveTera(
+                                slot_ref.get_other_slot(),
+                                side_ref,
+                                pokemon_move_index,
+                            ));
+                        }
+                    }
+                }
+            }
             // targeting ally makes sense
-            Choices::BEATUP
-            | Choices::POPULATIONBOMB
+            Choices::POPULATIONBOMB
             | Choices::SCALESHOT
             | Choices::ICICLESPEAR
-            | Choices::POPULATIONBOMB
             | Choices::BULLETSEED
             | Choices::WATERSHURIKEN
                 if partner_alive =>

@@ -468,7 +468,7 @@ fn test_pollenpuff_can_target_ally_and_opponents() {
 }
 
 #[test]
-fn test_beatup_can_target_ally_with_ragefist_and_opponents() {
+fn test_beatup_can_target_ally_with_ragefist() {
     let mut state = State::default();
     state.sides[0].pokemon.pkmn[5].terastallized = true;
     state.sides[0].pokemon.pkmn[5].hp = 0;
@@ -527,61 +527,13 @@ fn test_beatup_can_target_ally_with_ragefist_and_opponents() {
                 PokemonMoveIndex::M0,
             ),
         ),
-        (
-            MoveChoice::Move(
-                SlotReference::SlotA,
-                SideReference::SideTwo,
-                PokemonMoveIndex::M0,
-            ),
-            MoveChoice::Move(
-                SlotReference::SlotA,
-                SideReference::SideTwo,
-                PokemonMoveIndex::M0,
-            ),
-        ),
-        (
-            MoveChoice::Move(
-                SlotReference::SlotA,
-                SideReference::SideTwo,
-                PokemonMoveIndex::M0,
-            ),
-            MoveChoice::Move(
-                SlotReference::SlotB,
-                SideReference::SideTwo,
-                PokemonMoveIndex::M0,
-            ),
-        ),
-        (
-            MoveChoice::Move(
-                SlotReference::SlotB,
-                SideReference::SideTwo,
-                PokemonMoveIndex::M0,
-            ),
-            MoveChoice::Move(
-                SlotReference::SlotA,
-                SideReference::SideTwo,
-                PokemonMoveIndex::M0,
-            ),
-        ),
-        (
-            MoveChoice::Move(
-                SlotReference::SlotB,
-                SideReference::SideTwo,
-                PokemonMoveIndex::M0,
-            ),
-            MoveChoice::Move(
-                SlotReference::SlotB,
-                SideReference::SideTwo,
-                PokemonMoveIndex::M0,
-            ),
-        ),
     ];
 
     assert_eq!(expected_s1_options, move_options.side_one_combined_options);
 }
 
 #[test]
-fn test_beatup_can_target_ally_with_stamina_and_opponents() {
+fn test_beatup_can_only_target_ally_with_stamina() {
     let mut state = State::default();
     state.sides[0].pokemon.pkmn[5].terastallized = true;
     state.sides[0].pokemon.pkmn[5].hp = 0;
@@ -610,32 +562,14 @@ fn test_beatup_can_target_ally_with_stamina_and_opponents() {
     let mut move_options = MoveOptions::new();
     state.get_all_options(&mut move_options);
 
-    let expected_s1_options = vec![
-        (
-            MoveChoice::Move(
-                SlotReference::SlotB,
-                SideReference::SideOne,
-                PokemonMoveIndex::M0,
-            ),
-            MoveChoice::None,
+    let expected_s1_options = vec![(
+        MoveChoice::Move(
+            SlotReference::SlotB,
+            SideReference::SideOne,
+            PokemonMoveIndex::M0,
         ),
-        (
-            MoveChoice::Move(
-                SlotReference::SlotA,
-                SideReference::SideTwo,
-                PokemonMoveIndex::M0,
-            ),
-            MoveChoice::None,
-        ),
-        (
-            MoveChoice::Move(
-                SlotReference::SlotB,
-                SideReference::SideTwo,
-                PokemonMoveIndex::M0,
-            ),
-            MoveChoice::None,
-        ),
-    ];
+        MoveChoice::None,
+    )];
 
     assert_eq!(expected_s1_options, move_options.side_one_combined_options);
 }

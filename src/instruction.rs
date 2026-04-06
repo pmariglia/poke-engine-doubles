@@ -20,7 +20,7 @@ impl Default for StateInstructions {
         StateInstructions {
             end_of_turn_triggered: false,
             percentage: 100.0,
-            instruction_list: Vec::with_capacity(4),
+            instruction_list: Vec::with_capacity(16),
         }
     }
 }

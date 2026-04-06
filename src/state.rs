@@ -942,7 +942,7 @@ impl Pokemon {
         self.moves[&move_index].id = new_move_name;
     }
     pub fn get_sleep_talk_choices(&self) -> Vec<Choice> {
-        let mut vec = Vec::with_capacity(4);
+        let mut vec = Vec::with_capacity(16);
         for p in self.moves.into_iter() {
             if p.id != Choices::SLEEPTALK && p.id != Choices::NONE {
                 vec.push(p.choice.clone());

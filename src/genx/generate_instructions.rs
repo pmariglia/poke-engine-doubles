@@ -1085,7 +1085,7 @@ fn get_instructions_from_secondaries(
     incoming_instructions: StateInstructions,
     hit_sub: bool,
 ) -> Vec<StateInstructions> {
-    let mut return_instruction_list = Vec::with_capacity(4);
+    let mut return_instruction_list = Vec::with_capacity(16);
     return_instruction_list.push(incoming_instructions);
 
     for secondary in secondaries {
@@ -2488,14 +2488,14 @@ pub fn generate_instructions_from_move(
 
     state.reverse_instructions(&incoming_instructions.instruction_list);
     let mut state_instructions_vec: Vec<(StateInstructions, Vec<RemainingToMove>)> =
-        Vec::with_capacity(4);
+        Vec::with_capacity(16);
     state_instructions_vec.push((incoming_instructions, remaining_to_move));
 
     let len = choices.len();
     for (i, (current_choice, current_target_side, current_target_slot)) in
         choices.into_iter().enumerate()
     {
-        let mut next_state_instructions_vec = Vec::with_capacity(4);
+        let mut next_state_instructions_vec = Vec::with_capacity(16);
         let final_run_move = i == len - 1; // true only on the final iteration
 
         for (state_instruction, remaining_moves) in state_instructions_vec {
@@ -4725,7 +4725,7 @@ pub fn generate_instructions_from_move_pair(
     }
 
     let mut state_instructions_vec: Vec<(StateInstructions, Vec<RemainingToMove>)> =
-        Vec::with_capacity(8);
+        Vec::with_capacity(16);
     let mut incoming_instructions: StateInstructions = StateInstructions::default();
 
     // Run terstallization type changes
@@ -5089,7 +5089,7 @@ pub fn calculate_damage_rolls(
         choice = MOVES.get(&Choices::FUTURESIGHT)?.clone();
     }
 
-    let mut return_vec = Vec::with_capacity(4);
+    let mut return_vec = Vec::with_capacity(16);
     if let Some((damage, crit_damage)) = calculate_damage(
         &state,
         attacking_side_ref,

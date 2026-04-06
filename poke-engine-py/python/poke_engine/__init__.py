@@ -102,3 +102,20 @@ def monte_carlo_tree_search(state: State, duration_ms: int = 1000) -> MctsResult
     :rtype: MctsResult
     """
     return MctsResult._from_rust(mcts(state, duration_ms))
+
+
+def monte_carlo_tree_search_team_preview(
+    state: State, filters: TeamPreviewFilters, duration_ms: int = 1000
+) -> MctsResult:
+    """
+    Perform monte-carlo-tree-search on the given state and for the given duration
+
+    :param state: the state to search through
+    :type state: State
+    :param duration_ms: time in milliseconds to run the search
+    :type duration_ms: int
+    :param filters: an instance of TeamPreviewFilters
+    :return: the result of the search
+    :rtype: MctsResult
+    """
+    return MctsResult._from_rust(mcts_team_preview(state, duration_ms, filters))

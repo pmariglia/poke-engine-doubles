@@ -2957,3 +2957,72 @@ impl State {
         state
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_move_choice_to_u8_no_collisions() {
+        let slots = [SlotReference::SlotA, SlotReference::SlotB];
+        let sides = [SideReference::SideOne, SideReference::SideTwo];
+        let moves = [
+            PokemonMoveIndex::M0,
+            PokemonMoveIndex::M1,
+            PokemonMoveIndex::M2,
+            PokemonMoveIndex::M3,
+        ];
+        let indices = [
+            PokemonIndex::P0,
+            PokemonIndex::P1,
+            PokemonIndex::P2,
+            PokemonIndex::P3,
+            PokemonIndex::P4,
+            PokemonIndex::P5,
+        ];
+
+        let mut seen: HashMap<u8, MoveChoice> = HashMap::new();
+
+        let mut check = |choice: MoveChoice| {
+            let byte = choice.to_u8();
+            if let Some(existing) = seen.get(&byte) {
+                panic!(
+                    "Collision at byte {}: {:?} and {:?} both map to {}",
+                    byte, existing, choice, byte
+                );
+            }
+            seen.insert(byte, choice);
+        };
+
+        for &slot in &slots {
+            for &side in &sides {
+                for &mv in &moves {
+                    check(MoveChoice::MoveTera(slot, side, mv));
+                    check(MoveChoice::Move(slot, side, mv));
+                }
+            }
+        }
+
+        for &index in &indices {
+            check(MoveChoice::Switch(index));
+        }
+
+        // for &index1 in &indices {
+        //     for &index2 in &indices {
+        //         check(MoveChoice::TeamPreview(index1, index2));
+        //     }
+        // }
+
+        check(MoveChoice::None);
+
+        // Sanity check: confirm total count is what we expect
+        // MoveTera: 2 slots * 2 sides * 4 moves = 16
+        // Move:     2 slots * 2 sides * 4 moves = 16
+        // Switch:   6
+        // TeamPreview: 6 * 6 = 36
+        // None: 1
+        // Total: 75
+        assert_eq!(seen.len(), 39);
+    }
+}

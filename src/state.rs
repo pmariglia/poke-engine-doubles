@@ -2,7 +2,9 @@ use crate::choices::{Choice, Choices, MoveCategory, MOVES};
 use crate::define_enum_with_from_str;
 use crate::engine::abilities::Abilities;
 use crate::engine::items::Items;
-use crate::engine::state::{MoveChoice, PokemonVolatileStatus, Terrain, Weather};
+use crate::engine::state::{
+    MoveChoice, PokemonVolatileStatus, Terrain, VolatileStatusBitset, Weather,
+};
 use crate::instruction::{BoostInstruction, EnableMoveInstruction, Instruction, StateInstructions};
 use crate::pokemon::PokemonName;
 use std::collections::HashSet;
@@ -508,7 +510,7 @@ impl Default for SideSlot {
             speed_boost: 0,
             accuracy_boost: 0,
             volatile_status_durations: VolatileStatusDurations::default(),
-            volatile_statuses: HashSet::<PokemonVolatileStatus>::new(),
+            volatile_statuses: VolatileStatusBitset::default(),
             wish: (0, 0),
             future_sight: (0, PokemonIndex::P0),
             force_switch: false,
@@ -1106,7 +1108,7 @@ pub struct SideSlot {
     pub force_switch: bool,
     pub force_trapped: bool,
     pub slow_uturn_move: bool,
-    pub volatile_statuses: HashSet<PokemonVolatileStatus>,
+    pub volatile_statuses: VolatileStatusBitset,
     pub substitute_health: i16,
     pub attack_boost: i8,
     pub defense_boost: i8,
@@ -1249,9 +1251,13 @@ impl SideSlot {
 
     pub fn serialize(&self) -> String {
         let mut vs_string = String::new();
-        for vs in &self.volatile_statuses {
+        let mut remaining = self.volatile_statuses.0;
+        while remaining != 0 {
+            let bit_index = remaining.trailing_zeros() as u8;
+            let vs = PokemonVolatileStatus::from(bit_index);
             vs_string.push_str(&vs.to_string());
             vs_string.push_str(":");
+            remaining &= remaining - 1;
         }
         format!(
             "{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
@@ -1281,15 +1287,15 @@ impl SideSlot {
     }
     pub fn deserialize(serialized: &str) -> SideSlot {
         let split: Vec<&str> = serialized.split("|").collect();
-        let mut vs_hashset = HashSet::new();
+        let mut vs_bitset = VolatileStatusBitset::default();
         if split[1] != "" {
             for item in split[1].split(":") {
-                vs_hashset.insert(PokemonVolatileStatus::from_str(item).unwrap());
+                vs_bitset.insert(PokemonVolatileStatus::from_str(item).unwrap());
             }
         }
         SideSlot {
             active_index: PokemonIndex::deserialize(split[0]),
-            volatile_statuses: vs_hashset,
+            volatile_statuses: vs_bitset,
             volatile_status_durations: VolatileStatusDurations::deserialize(split[2]),
             substitute_health: split[3].parse::<i16>().unwrap(),
             attack_boost: split[4].parse::<i8>().unwrap(),

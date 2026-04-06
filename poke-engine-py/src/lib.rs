@@ -9,7 +9,9 @@ use poke_engine::engine::generate_instructions::{
     calculate_damage_rolls, generate_instructions_from_move_pair,
 };
 use poke_engine::engine::items::Items;
-use poke_engine::engine::state::{MoveChoice, PokemonVolatileStatus, Terrain, Weather};
+use poke_engine::engine::state::{
+    MoveChoice, PokemonVolatileStatus, Terrain, VolatileStatusBitset, Weather,
+};
 use poke_engine::instruction::{Instruction, StateInstructions};
 use poke_engine::mcts::{perform_mcts, MctsResult, MctsSideResult};
 use poke_engine::pokemon::PokemonName;
@@ -251,6 +253,14 @@ pub struct PySideSlot {
 
 impl From<SideSlot> for PySideSlot {
     fn from(other: SideSlot) -> Self {
+        let mut volatile_statuses = HashSet::new();
+        let mut remaining = other.volatile_statuses.0;
+        while remaining != 0 {
+            let bit_index = remaining.trailing_zeros() as u8;
+            let vs = PokemonVolatileStatus::from(bit_index);
+            volatile_statuses.insert(vs.to_string());
+            remaining &= remaining - 1;
+        }
         PySideSlot {
             active_index: other.active_index.serialize(),
             baton_passing: other.baton_passing,
@@ -263,11 +273,7 @@ impl From<SideSlot> for PySideSlot {
             force_switch: other.force_switch,
             force_trapped: other.force_trapped,
             slow_uturn_move: other.slow_uturn_move,
-            volatile_statuses: other
-                .volatile_statuses
-                .iter()
-                .map(|s| s.to_string())
-                .collect(),
+            volatile_statuses,
             substitute_health: other.substitute_health,
             attack_boost: other.attack_boost,
             defense_boost: other.defense_boost,
@@ -284,6 +290,12 @@ impl From<SideSlot> for PySideSlot {
 
 impl Into<SideSlot> for PySideSlot {
     fn into(self) -> SideSlot {
+        let mut volatile_statuses = VolatileStatusBitset::default();
+        for s in &self.volatile_statuses {
+            if let Ok(vs) = PokemonVolatileStatus::from_str(s) {
+                volatile_statuses.insert(vs);
+            }
+        }
         SideSlot {
             active_index: PokemonIndex::deserialize(&self.active_index),
             baton_passing: self.baton_passing,
@@ -299,12 +311,7 @@ impl Into<SideSlot> for PySideSlot {
             force_switch: self.force_switch,
             force_trapped: self.force_trapped,
             slow_uturn_move: self.slow_uturn_move,
-            volatile_statuses: self
-                .volatile_statuses
-                .iter()
-                .map(|s| PokemonVolatileStatus::from_str(s))
-                .collect::<Result<HashSet<_>, _>>()
-                .unwrap(),
+            volatile_statuses,
             substitute_health: self.substitute_health,
             attack_boost: self.attack_boost,
             defense_boost: self.defense_boost,

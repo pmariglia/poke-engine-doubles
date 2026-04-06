@@ -200,68 +200,68 @@ fn volatile_status_modifier(
     defending_slot: &SideSlot,
 ) -> f32 {
     let mut modifier = 1.0;
-    for vs in attacking_slot.volatile_statuses.iter() {
-        match vs {
-            PokemonVolatileStatus::HELPINGHAND => {
-                modifier *= 1.5;
-            }
-            PokemonVolatileStatus::FLASHFIRE if choice.move_type == PokemonType::FIRE => {
-                modifier *= 1.5;
-            }
-            PokemonVolatileStatus::SLOWSTART if choice.category == MoveCategory::Physical => {
-                modifier *= 0.5;
-            }
-            PokemonVolatileStatus::CHARGE if choice.move_type == PokemonType::ELECTRIC => {
-                modifier *= 2.0;
-            }
-            PokemonVolatileStatus::PROTOSYNTHESISATK | PokemonVolatileStatus::QUARKDRIVEATK
-                if choice.category == MoveCategory::Physical =>
-            {
-                modifier *= 1.3;
-            }
-            PokemonVolatileStatus::PROTOSYNTHESISSPA | PokemonVolatileStatus::QUARKDRIVESPA
-                if choice.category == MoveCategory::Special =>
-            {
-                modifier *= 1.3;
-            }
-            _ => {}
-        }
+    let atk = &attacking_slot.volatile_statuses;
+
+    if atk.contains(&PokemonVolatileStatus::HELPINGHAND) {
+        modifier *= 1.5;
+    }
+    if atk.contains(&PokemonVolatileStatus::FLASHFIRE) && choice.move_type == PokemonType::FIRE {
+        modifier *= 1.5;
+    }
+    if atk.contains(&PokemonVolatileStatus::SLOWSTART) && choice.category == MoveCategory::Physical
+    {
+        modifier *= 0.5;
+    }
+    if atk.contains(&PokemonVolatileStatus::CHARGE) && choice.move_type == PokemonType::ELECTRIC {
+        modifier *= 2.0;
+    }
+    if (atk.contains(&PokemonVolatileStatus::PROTOSYNTHESISATK)
+        || atk.contains(&PokemonVolatileStatus::QUARKDRIVEATK))
+        && choice.category == MoveCategory::Physical
+    {
+        modifier *= 1.3;
+    }
+    if (atk.contains(&PokemonVolatileStatus::PROTOSYNTHESISSPA)
+        || atk.contains(&PokemonVolatileStatus::QUARKDRIVESPA))
+        && choice.category == MoveCategory::Special
+    {
+        modifier *= 1.3;
     }
 
-    for vs in defending_slot.volatile_statuses.iter() {
-        match vs {
-            PokemonVolatileStatus::MAGNETRISE
-                if choice.move_type == PokemonType::GROUND
-                    && choice.move_id != Choices::THOUSANDARROWS =>
-            {
-                return 0.0;
-            }
-            PokemonVolatileStatus::TARSHOT if choice.move_type == PokemonType::FIRE => {
-                modifier *= 2.0;
-            }
-            PokemonVolatileStatus::PHANTOMFORCE
-            | PokemonVolatileStatus::SHADOWFORCE
-            | PokemonVolatileStatus::BOUNCE
-            | PokemonVolatileStatus::DIG
-            | PokemonVolatileStatus::DIVE
-            | PokemonVolatileStatus::FLY => {
-                return 0.0;
-            }
-            PokemonVolatileStatus::GLAIVERUSH => {
-                modifier *= 2.0;
-            }
-            PokemonVolatileStatus::PROTOSYNTHESISDEF | PokemonVolatileStatus::QUARKDRIVEDEF
-                if choice.category == MoveCategory::Physical =>
-            {
-                modifier /= 1.3;
-            }
-            PokemonVolatileStatus::PROTOSYNTHESISSPD | PokemonVolatileStatus::QUARKDRIVESPD
-                if choice.category == MoveCategory::Special =>
-            {
-                modifier /= 1.3;
-            }
-            _ => {}
-        }
+    let def = &defending_slot.volatile_statuses;
+
+    if def.contains(&PokemonVolatileStatus::MAGNETRISE)
+        && choice.move_type == PokemonType::GROUND
+        && choice.move_id != Choices::THOUSANDARROWS
+    {
+        return 0.0;
+    }
+    if def.contains(&PokemonVolatileStatus::PHANTOMFORCE)
+        || def.contains(&PokemonVolatileStatus::SHADOWFORCE)
+        || def.contains(&PokemonVolatileStatus::BOUNCE)
+        || def.contains(&PokemonVolatileStatus::DIG)
+        || def.contains(&PokemonVolatileStatus::DIVE)
+        || def.contains(&PokemonVolatileStatus::FLY)
+    {
+        return 0.0;
+    }
+    if def.contains(&PokemonVolatileStatus::TARSHOT) && choice.move_type == PokemonType::FIRE {
+        modifier *= 2.0;
+    }
+    if def.contains(&PokemonVolatileStatus::GLAIVERUSH) {
+        modifier *= 2.0;
+    }
+    if (def.contains(&PokemonVolatileStatus::PROTOSYNTHESISDEF)
+        || def.contains(&PokemonVolatileStatus::QUARKDRIVEDEF))
+        && choice.category == MoveCategory::Physical
+    {
+        modifier /= 1.3;
+    }
+    if (def.contains(&PokemonVolatileStatus::PROTOSYNTHESISSPD)
+        || def.contains(&PokemonVolatileStatus::QUARKDRIVESPD))
+        && choice.category == MoveCategory::Special
+    {
+        modifier /= 1.3;
     }
 
     modifier

@@ -170,27 +170,27 @@ fn evaluate_slot(
     other_side_b: &Pokemon,
 ) -> f32 {
     let mut score = 0.0;
-    for vs in slot.volatile_statuses.iter() {
-        match vs {
-            PokemonVolatileStatus::LEECHSEED => score += LEECH_SEED,
-            PokemonVolatileStatus::SUBSTITUTE => score += SUBSTITUTE,
-            PokemonVolatileStatus::CONFUSION => score += CONFUSION,
-            PokemonVolatileStatus::PERISH3
-                if !has_alive_reserve || side.trapped(slot, other_side_a, other_side_b) =>
-            {
-                score += PERISH3
-            }
-            PokemonVolatileStatus::PERISH1
-                if !has_alive_reserve || side.trapped(slot, other_side_a, other_side_b) =>
-            {
-                score += PERISH2
-            }
-            PokemonVolatileStatus::PERISH1
-                if !has_alive_reserve || side.trapped(slot, other_side_a, other_side_b) =>
-            {
-                score += PERISH1
-            }
-            _ => {}
+    let vs = &slot.volatile_statuses;
+
+    if vs.contains(&PokemonVolatileStatus::LEECHSEED) {
+        score += LEECH_SEED;
+    }
+    if vs.contains(&PokemonVolatileStatus::SUBSTITUTE) {
+        score += SUBSTITUTE;
+    }
+    if vs.contains(&PokemonVolatileStatus::CONFUSION) {
+        score += CONFUSION;
+    }
+
+    let trapped_or_no_reserve =
+        !has_alive_reserve || side.trapped(slot, other_side_a, other_side_b);
+    if trapped_or_no_reserve {
+        if vs.contains(&PokemonVolatileStatus::PERISH3) {
+            score += PERISH3;
+        } else if vs.contains(&PokemonVolatileStatus::PERISH2) {
+            score += PERISH2;
+        } else if vs.contains(&PokemonVolatileStatus::PERISH1) {
+            score += PERISH1;
         }
     }
 

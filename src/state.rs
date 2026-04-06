@@ -2446,6 +2446,9 @@ impl State {
                     &mut self.get_side(instruction.side_ref).pokemon[&instruction.pokemon_index];
                 active.id = PokemonName::from(active.id as i16 + instruction.name_change);
             }
+            Instruction::ToggleTeamPreview => {
+                self.team_preview = !self.team_preview;
+            }
         }
     }
 
@@ -2687,6 +2690,9 @@ impl State {
                 let active =
                     &mut self.get_side(instruction.side_ref).pokemon[instruction.pokemon_index];
                 active.id = PokemonName::from(active.id as i16 - instruction.name_change);
+            }
+            Instruction::ToggleTeamPreview => {
+                self.team_preview = !self.team_preview;
             }
         }
     }
@@ -3008,21 +3014,21 @@ mod tests {
             check(MoveChoice::Switch(index));
         }
 
-        // for &index1 in &indices {
-        //     for &index2 in &indices {
-        //         check(MoveChoice::TeamPreview(index1, index2));
-        //     }
-        // }
+        for &index1 in &indices {
+            for &index2 in &indices {
+                check(MoveChoice::TeamPreview(index1, index2));
+            }
+        }
 
         check(MoveChoice::None);
 
-        // Sanity check: confirm total count is what we expect
-        // MoveTera: 2 slots * 2 sides * 4 moves = 16
-        // Move:     2 slots * 2 sides * 4 moves = 16
-        // Switch:   6
+        // confirm total count is what we expect
+        // MoveTera:    2 slots * 2 sides * 4 moves = 16
+        // Move:        2 slots * 2 sides * 4 moves = 16
+        // Switch:      6
         // TeamPreview: 6 * 6 = 36
-        // None: 1
-        // Total: 75
-        assert_eq!(seen.len(), 39);
+        // None:        1
+        // Total:       75
+        assert_eq!(seen.len(), 75);
     }
 }

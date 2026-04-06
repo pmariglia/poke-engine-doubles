@@ -4573,6 +4573,119 @@ pub struct RemainingToMove {
     choice: Choice,
 }
 
+fn get_slots_by_effective_speed(state: &State) -> [(SideReference, SlotReference, i16); 4] {
+    let mut slots_with_speed = Vec::new();
+    for side_ref in [SideReference::SideOne, SideReference::SideTwo] {
+        for slot_ref in [SlotReference::SlotA, SlotReference::SlotB] {
+            let effective_speed = get_effective_speed(state, side_ref, &slot_ref);
+            slots_with_speed.push((side_ref, slot_ref, effective_speed));
+        }
+    }
+    slots_with_speed.sort_by(|a, b| b.2.cmp(&a.2)); // sort by speed descending
+    [
+        slots_with_speed[0],
+        slots_with_speed[1],
+        slots_with_speed[2],
+        slots_with_speed[3],
+    ]
+}
+
+fn generate_instructions_from_team_preview(
+    state: &mut State,
+    side_one_a_move: (PokemonIndex, PokemonIndex),
+    side_one_b_move: (PokemonIndex, PokemonIndex),
+    side_two_a_move: (PokemonIndex, PokemonIndex),
+    side_two_b_move: (PokemonIndex, PokemonIndex),
+) -> Vec<StateInstructions> {
+    let mut state_instructions: StateInstructions = StateInstructions::default();
+
+    let should_last_used_move = state.use_last_used_move;
+
+    // g miraidon,farigiraf chiyu,ironhands miraidon,incineroar whimsicott,farigiraf
+    // run only the switches, no abilities,etc
+    for (side_ref, slot_ref, move_choice) in [
+        (
+            SideReference::SideOne,
+            SlotReference::SlotA,
+            side_one_a_move,
+        ),
+        (
+            SideReference::SideOne,
+            SlotReference::SlotB,
+            side_one_b_move,
+        ),
+        (
+            SideReference::SideTwo,
+            SlotReference::SlotA,
+            side_two_a_move,
+        ),
+        (
+            SideReference::SideTwo,
+            SlotReference::SlotB,
+            side_two_b_move,
+        ),
+    ] {
+        let slot = state.sides[side_ref as usize].get_slot(&slot_ref);
+        state_instructions
+            .instruction_list
+            .push(Instruction::Switch(SwitchInstruction {
+                side_ref,
+                slot_ref,
+                previous_index: slot.active_index,
+                next_index: move_choice.0,
+            }));
+        if should_last_used_move {
+            state_instructions
+                .instruction_list
+                .push(Instruction::SetLastUsedMove(SetLastUsedMoveInstruction {
+                    side_ref,
+                    slot_ref,
+                    last_used_move: LastUsedMove::Switch(move_choice.0),
+                    previous_last_used_move: slot.last_used_move,
+                }));
+        }
+        slot.active_index = move_choice.0;
+        slot.last_used_move = LastUsedMove::Switch(move_choice.0);
+    }
+
+    // run the abilities/items/etc
+    // generate the list based on the speed values of each pokemon
+    for (side_ref, slot_ref, _) in get_slots_by_effective_speed(state).iter() {
+        let active_pkmn = state
+            .get_side_immutable(*side_ref)
+            .get_active_immutable(slot_ref);
+        if active_pkmn.hp == 0 {
+            continue;
+        }
+        ability_on_switch_in(state, *side_ref, slot_ref, &mut state_instructions);
+        item_on_switch_in(state, *side_ref, slot_ref, &mut state_instructions);
+    }
+
+    state.reverse_instructions(&state_instructions.instruction_list);
+
+    // faint the pkmn that were marked as fainted in team preview
+    for (side_ref, move_choice) in [
+        (SideReference::SideOne, side_one_a_move),
+        (SideReference::SideOne, side_one_b_move),
+        (SideReference::SideTwo, side_two_a_move),
+        (SideReference::SideTwo, side_two_b_move),
+    ] {
+        let pkmn = &state.get_side_immutable(side_ref).pokemon[&move_choice.1];
+        state_instructions
+            .instruction_list
+            .push(Instruction::Damage(DamageInstruction {
+                side_ref,
+                pokemon_index: move_choice.1,
+                damage_amount: pkmn.hp,
+            }));
+    }
+    state_instructions
+        .instruction_list
+        .push(Instruction::ToggleTeamPreview);
+
+    vec![state_instructions]
+}
+
 pub fn generate_instructions_from_move_pair(
     state: &mut State,
     side_one_a_move: &MoveChoice,
@@ -4581,6 +4694,44 @@ pub fn generate_instructions_from_move_pair(
     side_two_b_move: &MoveChoice,
     branch_on_damage: bool,
 ) -> Vec<StateInstructions> {
+    if state.team_preview {
+        let (s1a_lead, s1a_faint) = match side_one_a_move {
+            MoveChoice::TeamPreview(lead, faint) => (*lead, *faint),
+            _ => panic!(
+                "Expected TeamPreview variant for side_one_a_move, got {:?}",
+                side_one_a_move
+            ),
+        };
+        let (s1b_lead, s1b_faint) = match side_one_b_move {
+            MoveChoice::TeamPreview(lead, faint) => (*lead, *faint),
+            _ => panic!(
+                "Expected TeamPreview variant for side_one_b_move, got {:?}",
+                side_one_b_move
+            ),
+        };
+        let (s2a_lead, s2a_faint) = match side_two_a_move {
+            MoveChoice::TeamPreview(lead, faint) => (*lead, *faint),
+            _ => panic!(
+                "Expected TeamPreview variant for side_two_a_move, got {:?}",
+                side_two_a_move
+            ),
+        };
+        let (s2b_lead, s2b_faint) = match side_two_b_move {
+            MoveChoice::TeamPreview(lead, faint) => (*lead, *faint),
+            _ => panic!(
+                "Expected TeamPreview variant for side_two_b_move, got {:?}",
+                side_two_b_move
+            ),
+        };
+        return generate_instructions_from_team_preview(
+            state,
+            (s1a_lead, s1a_faint),
+            (s1b_lead, s1b_faint),
+            (s2a_lead, s2a_faint),
+            (s2b_lead, s2b_faint),
+        );
+    }
+
     let mut side_one_a_target_side: SideReference = SideReference::SideOne;
     let mut side_one_b_target_side: SideReference = SideReference::SideOne;
     let mut side_two_a_target_side: SideReference = SideReference::SideOne;
@@ -4622,6 +4773,9 @@ pub fn generate_instructions_from_move_pair(
             side_one_a_target_slot = *target_slot;
             s1_a_tera = true;
         }
+        MoveChoice::TeamPreview(_, _) => {
+            panic!("MoveChoice::TeamPreview should not be used unless state.team_preview=true")
+        }
         MoveChoice::None => {
             side_one_a_choice = Choice::default();
         }
@@ -4651,6 +4805,9 @@ pub fn generate_instructions_from_move_pair(
             side_one_b_target_side = *target_side;
             side_one_b_target_slot = *target_slot;
             s1_b_tera = true;
+        }
+        MoveChoice::TeamPreview(_, _) => {
+            panic!("MoveChoice::TeamPreview should not be used unless state.team_preview=true")
         }
         MoveChoice::None => {
             side_one_b_choice = Choice::default();
@@ -4689,6 +4846,9 @@ pub fn generate_instructions_from_move_pair(
             side_two_a_target_slot = *target_slot;
             s2_a_tera = true;
         }
+        MoveChoice::TeamPreview(_, _) => {
+            panic!("MoveChoice::TeamPreview should not be used unless state.team_preview=true")
+        }
         MoveChoice::None => {
             side_two_a_choice = Choice::default();
         }
@@ -4718,6 +4878,9 @@ pub fn generate_instructions_from_move_pair(
             side_two_b_target_side = *target_side;
             side_two_b_target_slot = *target_slot;
             s2_b_tera = true;
+        }
+        MoveChoice::TeamPreview(_, _) => {
+            panic!("MoveChoice::TeamPreview should not be used unless state.team_preview=true")
         }
         MoveChoice::None => {
             side_two_b_choice = Choice::default();

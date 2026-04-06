@@ -94,7 +94,7 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
     println!("Side One Options: {}", result.s1.len());
     println!("Side One (Top 10):");
     println!(
-        "\t{:<40}{:>12}{:>12}{:>10}{:>10}",
+        "\t{:<60}{:>12}{:>12}{:>10}{:>10}",
         "Move", "Total Score", "Avg Score", "Visits", "% Visits"
     );
 
@@ -103,7 +103,7 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
 
     for x in s1_sorted.iter().take(10) {
         println!(
-            "\t{:<20}{:<20}{:>12.2}{:>12.2}{:>10}{:>10.2}",
+            "\t{:<30}{:<30}{:>12.2}{:>12.2}{:>10}{:>10.2}",
             x.move_choice
                 .0
                 .to_string(&state.sides[0], &SlotReference::SlotA),
@@ -120,13 +120,13 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
     if s1_sorted.len() > 5 {
         println!("\nSide One (Bottom 10):");
         println!(
-            "\t{:<40}{:>12}{:>12}{:>10}{:>10}",
+            "\t{:<60}{:>12}{:>12}{:>10}{:>10}",
             "Move", "Total Score", "Avg Score", "Visits", "% Visits"
         );
 
         for x in s1_sorted.iter().rev().take(10) {
             println!(
-                "\t{:<20}{:<20}{:>12.2}{:>12.2}{:>10}{:>10.2}",
+                "\t{:<30}{:<30}{:>12.2}{:>12.2}{:>10}{:>10.2}",
                 x.move_choice
                     .0
                     .to_string(&state.sides[0], &SlotReference::SlotA),
@@ -145,7 +145,7 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
     println!("\nSide Two Options: {}", result.s2.len());
     println!("Side Two (Top 10):");
     println!(
-        "\t{:<40}{:>12}{:>12}{:>10}{:>10}",
+        "\t{:<60}{:>12}{:>12}{:>10}{:>10}",
         "Move", "Total Score", "Avg Score", "Visits", "% Visits"
     );
 
@@ -154,7 +154,7 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
 
     for x in s2_sorted.iter().take(10) {
         println!(
-            "\t{:<20}{:<20}{:>12.2}{:>12.2}{:>10}{:>10.2}",
+            "\t{:<30}{:<30}{:>12.2}{:>12.2}{:>10}{:>10.2}",
             x.move_choice
                 .0
                 .to_string(&state.sides[1], &SlotReference::SlotA),
@@ -171,13 +171,13 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
     if s2_sorted.len() > 5 {
         println!("\nSide Two (Bottom 10):");
         println!(
-            "\t{:<40}{:>12}{:>12}{:>10}{:>10}",
+            "\t{:<60}{:>12}{:>12}{:>10}{:>10}",
             "Move", "Total Score", "Avg Score", "Visits", "% Visits"
         );
 
         for x in s2_sorted.iter().rev().take(10) {
             println!(
-                "\t{:<20}{:<20}{:>12.2}{:>12.2}{:>10}{:>10.2}",
+                "\t{:<30}{:<30}{:>12.2}{:>12.2}{:>10}{:>10.2}",
                 x.move_choice
                     .0
                     .to_string(&state.sides[1], &SlotReference::SlotA),

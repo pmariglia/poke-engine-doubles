@@ -85,6 +85,7 @@ fn set_moves_on_pkmn_and_call_generate_instructions(
         .get_active(&SlotReference::SlotB)
         .replace_move(PokemonMoveIndex::M0, move_two_b.choice);
 
+    let before_state_string = format!("{:?}", state);
     let instructions = generate_instructions_with_state_assertion(
         state,
         &move_one_a.move_choice,
@@ -93,6 +94,8 @@ fn set_moves_on_pkmn_and_call_generate_instructions(
         &move_two_b.move_choice,
         false,
     );
+    let after_state_string = format!("{:?}", state);
+    assert_eq!(before_state_string, after_state_string);
     instructions
 }
 
@@ -2484,6 +2487,101 @@ fn test_switching_out_while_slept() {
             previous_index: PokemonIndex::P0,
             next_index: PokemonIndex::P3,
         })],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_slower_pokemon_has_weather_persist_in_team_preview() {
+    let mut state = State::default();
+    state.team_preview = true;
+
+    state.sides[0].pokemon.pkmn[0].ability = Abilities::DROUGHT;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::SANDSTREAM; // also testing no residual damage from sandstorm in team preview
+    state.sides[1].pokemon.pkmn[0].speed = 50; // slower than drought
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::TeamPreview(PokemonIndex::P0, PokemonIndex::P4),
+        },
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::TeamPreview(PokemonIndex::P1, PokemonIndex::P5),
+        },
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::TeamPreview(PokemonIndex::P0, PokemonIndex::P4),
+        },
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::TeamPreview(PokemonIndex::P1, PokemonIndex::P5),
+        },
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: false,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Switch(SwitchInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                previous_index: PokemonIndex::P0,
+                next_index: PokemonIndex::P0,
+            }),
+            Instruction::Switch(SwitchInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotB,
+                previous_index: PokemonIndex::P1,
+                next_index: PokemonIndex::P1,
+            }),
+            Instruction::Switch(SwitchInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotA,
+                previous_index: PokemonIndex::P0,
+                next_index: PokemonIndex::P0,
+            }),
+            Instruction::Switch(SwitchInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotB,
+                previous_index: PokemonIndex::P1,
+                next_index: PokemonIndex::P1,
+            }),
+            Instruction::ChangeWeather(ChangeWeather {
+                new_weather: Weather::SUN,
+                new_weather_turns_remaining: 5,
+                previous_weather: Weather::NONE,
+                previous_weather_turns_remaining: -1,
+            }),
+            Instruction::ChangeWeather(ChangeWeather {
+                new_weather: Weather::SAND,
+                new_weather_turns_remaining: 5,
+                previous_weather: Weather::SUN,
+                previous_weather_turns_remaining: 5,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P4,
+                damage_amount: 100,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P5,
+                damage_amount: 100,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P4,
+                damage_amount: 100,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P5,
+                damage_amount: 100,
+            }),
+            Instruction::ToggleTeamPreview,
+        ],
     }];
     assert_eq!(expected_instructions, vec_of_instructions);
 }
@@ -6247,6 +6345,110 @@ fn test_move_that_can_miss_with_perfect_accuracy() {
             })],
         },
     ];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_basic_destinybond() {
+    let mut state = State::default();
+    state.sides[1].pokemon.pkmn[0].hp = 1;
+    state.sides[1].pokemon.pkmn[0].speed = 500;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::TACKLE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::DESTINYBOND,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotA,
+                volatile_status: PokemonVolatileStatus::DESTINYBOND,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 1,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 100,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_basic_destinybond_opposite_slot() {
+    let mut state = State::default();
+    state.sides[1].pokemon.pkmn[1].hp = 1;
+    state.sides[1].pokemon.pkmn[1].speed = 500;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::TACKLE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::DESTINYBOND,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotB,
+                volatile_status: PokemonVolatileStatus::DESTINYBOND,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P1,
+                damage_amount: 1,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 100,
+            }),
+        ],
+    }];
     assert_eq!(expected_instructions, vec_of_instructions);
 }
 

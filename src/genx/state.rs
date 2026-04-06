@@ -13,7 +13,6 @@ use crate::state::{
     PokemonSideCondition, PokemonStatus, PokemonType, Side, SideReference, SideSlot, SlotReference,
     State,
 };
-use core::panic;
 use std::str::FromStr;
 
 fn common_pkmn_stat_calc(stat: u16, ev: u16, level: u16) -> u16 {
@@ -123,6 +122,7 @@ pub enum MoveChoice {
     MoveTera(SlotReference, SideReference, PokemonMoveIndex),
     Move(SlotReference, SideReference, PokemonMoveIndex),
     Switch(PokemonIndex),
+    TeamPreview(PokemonIndex, PokemonIndex), // represents a choice to lead and a choice to faint
     None,
 }
 
@@ -132,15 +132,18 @@ impl MoveChoice {
         match self {
             // 4 moves, 2 slots, 2 sides = 16 => 0-15
             MoveChoice::MoveTera(slot, side, mv) => {
-                (*slot as u8) << 3 | (*side as u8) << 2 | (*mv as u8)
+                (*slot as u8) * 8 + (*side as u8) * 4 + (*mv as u8)
             }
             // 4 moves, 2 slots, 2 sides = 16 => 16-31
             MoveChoice::Move(slot, side, mv) => {
-                0b00010000 | (*slot as u8) << 3 | (*side as u8) << 2 | (*mv as u8)
+                16 + (*slot as u8) * 8 + (*side as u8) * 4 + (*mv as u8)
             }
-            // 6 switches (0-5) = 6 => 32-37
-            MoveChoice::Switch(index) => 0b00100000 | (*index as u8),
-            MoveChoice::None => 0b00100110, // 38
+            // 6 switches => 32-37
+            MoveChoice::Switch(index) => 32 + (*index as u8),
+            // 6 * 6 = 36 => 38-73
+            MoveChoice::TeamPreview(index1, index2) => 38 + (*index1 as u8) * 6 + (*index2 as u8),
+            // 74
+            MoveChoice::None => 74,
         }
     }
 
@@ -163,6 +166,9 @@ impl MoveChoice {
                 )
             }
             MoveChoice::Switch(index) => format!("{}", index.serialize()),
+            MoveChoice::TeamPreview(lead_index, faint_index) => {
+                format!("{},{}", lead_index.serialize(), faint_index.serialize())
+            }
             MoveChoice::None => "none".to_string(),
         }
     }
@@ -223,6 +229,11 @@ impl MoveChoice {
                 }
             }
             MoveChoice::Switch(index) => format!("{}", side.pokemon[*index].id).to_lowercase(),
+            MoveChoice::TeamPreview(lead_index, faint_index) => format!(
+                "{},{}",
+                side.pokemon[*lead_index].id, side.pokemon[*faint_index].id
+            )
+            .to_lowercase(),
             MoveChoice::None => "No Move".to_string(),
         }
     }
@@ -235,6 +246,13 @@ impl MoveChoice {
         if s.starts_with("none") {
             return Some(MoveChoice::None);
         }
+
+        let pkmn_id_strings = side
+            .pokemon
+            .pkmn
+            .iter()
+            .map(|pkmn| pkmn.id.to_string().to_lowercase())
+            .collect::<Vec<String>>();
 
         let mut pkmn_iter = side.pokemon.into_iter();
         while let Some(pkmn) = pkmn_iter.next() {
@@ -266,6 +284,16 @@ impl MoveChoice {
             move_name_part = parts[0];
             side_ref_str = "1";
             slot_ref_str = "a";
+        } else if parts.len() == 2
+            && pkmn_id_strings.contains(&parts[0].to_string())
+            && pkmn_id_strings.contains(&parts[1].to_string())
+        {
+            let lead_idx = pkmn_id_strings.iter().position(|s| s == parts[0]).unwrap();
+            let faint_idx = pkmn_id_strings.iter().position(|s| s == parts[1]).unwrap();
+            return Some(MoveChoice::TeamPreview(
+                PokemonIndex::deserialize(&lead_idx.to_string()),
+                PokemonIndex::deserialize(&faint_idx.to_string()),
+            ));
         } else {
             return None;
         }
@@ -1314,47 +1342,57 @@ impl Side {
 }
 
 impl State {
+    pub fn generate_team_preview_options(
+        indices: &[PokemonIndex],
+        leads: Option<Vec<(PokemonIndex, PokemonIndex)>>,
+    ) -> Vec<(MoveChoice, MoveChoice)> {
+        let n = indices.len();
+        let mut options = Vec::new();
+
+        for fi in 0..n {
+            for fj in (fi + 1)..n {
+                let faint_a = indices[fi];
+                let faint_b = indices[fj];
+
+                let brought: Vec<PokemonIndex> = indices
+                    .iter()
+                    .copied()
+                    .filter(|&i| i != faint_a && i != faint_b)
+                    .collect();
+
+                let lead_pairs: Vec<(PokemonIndex, PokemonIndex)> = match &leads {
+                    Some(forced) => forced
+                        .iter()
+                        .copied()
+                        .filter(|&(a, b)| brought.contains(&a) && brought.contains(&b))
+                        .collect(),
+                    None => {
+                        let mut pairs = Vec::new();
+                        for li in 0..brought.len() {
+                            for lj in (li + 1)..brought.len() {
+                                pairs.push((brought[li], brought[lj]));
+                            }
+                        }
+                        pairs
+                    }
+                };
+
+                for (lead_a, lead_b) in lead_pairs {
+                    options.push((
+                        MoveChoice::TeamPreview(lead_a, faint_a),
+                        MoveChoice::TeamPreview(lead_b, faint_b),
+                    ));
+                }
+            }
+        }
+        options
+    }
+
     pub fn root_get_all_options(
         &self,
     ) -> (Vec<(MoveChoice, MoveChoice)>, Vec<(MoveChoice, MoveChoice)>) {
         if self.team_preview {
-            let mut s1_options = Vec::new();
-            let mut s2_options = Vec::new();
-
-            // collect alive indices
-            let mut s1_alive_indices = Vec::new();
-            let mut pkmn_iter = self.sides[0].pokemon.into_iter();
-            while let Some(_) = pkmn_iter.next() {
-                if self.sides[0].pokemon[pkmn_iter.pokemon_index].hp > 0 {
-                    s1_alive_indices.push(pkmn_iter.pokemon_index);
-                }
-            }
-            let mut s2_alive_indices = Vec::new();
-            let mut pkmn_iter = self.sides[1].pokemon.into_iter();
-            while let Some(_) = pkmn_iter.next() {
-                if self.sides[1].pokemon[pkmn_iter.pokemon_index].hp > 0 {
-                    s2_alive_indices.push(pkmn_iter.pokemon_index);
-                }
-            }
-
-            // Generate all valid pairs for initial switch
-            for i in 0..s1_alive_indices.len() {
-                for j in (i + 1)..s1_alive_indices.len() {
-                    s1_options.push((
-                        MoveChoice::Switch(s1_alive_indices[i]),
-                        MoveChoice::Switch(s1_alive_indices[j]),
-                    ));
-                }
-            }
-            for i in 0..s2_alive_indices.len() {
-                for j in (i + 1)..s2_alive_indices.len() {
-                    s2_options.push((
-                        MoveChoice::Switch(s2_alive_indices[i]),
-                        MoveChoice::Switch(s2_alive_indices[j]),
-                    ));
-                }
-            }
-            return (s1_options, s2_options);
+            panic!("Should not call root_get_all_options during team preview, instead use generate_team_preview_options");
         }
 
         let mut move_options = MoveOptions::new();
@@ -1365,6 +1403,7 @@ impl State {
                 .retain(|(x, _)| match x {
                     MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
                     MoveChoice::Switch(_) => false,
+                    MoveChoice::TeamPreview(_, _) => false,
                     MoveChoice::None => true,
                 });
         }
@@ -1374,6 +1413,7 @@ impl State {
                 .retain(|(_, x)| match x {
                     MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
                     MoveChoice::Switch(_) => false,
+                    MoveChoice::TeamPreview(_, _) => false,
                     MoveChoice::None => true,
                 });
         }
@@ -1384,6 +1424,7 @@ impl State {
                 .retain(|(x, _)| match x {
                     MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
                     MoveChoice::Switch(_) => false,
+                    MoveChoice::TeamPreview(_, _) => false,
                     MoveChoice::None => true,
                 });
         }
@@ -1393,6 +1434,7 @@ impl State {
                 .retain(|(_, x)| match x {
                     MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
                     MoveChoice::Switch(_) => false,
+                    MoveChoice::TeamPreview(_, _) => false,
                     MoveChoice::None => true,
                 });
         }
@@ -1953,5 +1995,133 @@ impl State {
         */
         self.set_damage_dealt_flag();
         self.set_last_used_move_flag();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_team_preview_options_count() {
+        let indices = vec![
+            PokemonIndex::P0,
+            PokemonIndex::P1,
+            PokemonIndex::P2,
+            PokemonIndex::P3,
+            PokemonIndex::P4,
+            PokemonIndex::P5,
+        ];
+        let options = State::generate_team_preview_options(&indices, None);
+        assert_eq!(options.len(), 90);
+    }
+    #[test]
+    fn test_leads_all_options_contain_forced_pair() {
+        let indices = vec![
+            PokemonIndex::P0,
+            PokemonIndex::P1,
+            PokemonIndex::P2,
+            PokemonIndex::P3,
+            PokemonIndex::P4,
+            PokemonIndex::P5,
+        ];
+        let forced = vec![(PokemonIndex::P0, PokemonIndex::P1)];
+        let options = State::generate_team_preview_options(&indices, Some(forced));
+
+        // every option must have P0 and P1 as leads (in either slot)
+        for (a, b) in &options {
+            let leads = match (a, b) {
+                (MoveChoice::TeamPreview(la, _), MoveChoice::TeamPreview(lb, _)) => (*la, *lb),
+                _ => panic!("Expected TeamPreview variants"),
+            };
+            assert!(
+                (leads.0 == PokemonIndex::P0 && leads.1 == PokemonIndex::P1)
+                    || (leads.0 == PokemonIndex::P1 && leads.1 == PokemonIndex::P0),
+            );
+        }
+    }
+
+    #[test]
+    fn test_leads_count_single_pair() {
+        let indices = vec![
+            PokemonIndex::P0,
+            PokemonIndex::P1,
+            PokemonIndex::P2,
+            PokemonIndex::P3,
+            PokemonIndex::P4,
+            PokemonIndex::P5,
+        ];
+        let forced = vec![(PokemonIndex::P0, PokemonIndex::P1)];
+        let options = State::generate_team_preview_options(&indices, Some(forced));
+
+        // P0 and P1 are always leads, so we only choose 2 to faint from the remaining 4
+        // C(4,2) = 6
+        assert_eq!(options.len(), 6);
+    }
+
+    #[test]
+    fn test_leads_count_multiple_pairs() {
+        let indices = vec![
+            PokemonIndex::P0,
+            PokemonIndex::P1,
+            PokemonIndex::P2,
+            PokemonIndex::P3,
+            PokemonIndex::P4,
+            PokemonIndex::P5,
+        ];
+        let forced = vec![
+            (PokemonIndex::P0, PokemonIndex::P1),
+            (PokemonIndex::P0, PokemonIndex::P2),
+        ];
+        let options = State::generate_team_preview_options(&indices, Some(forced));
+
+        // for forced pair (P0, P1): P2-P5 available to faint, C(4,2)=6 faint combos
+        //   but faint combos that include P0 or P1 are skipped (those would remove a lead)
+        //   all 4 remaining are P2,P3,P4,P5 so all 6 are valid
+        // for forced pair (P0, P2): similarly 6 valid faint combos from P1,P3,P4,P5
+        // total: 12
+        assert_eq!(options.len(), 12);
+    }
+
+    #[test]
+    fn test_leads_skipped_when_lead_would_be_fainted() {
+        let indices = vec![
+            PokemonIndex::P0,
+            PokemonIndex::P1,
+            PokemonIndex::P2,
+            PokemonIndex::P3,
+            PokemonIndex::P4,
+            PokemonIndex::P5,
+        ];
+        let forced = vec![(PokemonIndex::P0, PokemonIndex::P1)];
+        let options = State::generate_team_preview_options(&indices, Some(forced));
+
+        // no option should have P0 or P1 as a faint
+        for (a, b) in &options {
+            let (faint_a, faint_b) = match (a, b) {
+                (MoveChoice::TeamPreview(_, fa), MoveChoice::TeamPreview(_, fb)) => (*fa, *fb),
+                _ => panic!("Expected TeamPreview variants"),
+            };
+            assert_ne!(faint_a, PokemonIndex::P0);
+            assert_ne!(faint_a, PokemonIndex::P1);
+            assert_ne!(faint_b, PokemonIndex::P0);
+            assert_ne!(faint_b, PokemonIndex::P1);
+        }
+    }
+
+    #[test]
+    fn test_leads_together_with_reduces_indices() {
+        let indices = vec![
+            PokemonIndex::P0,
+            PokemonIndex::P1,
+            PokemonIndex::P2,
+            PokemonIndex::P3,
+        ];
+        let forced = vec![
+            (PokemonIndex::P0, PokemonIndex::P1),
+            (PokemonIndex::P0, PokemonIndex::P3),
+        ];
+        let options = State::generate_team_preview_options(&indices, Some(forced));
+        assert_eq!(options.len(), 2);
     }
 }

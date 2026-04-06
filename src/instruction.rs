@@ -91,6 +91,7 @@ pub enum Instruction {
     ToggleTerastallized(ToggleTerastallizedInstruction),
     IncrementTimesAttacked(IncrementTimesAttackedInstruction),
     InsertStellarBoostedType(InsertStellarBoostedTypeInstruction),
+    ToggleTeamPreview,
 }
 
 impl fmt::Debug for Instruction {
@@ -401,6 +402,9 @@ impl fmt::Debug for Instruction {
             }
             Instruction::ToggleForceSwitch(i) => {
                 write!(f, "ToggleForceSwitch: {:?} {:?}", i.side_ref, i.slot_ref)
+            }
+            Instruction::ToggleTeamPreview => {
+                write!(f, "ToggleTeamPreview")
             }
         }
     }

@@ -6,7 +6,7 @@ use crate::engine::generate_instructions::{
 use crate::engine::state::MoveChoice;
 use crate::instruction::{Instruction, StateInstructions};
 use crate::mcts::{perform_mcts, MctsResult};
-use crate::state::{SideReference, SlotReference, State};
+use crate::state::{PokemonIndex, SideReference, SlotReference, State};
 use clap::Parser;
 use std::io;
 use std::io::Write;
@@ -94,7 +94,7 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
     println!("Side One Options: {}", result.s1.len());
     println!("Side One (Top 10):");
     println!(
-        "\t{:<40}{:>12}{:>12}{:>10}{:>10}",
+        "\t{:<60}{:>12}{:>12}{:>10}{:>10}",
         "Move", "Total Score", "Avg Score", "Visits", "% Visits"
     );
 
@@ -103,7 +103,7 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
 
     for x in s1_sorted.iter().take(10) {
         println!(
-            "\t{:<20}{:<20}{:>12.2}{:>12.2}{:>10}{:>10.2}",
+            "\t{:<30}{:<30}{:>12.2}{:>12.2}{:>10}{:>10.2}",
             x.move_choice
                 .0
                 .to_string(&state.sides[0], &SlotReference::SlotA),
@@ -120,13 +120,13 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
     if s1_sorted.len() > 5 {
         println!("\nSide One (Bottom 10):");
         println!(
-            "\t{:<40}{:>12}{:>12}{:>10}{:>10}",
+            "\t{:<60}{:>12}{:>12}{:>10}{:>10}",
             "Move", "Total Score", "Avg Score", "Visits", "% Visits"
         );
 
         for x in s1_sorted.iter().rev().take(10) {
             println!(
-                "\t{:<20}{:<20}{:>12.2}{:>12.2}{:>10}{:>10.2}",
+                "\t{:<30}{:<30}{:>12.2}{:>12.2}{:>10}{:>10.2}",
                 x.move_choice
                     .0
                     .to_string(&state.sides[0], &SlotReference::SlotA),
@@ -145,7 +145,7 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
     println!("\nSide Two Options: {}", result.s2.len());
     println!("Side Two (Top 10):");
     println!(
-        "\t{:<40}{:>12}{:>12}{:>10}{:>10}",
+        "\t{:<60}{:>12}{:>12}{:>10}{:>10}",
         "Move", "Total Score", "Avg Score", "Visits", "% Visits"
     );
 
@@ -154,7 +154,7 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
 
     for x in s2_sorted.iter().take(10) {
         println!(
-            "\t{:<20}{:<20}{:>12.2}{:>12.2}{:>10}{:>10.2}",
+            "\t{:<30}{:<30}{:>12.2}{:>12.2}{:>10}{:>10.2}",
             x.move_choice
                 .0
                 .to_string(&state.sides[1], &SlotReference::SlotA),
@@ -171,13 +171,13 @@ pub fn pprint_mcts_result(state: &State, result: MctsResult) {
     if s2_sorted.len() > 5 {
         println!("\nSide Two (Bottom 10):");
         println!(
-            "\t{:<40}{:>12}{:>12}{:>10}{:>10}",
+            "\t{:<60}{:>12}{:>12}{:>10}{:>10}",
             "Move", "Total Score", "Avg Score", "Visits", "% Visits"
         );
 
         for x in s2_sorted.iter().rev().take(10) {
             println!(
-                "\t{:<20}{:<20}{:>12.2}{:>12.2}{:>10}{:>10.2}",
+                "\t{:<30}{:<30}{:>12.2}{:>12.2}{:>10}{:>10.2}",
                 x.move_choice
                     .0
                     .to_string(&state.sides[1], &SlotReference::SlotA),
@@ -607,6 +607,81 @@ fn command_loop(mut io_data: IOData) {
                     continue;
                 }
             },
+            "team-preview" | "tp" => {
+                if !io_data.state.team_preview {
+                    println!("Team preview must be active");
+                    continue;
+                }
+
+                let parse_indices = |s: &str| -> Vec<PokemonIndex> {
+                    s.split(',')
+                        .filter_map(|x| Some(PokemonIndex::deserialize(x.trim())))
+                        .collect()
+                };
+
+                let parse_leads = |s: &str| -> Vec<(PokemonIndex, PokemonIndex)> {
+                    s.split(',')
+                        .filter_map(|pair| {
+                            let parts: Vec<&str> = pair.trim().split('-').collect();
+                            if parts.len() != 2 {
+                                return None;
+                            }
+                            Some((
+                                PokemonIndex::deserialize(parts[0]),
+                                PokemonIndex::deserialize(parts[1]),
+                            ))
+                        })
+                        .collect()
+                };
+
+                let (s1_indices, s1_leads, s2_indices, s2_leads, max_time_ms) = match (
+                    args.next(),
+                    args.next(),
+                    args.next(),
+                    args.next(),
+                    args.next(),
+                ) {
+                    (Some(s1i), Some(s1l), Some(s2i), Some(s2l), Some(t)) => (
+                        parse_indices(s1i),
+                        Some(parse_leads(s1l)),
+                        parse_indices(s2i),
+                        Some(parse_leads(s2l)),
+                        match t.parse::<u64>() {
+                            Ok(v) => v,
+                            Err(_) => {
+                                println!("Invalid time: {}", t);
+                                continue;
+                            }
+                        },
+                    ),
+                    _ => {
+                        println!("Usage: team-preview <s1-indices> <s1-leads> <s2-indices> <s2-leads> <time_ms>");
+                        println!("  e.g: tp 0,1,2,3,4,5 0-1,0-2,1-2 0,1,2,3,4,5 0-1,0-2,1-2 5000");
+                        continue;
+                    }
+                };
+
+                let side_one_options = State::generate_team_preview_options(
+                    &s1_indices,
+                    Some(s1_leads.unwrap_or_default()),
+                );
+                let side_two_options = State::generate_team_preview_options(
+                    &s2_indices,
+                    Some(s2_leads.unwrap_or_default()),
+                );
+
+                let start_time = std::time::Instant::now();
+                let result = perform_mcts(
+                    &mut io_data.state,
+                    side_one_options,
+                    side_two_options,
+                    std::time::Duration::from_millis(max_time_ms),
+                );
+                let elapsed = start_time.elapsed();
+                pprint_mcts_result(&io_data.state, result);
+
+                println!("\nTook: {:?}", elapsed);
+            }
             "apply" | "a" => match args.next() {
                 Some(s) => {
                     let index = s.parse::<usize>().unwrap();

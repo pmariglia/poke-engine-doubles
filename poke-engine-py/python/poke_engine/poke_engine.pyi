@@ -457,6 +457,43 @@ class MctsResult:
     side_two: List[MctsSideResult]
     iteration_count: int
 
+class TeamPreviewFilterSide:
+    """Team Preview Options for a side."""
+
+    valid_pokemon: List[str]
+    forced_leads: List[Tuple[str, str]] | None
+
+    def __init__(
+        self,
+        valid_pokemon: List[str] = None,
+        forced_leads: Optional[List[Tuple[str, str]]] = None,
+    ) -> None: ...
+
+class TeamPreviewFilters:
+    """Team Preview Options for both Sides."""
+
+    side_one: TeamPreviewFilterSide
+    side_two: TeamPreviewFilterSide
+
+    def __init__(
+        self,
+        side_one: TeamPreviewFilterSide,
+        side_two: TeamPreviewFilterSide,
+    ) -> None: ...
+
+def mcts_team_preview(
+    py_state: State, duration_ms: int, team_preview_filter: TeamPreviewFilters
+) -> MctsResult:
+    """
+    Perform Monte Carlo Tree Search on the given state.
+
+    :param py_state: The game state to analyze
+    :param duration_ms: Duration in milliseconds to run MCTS
+    :param team_preview_filter: an instance of TeamPreviewFilters
+    :return: MCTS results for both sides
+    """
+    ...
+
 def mcts(py_state: State, duration_ms: int) -> MctsResult:
     """
     Perform Monte Carlo Tree Search on the given state.

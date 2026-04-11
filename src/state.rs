@@ -362,6 +362,20 @@ impl PokemonIndex {
     }
 }
 
+impl From<usize> for PokemonIndex {
+    fn from(value: usize) -> Self {
+        match value {
+            0 => PokemonIndex::P0,
+            1 => PokemonIndex::P1,
+            2 => PokemonIndex::P2,
+            3 => PokemonIndex::P3,
+            4 => PokemonIndex::P4,
+            5 => PokemonIndex::P5,
+            _ => panic!("Invalid PokemonIndex: {}", value),
+        }
+    }
+}
+
 pub fn pokemon_index_iter() -> PokemonIndexIterator {
     PokemonIndexIterator { index: 0 }
 }

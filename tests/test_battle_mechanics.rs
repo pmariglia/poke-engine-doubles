@@ -85,7 +85,6 @@ fn set_moves_on_pkmn_and_call_generate_instructions(
         .get_active(&SlotReference::SlotB)
         .replace_move(PokemonMoveIndex::M0, move_two_b.choice);
 
-    let before_state_string = format!("{:?}", state);
     let instructions = generate_instructions_with_state_assertion(
         state,
         &move_one_a.move_choice,
@@ -94,8 +93,6 @@ fn set_moves_on_pkmn_and_call_generate_instructions(
         &move_two_b.move_choice,
         false,
     );
-    let after_state_string = format!("{:?}", state);
-    assert_eq!(before_state_string, after_state_string);
     instructions
 }
 
@@ -2581,6 +2578,163 @@ fn test_slower_pokemon_has_weather_persist_in_team_preview() {
                 damage_amount: 100,
             }),
             Instruction::ToggleTeamPreview,
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
+fn test_slower_pokemon_has_mega_evolution_weather_set_second() {
+    let mut state = State::default();
+    state.weather.weather_type = Weather::SAND;
+    state.weather.turns_remaining = 5;
+
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::CHARIZARD;
+    state.sides[0].pokemon.pkmn[0].item = Items::CHARIZARDITEY;
+
+    state.sides[1].pokemon.pkmn[0].id = PokemonName::TYRANITAR;
+    state.sides[1].pokemon.pkmn[0].item = Items::TYRANITARITE;
+    state.sides[1].pokemon.pkmn[0].speed = 50; // slower than drought
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::MoveMega(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::MoveMega(
+                SlotReference::SlotA,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            // charizard formechange
+            Instruction::FormeChange(FormeChangeInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                name_change: PokemonName::CHARIZARDMEGAY as i16 - PokemonName::CHARIZARD as i16,
+            }),
+            Instruction::ChangeAttack(ChangeStatInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                amount: 165,
+            }),
+            Instruction::ChangeDefense(ChangeStatInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                amount: 113,
+            }),
+            Instruction::ChangeSpecialAttack(ChangeStatInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                amount: 275,
+            }),
+            Instruction::ChangeSpecialDefense(ChangeStatInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                amount: 187,
+            }),
+            Instruction::ChangeSpeed(ChangeStatInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                amount: 157,
+            }),
+            Instruction::ChangeAbility(ChangeAbilityInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                ability_change: Abilities::DROUGHT as i16 - Abilities::NONE as i16,
+            }),
+            Instruction::ChangeType(ChangeType {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                new_types: (PokemonType::FIRE, PokemonType::FLYING),
+                old_types: (PokemonType::NORMAL, PokemonType::TYPELESS),
+            }),
+            Instruction::ChangeWeather(ChangeWeather {
+                new_weather: Weather::SUN,
+                new_weather_turns_remaining: 5,
+                previous_weather: Weather::SAND,
+                previous_weather_turns_remaining: 5,
+            }),
+            // ttar formechange
+            Instruction::FormeChange(FormeChangeInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                name_change: PokemonName::TYRANITARMEGA as i16 - PokemonName::TYRANITAR as i16,
+            }),
+            Instruction::ChangeAttack(ChangeStatInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                amount: 285,
+            }),
+            Instruction::ChangeDefense(ChangeStatInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                amount: 257,
+            }),
+            Instruction::ChangeSpecialAttack(ChangeStatInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                amount: 147,
+            }),
+            Instruction::ChangeSpecialDefense(ChangeStatInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                amount: 197,
+            }),
+            Instruction::ChangeSpeed(ChangeStatInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                amount: 149,
+            }),
+            Instruction::ChangeAbility(ChangeAbilityInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                ability_change: Abilities::SANDSTREAM as i16 - Abilities::NONE as i16,
+            }),
+            Instruction::ChangeType(ChangeType {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                new_types: (PokemonType::ROCK, PokemonType::DARK),
+                old_types: (PokemonType::NORMAL, PokemonType::TYPELESS),
+            }),
+            Instruction::ChangeWeather(ChangeWeather {
+                new_weather: Weather::SAND,
+                new_weather_turns_remaining: 5,
+                previous_weather: Weather::SUN,
+                previous_weather_turns_remaining: 5,
+            }),
+            Instruction::DecrementWeatherTurnsRemaining,
+            // everyone besides ttar takes damage from sandstorm
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 6,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P1,
+                damage_amount: 6,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P1,
+                damage_amount: 6,
+            }),
         ],
     }];
     assert_eq!(expected_instructions, vec_of_instructions);

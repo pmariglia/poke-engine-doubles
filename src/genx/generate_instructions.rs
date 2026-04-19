@@ -16,7 +16,7 @@ use crate::engine::items::{item_end_of_turn, item_modify_attack_being_used};
 use crate::instruction::{
     ApplyVolatileStatusInstruction, BoostInstruction, ChangeAbilityInstruction,
     ChangeDamageDealtDamageInstruction, ChangeDamageDealtMoveCategoryInstruction,
-    ChangeItemInstruction, ChangeSideConditionInstruction, ChangeTerrain,
+    ChangeItemInstruction, ChangeSideConditionInstruction, ChangeTerrain, ChangeType,
     ChangeVolatileStatusDurationInstruction, ChangeWeather, DecrementRestTurnsInstruction,
     HealInstruction, InsertStellarBoostedTypeInstruction, RemoveVolatileStatusInstruction,
     SetSleepTurnsInstruction, ToggleBatonPassingInstruction,
@@ -133,7 +133,7 @@ fn set_last_used_move_as_move(
 }
 
 fn generate_instructions_from_tera(
-    state: &State,
+    state: &mut State,
     side_ref: SideReference,
     slot_ref: &SlotReference,
     pokemon_index: PokemonIndex,
@@ -151,9 +151,8 @@ fn generate_instructions_from_tera(
             },
         ));
 
-    let active_pkmn = state
-        .get_side_immutable(side_ref)
-        .get_active_immutable(slot_ref);
+    let active_pkmn = state.get_side(side_ref).get_active(slot_ref);
+    active_pkmn.terastallized = true;
     if active_pkmn.id == PokemonName::TERAPAGOSTERASTAL
         && active_pkmn.ability == Abilities::TERASHELL
     {
@@ -165,11 +164,8 @@ fn generate_instructions_from_tera(
                 name_change: PokemonName::TERAPAGOSSTELLAR as i16
                     - PokemonName::TERAPAGOSTERASTAL as i16,
             }));
-        active_pkmn.recalculate_stats_without_updating_stats(
-            side_ref,
-            pokemon_index,
-            incoming_instructions,
-        );
+        active_pkmn.id = PokemonName::TERAPAGOSSTELLAR;
+        active_pkmn.recalculate_stats(side_ref, pokemon_index, incoming_instructions);
         incoming_instructions
             .instruction_list
             .push(Instruction::ChangeAbility(ChangeAbilityInstruction {
@@ -177,6 +173,7 @@ fn generate_instructions_from_tera(
                 pokemon_index,
                 ability_change: Abilities::TERAFORMZERO as i16 - Abilities::TERASHELL as i16,
             }));
+        active_pkmn.ability = Abilities::TERAFORMZERO;
         if state.weather.turns_remaining > 0 && state.weather.weather_type != Weather::NONE {
             incoming_instructions
                 .instruction_list
@@ -186,6 +183,8 @@ fn generate_instructions_from_tera(
                     previous_weather: state.weather.weather_type,
                     previous_weather_turns_remaining: state.weather.turns_remaining,
                 }));
+            state.weather.turns_remaining = 0;
+            state.weather.weather_type = Weather::NONE;
         }
         if state.terrain.turns_remaining > 0 && state.terrain.terrain_type != Terrain::NONE {
             incoming_instructions
@@ -196,6 +195,8 @@ fn generate_instructions_from_tera(
                     previous_terrain: state.terrain.terrain_type,
                     previous_terrain_turns_remaining: state.terrain.turns_remaining,
                 }));
+            state.terrain.turns_remaining = 0;
+            state.terrain.terrain_type = Terrain::NONE;
         }
     }
 }
@@ -4691,6 +4692,102 @@ fn generate_instructions_from_team_preview(
     vec![state_instructions]
 }
 
+/*
+if both sides are mega-evolving, we calculate the effective speed of the pre-mega
+pkmn to determine which one mega-evolves first.
+
+Though post-mega speed is used to determine move ordering, to the best of my knowledge it is
+pre-mega speed that determines mega-evolution order.
+*/
+fn run_mega_evolutions(
+    state: &mut State,
+    side_one_mega_slot: Option<SlotReference>,
+    side_two_mega_slot: Option<SlotReference>,
+    instructions: &mut StateInstructions,
+) {
+    match (side_one_mega_slot, side_two_mega_slot) {
+        (Some(slot_ref), None) => {
+            mega_evolve(state, SideReference::SideOne, slot_ref, instructions)
+        }
+        (None, Some(slot_ref)) => {
+            mega_evolve(state, SideReference::SideTwo, slot_ref, instructions)
+        }
+        (Some(slot_ref_one), Some(slot_ref_two)) => {
+            let s1_speed = get_effective_speed(state, SideReference::SideOne, &slot_ref_one);
+            let s2_speed = get_effective_speed(state, SideReference::SideTwo, &slot_ref_two);
+            if s1_speed > s2_speed {
+                mega_evolve(state, SideReference::SideOne, slot_ref_one, instructions);
+                mega_evolve(state, SideReference::SideTwo, slot_ref_two, instructions);
+            } else {
+                mega_evolve(state, SideReference::SideTwo, slot_ref_two, instructions);
+                mega_evolve(state, SideReference::SideOne, slot_ref_one, instructions);
+            }
+        }
+        (None, None) => {}
+    }
+}
+
+fn mega_evolve(
+    state: &mut State,
+    side_ref: SideReference,
+    slot_ref: SlotReference,
+    instructions: &mut StateInstructions,
+) {
+    let side = state.get_side(side_ref);
+    let (active_pkmn, active_index) = side.get_active_with_index(&slot_ref);
+
+    // assumes that you can mega-evolve if this function is called
+    let mega_evolve_data = active_pkmn
+        .id
+        .mega_evolve_target(active_pkmn.item)
+        .unwrap_or_else(|| {
+            panic!(
+                "cannot mega evolve {:?} with {:?}",
+                active_pkmn.id, active_pkmn.item
+            )
+        });
+
+    // change id
+    instructions
+        .instruction_list
+        .push(Instruction::FormeChange(FormeChangeInstruction {
+            side_ref,
+            pokemon_index: active_index,
+            name_change: mega_evolve_data.id as i16 - active_pkmn.id as i16,
+        }));
+    active_pkmn.id = mega_evolve_data.id;
+
+    // change stats
+    active_pkmn.recalculate_stats(side_ref, active_index, instructions);
+
+    // change ability
+    if mega_evolve_data.ability != active_pkmn.ability {
+        instructions
+            .instruction_list
+            .push(Instruction::ChangeAbility(ChangeAbilityInstruction {
+                side_ref,
+                pokemon_index: active_index,
+                ability_change: mega_evolve_data.ability as i16 - active_pkmn.ability as i16,
+            }));
+        active_pkmn.ability = mega_evolve_data.ability;
+    }
+    // change type
+    if mega_evolve_data.types != active_pkmn.types {
+        instructions
+            .instruction_list
+            .push(Instruction::ChangeType(ChangeType {
+                side_ref,
+                pokemon_index: active_index,
+                new_types: mega_evolve_data.types,
+                old_types: active_pkmn.types,
+            }));
+        active_pkmn.types = mega_evolve_data.types;
+    }
+
+    // ability on switch in
+    ability_on_switch_in(state, side_ref, &slot_ref, instructions);
+}
+
 pub fn generate_instructions_from_move_pair(
     state: &mut State,
     side_one_a_move: &MoveChoice,
@@ -4752,6 +4849,7 @@ pub fn generate_instructions_from_move_pair(
     let mut s1_a_replacing_fainted_pkmn = false;
     let mut s1_b_tera = false;
     let mut s1_b_replacing_fainted_pkmn = false;
+    let mut s1_mega_slot = None;
     match side_one_a_move {
         MoveChoice::Switch(switch_id) => {
             if state.sides[0].pokemon[state.sides[0].slot_a.active_index].hp == 0 {
@@ -4777,6 +4875,15 @@ pub fn generate_instructions_from_move_pair(
             side_one_a_target_side = *target_side;
             side_one_a_target_slot = *target_slot;
             s1_a_tera = true;
+        }
+        MoveChoice::MoveMega(target_slot, target_side, move_index) => {
+            side_one_a_choice = state.sides[0].get_active(&SlotReference::SlotA).moves[move_index]
+                .choice
+                .clone();
+            side_one_a_choice.move_index = *move_index;
+            side_one_a_target_side = *target_side;
+            side_one_a_target_slot = *target_slot;
+            s1_mega_slot = Some(SlotReference::SlotA);
         }
         MoveChoice::TeamPreview(_, _) => {
             panic!("MoveChoice::TeamPreview should not be used unless state.team_preview=true")
@@ -4811,6 +4918,15 @@ pub fn generate_instructions_from_move_pair(
             side_one_b_target_slot = *target_slot;
             s1_b_tera = true;
         }
+        MoveChoice::MoveMega(target_slot, target_side, move_index) => {
+            side_one_b_choice = state.sides[0].get_active(&SlotReference::SlotB).moves[move_index]
+                .choice
+                .clone();
+            side_one_b_choice.move_index = *move_index;
+            side_one_b_target_side = *target_side;
+            side_one_b_target_slot = *target_slot;
+            s1_mega_slot = Some(SlotReference::SlotB);
+        }
         MoveChoice::TeamPreview(_, _) => {
             panic!("MoveChoice::TeamPreview should not be used unless state.team_preview=true")
         }
@@ -4825,6 +4941,7 @@ pub fn generate_instructions_from_move_pair(
     let mut s2_a_replacing_fainted_pkmn = false;
     let mut s2_b_tera = false;
     let mut s2_b_replacing_fainted_pkmn = false;
+    let mut s2_mega_slot = None;
     match side_two_a_move {
         MoveChoice::Switch(switch_id) => {
             if state.sides[1].pokemon[state.sides[1].slot_a.active_index].hp == 0 {
@@ -4850,6 +4967,15 @@ pub fn generate_instructions_from_move_pair(
             side_two_a_target_side = *target_side;
             side_two_a_target_slot = *target_slot;
             s2_a_tera = true;
+        }
+        MoveChoice::MoveMega(target_slot, target_side, move_index) => {
+            side_two_a_choice = state.sides[1].get_active(&SlotReference::SlotA).moves[move_index]
+                .choice
+                .clone();
+            side_two_a_choice.move_index = *move_index;
+            side_two_a_target_side = *target_side;
+            side_two_a_target_slot = *target_slot;
+            s2_mega_slot = Some(SlotReference::SlotA);
         }
         MoveChoice::TeamPreview(_, _) => {
             panic!("MoveChoice::TeamPreview should not be used unless state.team_preview=true")
@@ -4884,6 +5010,15 @@ pub fn generate_instructions_from_move_pair(
             side_two_b_target_slot = *target_slot;
             s2_b_tera = true;
         }
+        MoveChoice::MoveMega(target_slot, target_side, move_index) => {
+            side_two_b_choice = state.sides[1].get_active(&SlotReference::SlotB).moves[move_index]
+                .choice
+                .clone();
+            side_two_b_choice.move_index = *move_index;
+            side_two_b_target_side = *target_side;
+            side_two_b_target_slot = *target_slot;
+            s2_mega_slot = Some(SlotReference::SlotB);
+        }
         MoveChoice::TeamPreview(_, _) => {
             panic!("MoveChoice::TeamPreview should not be used unless state.team_preview=true")
         }
@@ -4896,7 +5031,7 @@ pub fn generate_instructions_from_move_pair(
         Vec::with_capacity(16);
     let mut incoming_instructions: StateInstructions = StateInstructions::default();
 
-    // Run terstallization type changes
+    // Run terstallization type changes / mega-evolutions
     // Note: only create/apply instructions, don't apply changes
     // generate_instructions_from_move() assumes instructions have not been applied
     if s1_a_tera {
@@ -4935,6 +5070,13 @@ pub fn generate_instructions_from_move_pair(
             &mut incoming_instructions,
         );
     }
+    run_mega_evolutions(
+        state,
+        s1_mega_slot,
+        s2_mega_slot,
+        &mut incoming_instructions,
+    );
+    state.reverse_instructions(&incoming_instructions.instruction_list);
 
     modify_choice_before_move(
         &state,

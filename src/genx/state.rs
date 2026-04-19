@@ -121,6 +121,7 @@ impl MoveOptions {
 pub enum MoveChoice {
     MoveTera(SlotReference, SideReference, PokemonMoveIndex),
     Move(SlotReference, SideReference, PokemonMoveIndex),
+    MoveMega(SlotReference, SideReference, PokemonMoveIndex),
     Switch(PokemonIndex),
     TeamPreview(PokemonIndex, PokemonIndex), // represents a choice to lead and a choice to faint
     None,
@@ -138,12 +139,16 @@ impl MoveChoice {
             MoveChoice::Move(slot, side, mv) => {
                 16 + (*slot as u8) * 8 + (*side as u8) * 4 + (*mv as u8)
             }
-            // 6 switches => 32-37
-            MoveChoice::Switch(index) => 32 + (*index as u8),
-            // 6 * 6 = 36 => 38-73
-            MoveChoice::TeamPreview(index1, index2) => 38 + (*index1 as u8) * 6 + (*index2 as u8),
-            // 74
-            MoveChoice::None => 74,
+            // 4 moves, 2 slots, 2 sides = 16 => 32-47
+            MoveChoice::MoveMega(slot, side, mv) => {
+                32 + (*slot as u8) * 8 + (*side as u8) * 4 + (*mv as u8)
+            }
+            // 6 switches => 48-53
+            MoveChoice::Switch(index) => 48 + (*index as u8),
+            // 6 * 6 = 36 => 54-89
+            MoveChoice::TeamPreview(index1, index2) => 54 + (*index1 as u8) * 6 + (*index2 as u8),
+            // 90
+            MoveChoice::None => 90,
         }
     }
 
@@ -151,7 +156,15 @@ impl MoveChoice {
         match self {
             MoveChoice::MoveTera(target_slot, target_side, index) => {
                 format!(
-                    "{},{},{},true",
+                    "{},{},{},tera",
+                    target_side.to_string(),
+                    target_slot.to_string(),
+                    index.serialize()
+                )
+            }
+            MoveChoice::MoveMega(target_slot, target_side, index) => {
+                format!(
+                    "{},{},{},mega",
                     target_side.to_string(),
                     target_slot.to_string(),
                     index.serialize()
@@ -178,9 +191,12 @@ impl MoveChoice {
             let target_side = SideReference::from_str(parts[0]).unwrap();
             let target_slot = SlotReference::from_str(parts[1]).unwrap();
             let index: PokemonMoveIndex = PokemonMoveIndex::deserialize(parts[2]);
-            let is_tera: bool = parts[3].parse().unwrap();
+            let is_tera: bool = parts[3] == "tera";
+            let is_mega: bool = parts[3] == "mega";
             if is_tera {
                 MoveChoice::MoveTera(target_slot, target_side, index)
+            } else if is_mega {
+                MoveChoice::MoveMega(target_slot, target_side, index)
             } else {
                 MoveChoice::Move(target_slot, target_side, index)
             }
@@ -202,6 +218,23 @@ impl MoveChoice {
                 {
                     format!(
                         "{},{},{},tera",
+                        mv.id,
+                        target_side.to_string(),
+                        target_slot.to_string()
+                    )
+                    .to_lowercase()
+                } else {
+                    format!("{},tera", mv.id).to_lowercase()
+                }
+            }
+            MoveChoice::MoveMega(target_slot, target_side, index) => {
+                let mv = &side.get_active_immutable(attacking_slot_ref).moves[&index];
+                if mv.choice.move_choice_target == MoveChoiceTarget::Ally
+                    || (mv.choice.move_choice_target == MoveChoiceTarget::Normal
+                        && mv.choice.target == MoveTarget::Target)
+                {
+                    format!(
+                        "{},{},{},mega",
                         mv.id,
                         target_side.to_string(),
                         target_slot.to_string()
@@ -525,6 +558,16 @@ define_enum_with_from_str! {
 }
 
 impl Pokemon {
+    pub fn can_mega_evolve(&self) -> bool {
+        // this assumes that if you have the correct mega stone, you can always mega evolve
+        // even if another pkmn on the team already mega evolved
+        // come back to this and fix the logic because some teams have multiple megas
+        if let Some(_mega_evolve_data) = self.id.mega_evolve_target(self.item) {
+            true
+        } else {
+            false
+        }
+    }
     pub fn recalculate_stats(
         &mut self,
         side_ref: SideReference,
@@ -586,6 +629,7 @@ impl Pokemon {
         instructions: &mut StateInstructions,
     ) {
         // recalculate stats from base-stats and push any changes made to the StateInstructions
+        // does NOT update the stats on the pkmn itself, just pushes instructions to update them in the state
         let stats = self.calculate_stats_from_base_stats();
         if stats.1 != self.attack {
             let ins = Instruction::ChangeAttack(ChangeStatInstruction {
@@ -935,6 +979,13 @@ impl Pokemon {
                                 iter.pokemon_move_index,
                             ));
                         }
+                        if self.can_mega_evolve() {
+                            vec.push(MoveChoice::MoveMega(
+                                *slot_ref,
+                                side_ref,
+                                iter.pokemon_move_index,
+                            ));
+                        }
                     }
                 }
             }
@@ -1268,6 +1319,12 @@ impl Side {
         false
     }
 
+    #[cfg(not(feature = "terastallization"))]
+    pub fn can_use_tera(&self) -> bool {
+        false
+    }
+
+    #[cfg(feature = "terastallization")]
     pub fn can_use_tera(&self) -> bool {
         for p in self.pokemon.into_iter() {
             if p.terastallized {
@@ -1401,7 +1458,9 @@ impl State {
             move_options
                 .side_one_combined_options
                 .retain(|(x, _)| match x {
-                    MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
+                    MoveChoice::Move(_, _, _)
+                    | MoveChoice::MoveTera(_, _, _)
+                    | MoveChoice::MoveMega(_, _, _) => true,
                     MoveChoice::Switch(_) => false,
                     MoveChoice::TeamPreview(_, _) => false,
                     MoveChoice::None => true,
@@ -1411,7 +1470,9 @@ impl State {
             move_options
                 .side_one_combined_options
                 .retain(|(_, x)| match x {
-                    MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
+                    MoveChoice::Move(_, _, _)
+                    | MoveChoice::MoveTera(_, _, _)
+                    | MoveChoice::MoveMega(_, _, _) => true,
                     MoveChoice::Switch(_) => false,
                     MoveChoice::TeamPreview(_, _) => false,
                     MoveChoice::None => true,
@@ -1422,7 +1483,9 @@ impl State {
             move_options
                 .side_two_combined_options
                 .retain(|(x, _)| match x {
-                    MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
+                    MoveChoice::Move(_, _, _)
+                    | MoveChoice::MoveTera(_, _, _)
+                    | MoveChoice::MoveMega(_, _, _) => true,
                     MoveChoice::Switch(_) => false,
                     MoveChoice::TeamPreview(_, _) => false,
                     MoveChoice::None => true,
@@ -1432,7 +1495,9 @@ impl State {
             move_options
                 .side_two_combined_options
                 .retain(|(_, x)| match x {
-                    MoveChoice::Move(_, _, _) | MoveChoice::MoveTera(_, _, _) => true,
+                    MoveChoice::Move(_, _, _)
+                    | MoveChoice::MoveTera(_, _, _)
+                    | MoveChoice::MoveMega(_, _, _) => true,
                     MoveChoice::Switch(_) => false,
                     MoveChoice::TeamPreview(_, _) => false,
                     MoveChoice::None => true,

@@ -3019,6 +3019,7 @@ mod tests {
             for &side in &sides {
                 for &mv in &moves {
                     check(MoveChoice::MoveTera(slot, side, mv));
+                    check(MoveChoice::MoveMega(slot, side, mv));
                     check(MoveChoice::Move(slot, side, mv));
                 }
             }
@@ -3043,6 +3044,6 @@ mod tests {
         // TeamPreview: 6 * 6 = 36
         // None:        1
         // Total:       75
-        assert_eq!(seen.len(), 75);
+        assert_eq!(seen.len(), 91);
     }
 }

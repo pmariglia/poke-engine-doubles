@@ -20,6 +20,9 @@ fmt:
 gen9:
 	cargo build --release --features gen9,terastallization --no-default-features
 
+champions:
+	cargo build --release --features gen9 --no-default-features
+
 test:
 	cargo test --no-default-features --features "terastallization"
 	cargo test --no-default-features --features "gen9"

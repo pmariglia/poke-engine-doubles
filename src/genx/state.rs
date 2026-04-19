@@ -97,6 +97,14 @@ impl MoveOptions {
                     continue;
                 }
 
+                // Check if both slots are trying to mega
+                if matches!(slot_a_choice, MoveChoice::MoveMega(_, _, _))
+                    && matches!(slot_b_choice, MoveChoice::MoveMega(_, _, _))
+                {
+                    // Skip this combination - both Pokémon cannot mega evolve together
+                    continue;
+                }
+
                 combined_options.push((*slot_a_choice, *slot_b_choice));
             }
         }
@@ -699,6 +707,7 @@ impl Pokemon {
         opponent_slot_b: &Pokemon,
         pkmn_move_index: PokemonMoveIndex,
         can_tera: bool,
+        can_mega: bool,
     ) {
         if opponent_slot_a.hp > 0 {
             vec.push(MoveChoice::Move(
@@ -708,6 +717,13 @@ impl Pokemon {
             ));
             if can_tera {
                 vec.push(MoveChoice::MoveTera(
+                    SlotReference::SlotA,
+                    opponent_side_ref,
+                    pkmn_move_index,
+                ));
+            }
+            if can_mega {
+                vec.push(MoveChoice::MoveMega(
                     SlotReference::SlotA,
                     opponent_side_ref,
                     pkmn_move_index,
@@ -727,6 +743,13 @@ impl Pokemon {
                     pkmn_move_index,
                 ));
             }
+            if can_mega {
+                vec.push(MoveChoice::MoveMega(
+                    SlotReference::SlotB,
+                    opponent_side_ref,
+                    pkmn_move_index,
+                ));
+            }
         }
     }
 
@@ -741,6 +764,7 @@ impl Pokemon {
         pokemon_move_index: PokemonMoveIndex,
         partner: &Pokemon,
         mut can_tera: bool,
+        can_mega: bool,
     ) {
         // Conditionally add single target moves to the vec
         // checks if it makes sense to use this move
@@ -760,6 +784,7 @@ impl Pokemon {
                     opponent_targets.1,
                     pokemon_move_index,
                     can_tera,
+                    can_mega,
                 ),
                 _ => {}
             },
@@ -777,6 +802,13 @@ impl Pokemon {
                         pokemon_move_index,
                     ));
                 }
+                if can_mega {
+                    vec.push(MoveChoice::MoveMega(
+                        slot_ref.get_other_slot(),
+                        side_ref,
+                        pokemon_move_index,
+                    ));
+                }
             }
             // only targeting ally makes sense (i.e. never target opponents)
             Choices::BEATUP => {
@@ -789,6 +821,13 @@ impl Pokemon {
                         ));
                         if can_tera {
                             vec.push(MoveChoice::MoveTera(
+                                slot_ref.get_other_slot(),
+                                side_ref,
+                                pokemon_move_index,
+                            ));
+                        }
+                        if can_mega {
+                            vec.push(MoveChoice::MoveMega(
                                 slot_ref.get_other_slot(),
                                 side_ref,
                                 pokemon_move_index,
@@ -818,6 +857,13 @@ impl Pokemon {
                             pokemon_move_index,
                         ));
                     }
+                    if can_mega {
+                        vec.push(MoveChoice::MoveMega(
+                            slot_ref.get_other_slot(),
+                            side_ref,
+                            pokemon_move_index,
+                        ));
+                    }
                 }
                 self.add_moves_from_opponent_targets(
                     vec,
@@ -826,6 +872,7 @@ impl Pokemon {
                     opponent_targets.1,
                     pokemon_move_index,
                     can_tera,
+                    can_mega,
                 )
             }
             Choices::POLLENPUFF | Choices::FLORALHEALING if partner_alive => {
@@ -848,6 +895,7 @@ impl Pokemon {
                     opponent_targets.1,
                     pokemon_move_index,
                     can_tera,
+                    can_mega,
                 )
             }
             Choices::TAUNT => {
@@ -859,6 +907,13 @@ impl Pokemon {
                     ));
                     if can_tera {
                         vec.push(MoveChoice::MoveTera(
+                            SlotReference::SlotA,
+                            side_ref.get_other_side(),
+                            pokemon_move_index,
+                        ));
+                    }
+                    if can_mega {
+                        vec.push(MoveChoice::MoveMega(
                             SlotReference::SlotA,
                             side_ref.get_other_side(),
                             pokemon_move_index,
@@ -878,6 +933,13 @@ impl Pokemon {
                             pokemon_move_index,
                         ));
                     }
+                    if can_mega {
+                        vec.push(MoveChoice::MoveMega(
+                            SlotReference::SlotB,
+                            side_ref.get_other_side(),
+                            pokemon_move_index,
+                        ));
+                    }
                 }
             }
             // default: only try to target opponents with single-target moves
@@ -888,6 +950,7 @@ impl Pokemon {
                 opponent_targets.1,
                 pokemon_move_index,
                 can_tera,
+                can_mega,
             ),
         }
     }
@@ -906,6 +969,7 @@ impl Pokemon {
         taunted: bool,
         can_tera: bool,
     ) {
+        let can_mega = self.can_mega_evolve();
         let cannot_use_status_moves = self.item == Items::ASSAULTVEST || taunted;
 
         let mut iter = self.moves.into_iter();
@@ -946,6 +1010,7 @@ impl Pokemon {
                             iter.pokemon_move_index,
                             partner,
                             can_tera,
+                            can_mega,
                         );
                     }
                     MoveChoiceTarget::Ally => {
@@ -957,6 +1022,13 @@ impl Pokemon {
 
                         if can_tera {
                             vec.push(MoveChoice::MoveTera(
+                                slot_ref.get_other_slot(),
+                                side_ref,
+                                iter.pokemon_move_index,
+                            ));
+                        }
+                        if can_mega {
+                            vec.push(MoveChoice::MoveMega(
                                 slot_ref.get_other_slot(),
                                 side_ref,
                                 iter.pokemon_move_index,
@@ -979,7 +1051,7 @@ impl Pokemon {
                                 iter.pokemon_move_index,
                             ));
                         }
-                        if self.can_mega_evolve() {
+                        if can_mega {
                             vec.push(MoveChoice::MoveMega(
                                 *slot_ref,
                                 side_ref,

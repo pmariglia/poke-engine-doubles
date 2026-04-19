@@ -1,6 +1,8 @@
 use poke_engine::choices::{Choices, MOVES};
 use poke_engine::engine::abilities::Abilities;
+use poke_engine::engine::items::Items;
 use poke_engine::engine::state::{MoveChoice, MoveOptions, PokemonVolatileStatus};
+use poke_engine::pokemon::PokemonName;
 use poke_engine::state::{
     LastUsedMove, Move, PokemonIndex, PokemonMoveIndex, PokemonMoves, SideReference, SlotReference,
     State,
@@ -969,4 +971,229 @@ fn test_fainted_commanding_pkmn_must_switch() {
     // fainted commanding pokemon must switch
     let expected_s1_options = vec![(MoveChoice::Switch(PokemonIndex::P2), MoveChoice::None)];
     assert_eq!(expected_s1_options, move_options.side_one_combined_options);
+}
+
+#[test]
+fn test_mega_evolution_is_an_option_when_pkmn_can_mega() {
+    let mut state = State::default();
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
+
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+
+    // Give slot A a pokemon with a mega stone (e.g. Charizard + Charizarditex)
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::CHARIZARD;
+    state.sides[0].pokemon.pkmn[0].item = Items::CHARIZARDITEX;
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+    state.sides[1].pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
+
+    let has_mega_option = move_options
+        .side_one_combined_options
+        .iter()
+        .any(|(a, _)| matches!(a, MoveChoice::MoveMega(_, _, _)));
+
+    assert!(
+        has_mega_option,
+        "Expected a MoveMega option for a pokemon holding a mega stone"
+    );
+}
+
+#[test]
+fn test_mega_evolution_is_not_an_option_when_pkmn_cannot_mega() {
+    let mut state = State::default();
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
+
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+
+    // no mega stone
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+    state.sides[1].pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
+
+    let has_mega_option = move_options.side_one_combined_options.iter().any(|(a, b)| {
+        matches!(a, MoveChoice::MoveMega(_, _, _)) || matches!(b, MoveChoice::MoveMega(_, _, _))
+    });
+
+    assert!(
+        !has_mega_option,
+        "Expected no MoveMega option for a pokemon without a mega stone"
+    );
+}
+
+#[test]
+fn test_only_one_slot_can_mega_evolve_per_turn() {
+    let mut state = State::default();
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
+
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+
+    // slot A can mega, slot B cannot
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::CHARIZARD;
+    state.sides[0].pokemon.pkmn[0].item = Items::CHARIZARDITEX;
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+    state.sides[0].pokemon.pkmn[1].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+    state.sides[1].pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+    state.sides[1].pokemon.pkmn[1].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
+
+    // slot B should never appear as the mega slot
+    let slot_b_ever_megas = move_options
+        .side_one_combined_options
+        .iter()
+        .any(|(_, b)| matches!(b, MoveChoice::MoveMega(_, _, _)));
+
+    assert!(
+        !slot_b_ever_megas,
+        "Slot B should not have a MoveMega option when it cannot mega evolve"
+    );
+
+    // slot A should have at least one mega option
+    let slot_a_has_mega = move_options
+        .side_one_combined_options
+        .iter()
+        .any(|(a, _)| matches!(a, MoveChoice::MoveMega(_, _, _)));
+
+    assert!(
+        slot_a_has_mega,
+        "Slot A should have a MoveMega option when it can mega evolve"
+    );
+}
+
+#[test]
+fn test_both_slots_cannot_mega_evolve_in_same_turn() {
+    // both slots should be able to use MoveMega simultaneously.
+    let mut state = State::default();
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
+
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+
+    // slot A and slot B hold mega stones
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::CHARIZARD;
+    state.sides[0].pokemon.pkmn[0].item = Items::CHARIZARDITEX;
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+    state.sides[0].pokemon.pkmn[1].id = PokemonName::BLASTOISE;
+    state.sides[0].pokemon.pkmn[1].item = Items::BLASTOISINITE;
+    state.sides[0].pokemon.pkmn[1].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+    state.sides[1].pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+    state.sides[1].pokemon.pkmn[1].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
+
+    let double_mega_exists = move_options.side_one_combined_options.iter().any(|(a, b)| {
+        matches!(a, MoveChoice::MoveMega(_, _, _)) && matches!(b, MoveChoice::MoveMega(_, _, _))
+    });
+
+    assert!(
+        !double_mega_exists,
+        "Both active pokemon should not be able to mega evolve in the same turn"
+    );
 }

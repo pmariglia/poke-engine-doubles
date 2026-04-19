@@ -44,6 +44,8 @@ use std::cmp;
 use crate::choices::MultiAccuracyMove;
 use crate::pokemon::PokemonName;
 
+pub const PARALYSIS_CHANCE: f32 = 0.125;
+pub const THAW_CHANCE: f32 = 0.25;
 pub const BASE_CRIT_CHANCE: f32 = 1.0 / 24.0;
 pub const MAX_SLEEP_TURNS: i8 = 3;
 pub const HIT_SELF_IN_CONFUSION_CHANCE: f32 = 1.0 / 3.0;
@@ -2157,18 +2159,18 @@ fn generate_instructions_from_existing_status_conditions(
         PokemonStatus::PARALYZE => {
             // Fully-Paralyzed Branch
             let mut fully_paralyzed_instruction = incoming_instructions.clone();
-            fully_paralyzed_instruction.update_percentage(0.25);
+            fully_paralyzed_instruction.update_percentage(PARALYSIS_CHANCE);
             final_instructions.push((fully_paralyzed_instruction, remaining_to_move.clone()));
 
             // Non-Paralyzed Branch
-            incoming_instructions.update_percentage(0.75);
+            incoming_instructions.update_percentage(1.0 - PARALYSIS_CHANCE);
         }
         PokemonStatus::FREEZE => {
             let mut still_frozen_instruction = incoming_instructions.clone();
-            still_frozen_instruction.update_percentage(0.80);
+            still_frozen_instruction.update_percentage(1.0 - THAW_CHANCE);
             final_instructions.push((still_frozen_instruction, remaining_to_move.clone()));
 
-            incoming_instructions.update_percentage(0.20);
+            incoming_instructions.update_percentage(THAW_CHANCE);
             attacker_active.status = PokemonStatus::NONE;
             incoming_instructions
                 .instruction_list

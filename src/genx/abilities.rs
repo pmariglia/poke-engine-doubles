@@ -343,6 +343,10 @@ define_enum_with_from_str! {
         WELLBAKEDBODY,
         WINDPOWER,
         ZEROTOHERO,
+        MEGASOL,
+        DRAGONIZE,
+        SPICYSPRAY,
+        PIERCINGDRILL,
     },
     default = NONE
 }

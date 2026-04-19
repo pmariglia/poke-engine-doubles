@@ -771,7 +771,7 @@ impl PyPokemon {
         base_ability="".to_string(),
         item="none".to_string(),
         nature="serious".to_string(),
-        evs=(85, 85, 85, 85, 85, 85),
+        evs=(11, 11, 11, 11, 11, 11),
         attack=100,
         defense=100,
         special_attack=100,

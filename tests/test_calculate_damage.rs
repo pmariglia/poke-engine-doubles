@@ -22,7 +22,7 @@ fn test_basic_damage_calculation() {
         &Choice::default(),
     );
 
-    assert_eq!(damage_rolls, Some(vec![52, 78]));
+    assert_eq!(damage_rolls, Some(vec![28, 42]));
 }
 
 #[test]
@@ -61,7 +61,7 @@ fn test_seismictoss_does_static_damage() {
         &Choice::default(),
     );
 
-    assert_eq!(damage_rolls, Some(vec![100]));
+    assert_eq!(damage_rolls, Some(vec![50]));
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn test_spread_move_damage_reduction() {
         &Choice::default(),
     );
 
-    assert_eq!(damage_rolls, Some(vec![39, 58]));
+    assert_eq!(damage_rolls, Some(vec![21, 31]));
 }
 
 #[test]
@@ -100,7 +100,7 @@ fn test_spread_move_no_damage_reduction_if_single_target() {
         &Choice::default(),
     );
 
-    assert_eq!(damage_rolls, Some(vec![52, 78]));
+    assert_eq!(damage_rolls, Some(vec![28, 42]));
 }
 
 #[test]

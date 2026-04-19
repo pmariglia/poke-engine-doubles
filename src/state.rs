@@ -917,7 +917,7 @@ impl Default for Pokemon {
     fn default() -> Pokemon {
         Pokemon {
             id: PokemonName::NONE,
-            level: 100,
+            level: 50,
             types: (PokemonType::NORMAL, PokemonType::TYPELESS),
             base_types: (PokemonType::NORMAL, PokemonType::TYPELESS),
             hp: 100,
@@ -926,7 +926,7 @@ impl Default for Pokemon {
             base_ability: Abilities::NONE,
             item: Items::NONE,
             nature: PokemonNature::SERIOUS,
-            evs: (85, 85, 85, 85, 85, 85),
+            evs: (11, 11, 11, 11, 11, 11),
             attack: 100,
             defense: 100,
             special_attack: 100,
@@ -1062,7 +1062,7 @@ impl Pokemon {
                 ev_iter.next().unwrap().parse::<u8>().unwrap(),
             )
         } else {
-            (85, 85, 85, 85, 85, 85)
+            (11, 11, 11, 11, 11, 11)
         };
         let mut stellar_boosted_types = HashSet::new();
         if split[29] != "" {

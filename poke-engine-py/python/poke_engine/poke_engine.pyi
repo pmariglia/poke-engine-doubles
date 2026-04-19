@@ -245,7 +245,7 @@ class Pokemon:
         base_ability: str = "",
         item: str = "none",
         nature: str = "serious",
-        evs: Tuple[int, int, int, int, int, int] = (85, 85, 85, 85, 85, 85),
+        evs: Tuple[int, int, int, int, int, int] = (11, 11, 11, 11, 11, 11),
         attack: int = 100,
         defense: int = 100,
         special_attack: int = 100,

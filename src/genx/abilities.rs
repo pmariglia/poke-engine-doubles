@@ -2693,6 +2693,13 @@ pub fn ability_modify_attack_against(
                     });
                 }
             }
+            Abilities::SPICYSPRAY => {
+                attacker_choice.add_or_create_secondaries(Secondary {
+                    chance: 100.0,
+                    target: MoveTarget::User,
+                    effect: Effect::Status(PokemonStatus::BURN),
+                });
+            }
             Abilities::GOOEY => {
                 if attacker_choice.flags.contact {
                     attacker_choice.add_or_create_secondaries(Secondary {

@@ -517,7 +517,7 @@ pub fn item_before_move(
         ),
         Items::BABIRIBERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::BABIRIBERRY,
@@ -526,7 +526,7 @@ pub fn item_before_move(
         ),
         Items::CHARTIBERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::CHARTIBERRY,
@@ -550,7 +550,7 @@ pub fn item_before_move(
         }
         Items::COBABERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::COBABERRY,
@@ -559,7 +559,7 @@ pub fn item_before_move(
         ),
         Items::COLBURBERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::COLBURBERRY,
@@ -568,7 +568,7 @@ pub fn item_before_move(
         ),
         Items::HABANBERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::HABANBERRY,
@@ -577,7 +577,7 @@ pub fn item_before_move(
         ),
         Items::KASIBBERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::KASIBBERRY,
@@ -586,7 +586,7 @@ pub fn item_before_move(
         ),
         Items::KEBIABERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::KEBIABERRY,
@@ -595,7 +595,7 @@ pub fn item_before_move(
         ),
         Items::OCCABERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::OCCABERRY,
@@ -604,7 +604,7 @@ pub fn item_before_move(
         ),
         Items::PASSHOBERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::PASSHOBERRY,
@@ -613,7 +613,7 @@ pub fn item_before_move(
         ),
         Items::PAYAPABERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::PAYAPABERRY,
@@ -622,7 +622,7 @@ pub fn item_before_move(
         ),
         Items::RINDOBERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::RINDOBERRY,
@@ -631,7 +631,7 @@ pub fn item_before_move(
         ),
         Items::ROSELIBERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::ROSELIBERRY,
@@ -640,7 +640,7 @@ pub fn item_before_move(
         ),
         Items::SHUCABERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::SHUCABERRY,
@@ -649,7 +649,7 @@ pub fn item_before_move(
         ),
         Items::TANGABERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::TANGABERRY,
@@ -658,7 +658,7 @@ pub fn item_before_move(
         ),
         Items::WACANBERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::WACANBERRY,
@@ -667,7 +667,7 @@ pub fn item_before_move(
         ),
         Items::YACHEBERRY => damage_reduction_berry(
             target_pkmn,
-            attacking_side_ref,
+            target_side_ref,
             target_active_index,
             choice,
             Items::YACHEBERRY,

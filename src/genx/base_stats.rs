@@ -94,6 +94,13 @@ impl PokemonName {
             PokemonName::VICTREEBELMEGA => (100, 100, 100, 100, 100, 100),
             PokemonName::STARMIEMEGA => (60, 140, 105, 130, 105, 120),
             PokemonName::HAWLUCHAMEGA => (78, 137, 100, 74, 93, 118),
+            PokemonName::SKARMORYMEGA => (65, 140, 110, 40, 100, 110),
+            PokemonName::MEOWSTICMEGA => (74, 48, 76, 143, 101, 124),
+            PokemonName::FROSLASSMEGA => (70, 80, 70, 140, 100, 120),
+            PokemonName::EXCADRILLMEGA => (110, 165, 100, 65, 65, 103),
+            PokemonName::DRAMPAMEGA => (78, 85, 110, 160, 114, 36),
+            PokemonName::CHIMECHOMEGA => (75, 50, 110, 135, 120, 65),
+            PokemonName::CHANDELUREMEGA => (60, 75, 110, 175, 110, 90),
 
             _ => panic!("Base stats not implemented for {}", self),
         }

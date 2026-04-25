@@ -18,9 +18,6 @@ fmt:
 	ruff format poke-engine-py
 
 gen9:
-	cargo build --release --features gen9,terastallization --no-default-features
-
-champions:
 	cargo build --release --features gen9 --no-default-features
 
 test:

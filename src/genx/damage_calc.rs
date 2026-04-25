@@ -314,6 +314,7 @@ fn get_attacking_and_defending_stats(
     defending_slot_ref: &SlotReference,
     state: &State,
     choice: &Choice,
+    effective_weather: Weather,
 ) -> (i16, i16, i16, i16) {
     let mut should_calc_attacker_boost = true;
     let mut should_calc_defender_boost = true;
@@ -488,12 +489,12 @@ fn get_attacking_and_defending_stats(
         _ => panic!("Can only calculate damage for physical or special moves"),
     }
 
-    if state.weather_is_active(&Weather::SNOW)
+    if effective_weather == Weather::SNOW
         && defender.has_type(&PokemonType::ICE)
         && defending_stat == PokemonBoostableStat::Defense
     {
         defending_final_stat = (defending_final_stat as f32 * 1.5) as i16;
-    } else if state.weather_is_active(&Weather::SAND)
+    } else if effective_weather == Weather::SAND
         && defender.has_type(&PokemonType::ROCK)
         && defending_stat == PokemonBoostableStat::SpecialDefense
     {
@@ -628,6 +629,13 @@ pub fn calculate_damage(
     let defending_slot = defending_side.get_slot_immutable(target_slot_ref);
     let attacker = attacking_side.get_active_immutable(attacking_slot_ref);
     let defender = defending_side.get_active_immutable(target_slot_ref);
+
+    let effective_weather = if attacker.ability == Abilities::MEGASOL {
+        Weather::SUN
+    } else {
+        state.get_weather()
+    };
+
     let (attacking_stat, defending_stat, crit_attacking_stat, crit_defending_stat) =
         get_attacking_and_defending_stats(
             attacker,
@@ -638,6 +646,7 @@ pub fn calculate_damage(
             target_slot_ref,
             state,
             &choice,
+            effective_weather,
         );
 
     let (mut damage, mut crit_damage) = common_pkmn_damage_calc(
@@ -649,7 +658,7 @@ pub fn calculate_damage(
         defender,
         defending_stat,
         crit_defending_stat,
-        &state.weather.weather_type,
+        &effective_weather,
         &state.terrain.terrain_type,
         choice,
     );

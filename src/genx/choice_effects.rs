@@ -136,21 +136,31 @@ pub fn choice_change_type(
             }
             Terrain::NONE => {}
         },
-        Choices::WEATHERBALL => match state.weather.weather_type {
-            Weather::SUN | Weather::HARSHSUN => {
+        Choices::WEATHERBALL => {
+            if attacking_side
+                .get_active_immutable(attacking_slot_ref)
+                .ability
+                == Abilities::MEGASOL
+            {
                 attacker_choice.move_type = PokemonType::FIRE;
+            } else {
+                match state.weather.weather_type {
+                    Weather::SUN | Weather::HARSHSUN => {
+                        attacker_choice.move_type = PokemonType::FIRE;
+                    }
+                    Weather::RAIN | Weather::HEAVYRAIN => {
+                        attacker_choice.move_type = PokemonType::WATER;
+                    }
+                    Weather::SAND => {
+                        attacker_choice.move_type = PokemonType::ROCK;
+                    }
+                    Weather::HAIL | Weather::SNOW => {
+                        attacker_choice.move_type = PokemonType::ICE;
+                    }
+                    Weather::NONE => {}
+                }
             }
-            Weather::RAIN | Weather::HEAVYRAIN => {
-                attacker_choice.move_type = PokemonType::WATER;
-            }
-            Weather::SAND => {
-                attacker_choice.move_type = PokemonType::ROCK;
-            }
-            Weather::HAIL | Weather::SNOW => {
-                attacker_choice.move_type = PokemonType::ICE;
-            }
-            Weather::NONE => {}
-        },
+        }
         _ => {}
     }
 }
@@ -402,6 +412,16 @@ pub fn modify_choice(
             }
         }
         Choices::MORNINGSUN | Choices::MOONLIGHT | Choices::SYNTHESIS => {
+            if attacking_side
+                .get_active_immutable(attacking_slot_ref)
+                .ability
+                == Abilities::MEGASOL
+            {
+                attacker_choice.heal = Some(Heal {
+                    target: MoveTarget::User,
+                    amount: 0.667,
+                })
+            }
             match state.weather.weather_type {
                 Weather::SUN => {
                     attacker_choice.heal = Some(Heal {
@@ -571,23 +591,38 @@ pub fn modify_choice(
                 attacker_choice.accuracy = 100.0;
             }
         }
-        Choices::WEATHERBALL => match state.weather.weather_type {
-            Weather::SUN | Weather::HARSHSUN => {
+        Choices::WEATHERBALL => {
+            if attacking_side
+                .get_active_immutable(attacking_slot_ref)
+                .ability
+                == Abilities::MEGASOL
+            {
                 attacker_choice.base_power = 100.0;
+            } else {
+                match state.weather.weather_type {
+                    Weather::SUN | Weather::HARSHSUN => {
+                        attacker_choice.base_power = 100.0;
+                    }
+                    Weather::RAIN | Weather::HEAVYRAIN => {
+                        attacker_choice.base_power = 100.0;
+                    }
+                    Weather::SAND => {
+                        attacker_choice.base_power = 100.0;
+                    }
+                    Weather::HAIL | Weather::SNOW => {
+                        attacker_choice.base_power = 100.0;
+                    }
+                    Weather::NONE => {}
+                }
             }
-            Weather::RAIN | Weather::HEAVYRAIN => {
-                attacker_choice.base_power = 100.0;
-            }
-            Weather::SAND => {
-                attacker_choice.base_power = 100.0;
-            }
-            Weather::HAIL | Weather::SNOW => {
-                attacker_choice.base_power = 100.0;
-            }
-            Weather::NONE => {}
-        },
+        }
         Choices::SOLARBEAM | Choices::SOLARBLADE => {
-            if state.weather_is_active(&Weather::SUN) || state.weather_is_active(&Weather::HARSHSUN)
+            if attacking_side
+                .get_active_immutable(attacking_slot_ref)
+                .ability
+                == Abilities::MEGASOL
+                || state.weather_is_active(&Weather::SUN)
+                || state.weather_is_active(&Weather::HARSHSUN)
             {
                 attacker_choice.flags.charge = false;
             } else if !state.weather_is_active(&Weather::SUN)
@@ -606,13 +641,18 @@ pub fn modify_choice(
         | Choices::BLEAKWINDSTORM
         | Choices::SANDSEARSTORM
         | Choices::WILDBOLTSTORM => {
-            if state.weather_is_active(&Weather::RAIN)
-                || state.weather_is_active(&Weather::HEAVYRAIN)
+            let effective_weather = if attacking_side
+                .get_active_immutable(attacking_slot_ref)
+                .ability
+                == Abilities::MEGASOL
             {
+                Weather::SUN
+            } else {
+                state.get_weather()
+            };
+            if effective_weather == Weather::RAIN || effective_weather == Weather::HEAVYRAIN {
                 attacker_choice.accuracy = 100.0;
-            } else if state.weather_is_active(&Weather::SUN)
-                || state.weather_is_active(&Weather::HARSHSUN)
-            {
+            } else if effective_weather == Weather::SUN || effective_weather == Weather::HARSHSUN {
                 attacker_choice.accuracy = 50.0;
             }
         }

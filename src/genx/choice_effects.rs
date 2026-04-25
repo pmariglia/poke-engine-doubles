@@ -203,17 +203,17 @@ pub fn modify_choice(
         }
         Choices::DIRECLAW => {
             attacker_choice.add_or_create_secondaries(Secondary {
-                chance: 16.67,
+                chance: 10.00,
                 target: MoveTarget::Target,
                 effect: Effect::Status(PokemonStatus::POISON),
             });
             attacker_choice.add_or_create_secondaries(Secondary {
-                chance: 20.00,
+                chance: 11.125,
                 target: MoveTarget::Target,
                 effect: Effect::Status(PokemonStatus::PARALYZE),
             });
             attacker_choice.add_or_create_secondaries(Secondary {
-                chance: 25.0,
+                chance: 12.25,
                 target: MoveTarget::Target,
                 effect: Effect::Status(PokemonStatus::SLEEP),
             });
@@ -382,6 +382,9 @@ pub fn modify_choice(
             _ => attacker_choice.remove_all_effects(),
         },
         Choices::GROWTH => {
+            // as of writing this, growth should fail in champions if mega-sol is active but
+            // a) that's probably a bug
+            // b) can only have this happen with some skill swap shenanigans, so I won't bother
             if state.weather_is_active(&Weather::SUN) {
                 attacker_choice.boost = Some(Boost {
                     target: MoveTarget::User,

@@ -4338,11 +4338,11 @@ fn add_end_of_turn_instructions(
             }
             if has_saltcure {
                 let active_pkmn = side.get_active(slot_ref);
-                let mut divisor = 8.0;
+                let mut divisor = 16.0;
                 if active_pkmn.has_type(&PokemonType::WATER)
                     || active_pkmn.has_type(&PokemonType::STEEL)
                 {
-                    divisor = 4.0;
+                    divisor = 8.0;
                 }
                 let damage_amount =
                     cmp::min((active_pkmn.maxhp as f32 / divisor) as i16, active_pkmn.hp);
@@ -4501,6 +4501,7 @@ fn execute_move_effects(
       // without some performance hits.
 
     if let Some(boost) = &choice.boost {
+        // known bug: see test_direct_boost_with_spread_move_only_boosts_once
         if final_run_move || boost.target != MoveTarget::User {
             get_instructions_from_boosts(
                 state,

@@ -1386,6 +1386,15 @@ fn get_instructions_from_pivot(
             {
                 continue;
             }
+
+            let saved_move = if let MoveChoice::MoveMega(slot_ref, side_ref, pokemon_move_index) =
+                rtm.move_choice
+            {
+                MoveChoice::Move(slot_ref, side_ref, pokemon_move_index)
+            } else {
+                rtm.move_choice
+            };
+
             let slot = state.get_side(rtm.side_ref).get_slot(&rtm.slot_ref);
             incoming_instructions
                 .instruction_list
@@ -1393,11 +1402,11 @@ fn get_instructions_from_pivot(
                     SetSecondMoveSwitchOutMoveInstruction {
                         side_ref: rtm.side_ref,
                         slot_ref: rtm.slot_ref,
-                        new_choice: rtm.move_choice,
+                        new_choice: saved_move,
                         previous_choice: slot.switch_out_move_second_saved_move,
                     },
                 ));
-            slot.switch_out_move_second_saved_move = rtm.move_choice;
+            slot.switch_out_move_second_saved_move = saved_move;
         }
     }
 }

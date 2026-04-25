@@ -625,6 +625,12 @@ pub fn ability_change_type(
                 attacker_choice.base_power *= 1.2;
             }
         }
+        Abilities::DRAGONIZE => {
+            if attacker_choice.move_type == PokemonType::NORMAL {
+                attacker_choice.move_type = PokemonType::DRAGON;
+                attacker_choice.base_power *= 1.2;
+            }
+        }
         _ => {}
     }
 }

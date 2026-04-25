@@ -244,7 +244,7 @@ impl MoveChoice {
                     )
                     .to_lowercase()
                 } else {
-                    format!("{},tera", mv.id).to_lowercase()
+                    format!("{},mega", mv.id).to_lowercase()
                 }
             }
             MoveChoice::Move(target_slot, target_side, index) => {
@@ -306,6 +306,12 @@ impl MoveChoice {
         } else {
             false
         };
+        let is_mega = if s.ends_with(",mega") {
+            s = s.trim_end_matches(",mega").to_string();
+            true
+        } else {
+            false
+        };
         let parts: Vec<&str> = s.split(',').collect();
         let move_name_part;
         let side_ref_str;
@@ -352,6 +358,12 @@ impl MoveChoice {
             if format!("{:?}", mv.id).to_lowercase() == move_name {
                 return if is_tera {
                     Some(MoveChoice::MoveTera(
+                        target_slot_ref,
+                        target_side_ref,
+                        move_iter.pokemon_move_index,
+                    ))
+                } else if is_mega {
+                    Some(MoveChoice::MoveMega(
                         target_slot_ref,
                         target_side_ref,
                         move_iter.pokemon_move_index,

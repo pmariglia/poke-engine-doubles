@@ -195,6 +195,8 @@ class Pokemon:
     :type sleep_turns: int
     :param weight_kg: Weight in kilograms
     :type weight_kg: float
+    :param mega_evolved: if the Pokemon has mega_evolved
+    :type mega_evolved: bool
     :param terastallized: if the Pokemon is terastallized
     :type terastallized: bool
     :param tera_type: Tera type
@@ -227,6 +229,7 @@ class Pokemon:
     rest_turns: int
     sleep_turns: int
     weight_kg: float
+    mega_evolved: bool
     terastallized: bool
     tera_type: str
     moves: List[Move]
@@ -256,6 +259,7 @@ class Pokemon:
         sleep_turns: int = 0,
         weight_kg: float = 0.0,
         moves: Optional[List[Move]] = None,
+        mega_evolved: bool = False,
         terastallized: bool = False,
         tera_type: str = "typeless",
         times_attacked: int = 0,

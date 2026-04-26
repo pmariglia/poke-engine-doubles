@@ -11,7 +11,8 @@ use poke_engine::instruction::{
     HealInstruction, IncrementTimesAttackedInstruction, InsertStellarBoostedTypeInstruction,
     Instruction, RemoveVolatileStatusInstruction, SetLastUsedMoveInstruction,
     SetSecondMoveSwitchOutMoveInstruction, SetSleepTurnsInstruction, StateInstructions,
-    SwitchInstruction, ToggleForceSwitchInstruction, ToggleTerastallizedInstruction,
+    SwitchInstruction, ToggleForceSwitchInstruction, ToggleMegaEvolvedInstruction,
+    ToggleTerastallizedInstruction,
 };
 use poke_engine::pokemon::PokemonName;
 use poke_engine::state::LastUsedMove;
@@ -2785,6 +2786,10 @@ fn test_slower_pokemon_has_mega_evolution_weather_set_second() {
                 new_types: (PokemonType::FIRE, PokemonType::FLYING),
                 old_types: (PokemonType::NORMAL, PokemonType::TYPELESS),
             }),
+            Instruction::ToggleMegaEvolved(ToggleMegaEvolvedInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+            }),
             Instruction::ChangeWeather(ChangeWeather {
                 new_weather: Weather::SUN,
                 new_weather_turns_remaining: 5,
@@ -2837,6 +2842,10 @@ fn test_slower_pokemon_has_mega_evolution_weather_set_second() {
                 pokemon_index: PokemonIndex::P0,
                 new_types: (PokemonType::ROCK, PokemonType::DARK),
                 old_types: (PokemonType::NORMAL, PokemonType::TYPELESS),
+            }),
+            Instruction::ToggleMegaEvolved(ToggleMegaEvolvedInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
             }),
             Instruction::ChangeWeather(ChangeWeather {
                 new_weather: Weather::SAND,

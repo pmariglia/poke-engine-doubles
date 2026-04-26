@@ -906,6 +906,7 @@ pub struct Pokemon {
     pub rest_turns: i8,
     pub sleep_turns: i8,
     pub weight_kg: f32,
+    pub mega_evolved: bool,
     pub terastallized: bool,
     pub tera_type: PokemonType,
     pub moves: PokemonMoves,
@@ -936,6 +937,7 @@ impl Default for Pokemon {
             rest_turns: 0,
             sleep_turns: 0,
             weight_kg: 1.0,
+            mega_evolved: false,
             terastallized: false,
             tera_type: PokemonType::NORMAL,
             moves: PokemonMoves {
@@ -1015,7 +1017,7 @@ impl Pokemon {
             stellar_boosted_types.push_str(";");
         }
         format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             self.id,
             self.level,
             self.types.0.to_string(),
@@ -1042,6 +1044,7 @@ impl Pokemon {
             self.moves.m1.serialize(),
             self.moves.m2.serialize(),
             self.moves.m3.serialize(),
+            self.mega_evolved,
             self.terastallized,
             self.tera_type.to_string(),
             self.times_attacked,
@@ -1065,8 +1068,8 @@ impl Pokemon {
             (11, 11, 11, 11, 11, 11)
         };
         let mut stellar_boosted_types = HashSet::new();
-        if split[29] != "" {
-            for item in split[29].split(";") {
+        if split[30] != "" {
+            for item in split[30].split(";") {
                 stellar_boosted_types.insert(PokemonType::from_str(item).unwrap());
             }
         }
@@ -1103,9 +1106,10 @@ impl Pokemon {
                 m2: Move::deserialize(split[24]),
                 m3: Move::deserialize(split[25]),
             },
-            terastallized: split[26].parse::<bool>().unwrap(),
-            tera_type: PokemonType::from_str(split[27]).unwrap(),
-            times_attacked: split[28].parse::<u16>().unwrap(),
+            mega_evolved: split[26].parse::<bool>().unwrap(),
+            terastallized: split[27].parse::<bool>().unwrap(),
+            tera_type: PokemonType::from_str(split[28]).unwrap(),
+            times_attacked: split[29].parse::<u16>().unwrap(),
             stellar_boosted_types,
         }
     }
@@ -2422,6 +2426,10 @@ impl State {
                 self.get_side(instruction.side_ref).pokemon[&instruction.pokemon_index]
                     .terastallized ^= true
             }
+            Instruction::ToggleMegaEvolved(instruction) => {
+                self.get_side(instruction.side_ref).pokemon[&instruction.pokemon_index]
+                    .mega_evolved ^= true
+            }
             Instruction::SetLastUsedMove(instruction) => self.set_last_used_move(
                 instruction.side_ref,
                 &instruction.slot_ref,
@@ -2672,6 +2680,10 @@ impl State {
             Instruction::ToggleTerastallized(instruction) => {
                 self.get_side(instruction.side_ref).pokemon[&instruction.pokemon_index]
                     .terastallized ^= true;
+            }
+            Instruction::ToggleMegaEvolved(instruction) => {
+                self.get_side(instruction.side_ref).pokemon[&instruction.pokemon_index]
+                    .mega_evolved ^= true
             }
             Instruction::SetLastUsedMove(instruction) => self.set_last_used_move(
                 instruction.side_ref,

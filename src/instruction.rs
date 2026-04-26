@@ -89,6 +89,7 @@ pub enum Instruction {
     ToggleTrickRoom(ToggleTrickRoomInstruction),
     DecrementTrickRoomTurnsRemaining,
     ToggleForceSwitch(ToggleForceSwitchInstruction),
+    ToggleMegaEvolved(ToggleMegaEvolvedInstruction),
     ToggleTerastallized(ToggleTerastallizedInstruction),
     IncrementTimesAttacked(IncrementTimesAttackedInstruction),
     InsertStellarBoostedType(InsertStellarBoostedTypeInstruction),
@@ -343,6 +344,13 @@ impl fmt::Debug for Instruction {
                 write!(
                     f,
                     "ToggleTerastallized {:?} {:?}",
+                    s.side_ref, s.pokemon_index
+                )
+            }
+            Instruction::ToggleMegaEvolved(s) => {
+                write!(
+                    f,
+                    "ToggleMegaEvolved {:?} {:?}",
                     s.side_ref, s.pokemon_index
                 )
             }
@@ -672,6 +680,12 @@ pub struct ToggleTrickRoomInstruction {
     pub currently_active: bool,
     pub new_trickroom_turns_remaining: i8,
     pub previous_trickroom_turns_remaining: i8,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ToggleMegaEvolvedInstruction {
+    pub side_ref: SideReference,
+    pub pokemon_index: PokemonIndex,
 }
 
 #[derive(Debug, PartialEq, Clone)]

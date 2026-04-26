@@ -1057,8 +1057,9 @@ impl Pokemon {
         disabled: bool,
         taunted: bool,
         can_tera: bool,
+        side_can_mega: bool,
     ) {
-        let can_mega = self.can_mega_evolve();
+        let can_mega = side_can_mega && self.can_mega_evolve();
         let cannot_use_status_moves = self.item == Items::ASSAULTVEST || taunted;
 
         let mut iter = self.moves.into_iter();
@@ -1495,6 +1496,21 @@ impl Side {
         true
     }
 
+    #[cfg(not(feature = "mega"))]
+    pub fn can_use_mega(&self) -> bool {
+        false
+    }
+
+    #[cfg(feature = "mega")]
+    pub fn can_use_mega(&self) -> bool {
+        for p in self.pokemon.into_iter() {
+            if p.mega_evolved {
+                return false;
+            }
+        }
+        true
+    }
+
     pub fn add_switches(&self, vec: &mut Vec<MoveChoice>) {
         let mut iter = self.pokemon.into_iter();
         while let Some(p) = iter.next() {
@@ -1795,6 +1811,7 @@ impl State {
                 disabled,
                 taunted,
                 side.can_use_tera(),
+                side.can_use_mega(),
             );
 
             if !side.trapped(

@@ -20,8 +20,8 @@ use crate::instruction::{
     ChangeVolatileStatusDurationInstruction, ChangeWeather, DecrementRestTurnsInstruction,
     HealInstruction, InsertStellarBoostedTypeInstruction, RemoveVolatileStatusInstruction,
     SetSleepTurnsInstruction, ToggleBatonPassingInstruction,
-    ToggleDamageDealtHitSubstituteInstruction, ToggleShedTailingInstruction,
-    ToggleTrickRoomInstruction,
+    ToggleDamageDealtHitSubstituteInstruction, ToggleMegaEvolvedInstruction,
+    ToggleShedTailingInstruction, ToggleTrickRoomInstruction,
 };
 use crate::instruction::{DamageSubstituteInstruction, ToggleTerastallizedInstruction};
 use crate::instruction::{FormeChangeInstruction, SetLastUsedMoveInstruction};
@@ -4808,6 +4808,16 @@ fn mega_evolve(
             }));
         active_pkmn.types = mega_evolve_data.types;
     }
+
+    instructions
+        .instruction_list
+        .push(Instruction::ToggleMegaEvolved(
+            ToggleMegaEvolvedInstruction {
+                side_ref,
+                pokemon_index: active_index,
+            },
+        ));
+    active_pkmn.mega_evolved = true;
 
     // ability on switch in
     ability_on_switch_in(state, side_ref, &slot_ref, instructions);

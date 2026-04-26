@@ -20,20 +20,27 @@ fmt:
 gen9:
 	cargo build --release --features gen9 --no-default-features
 
+mega:
+	cargo build --release --features mega --no-default-features
+
+tera:
+	cargo build --release --features terastallization --no-default-features
+
 test:
 	cargo test --no-default-features --features "terastallization"
+	cargo test --no-default-features --features "mega"
 	cargo test --no-default-features --features "gen9"
 
 install_ci:
 	pip install -r poke-engine-py/requirements.txt
 	pip install -r poke-engine-py/requirements-dev.txt
-	cd poke-engine-py && maturin develop --features="poke-engine/terastallization"
+	cd poke-engine-py && maturin develop --features="poke-engine/mega"
 
 fmt_ci:
 	cargo fmt -- --check
 	ruff format --check poke-engine-py
 
 test_ci:
-	cargo test --no-default-features --features "terastallization"
+	cargo test --no-default-features --features "mega"
 
 ci: install_ci fmt_ci test_ci

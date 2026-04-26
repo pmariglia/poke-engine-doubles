@@ -974,6 +974,7 @@ fn test_fainted_commanding_pkmn_must_switch() {
 }
 
 #[test]
+#[cfg(feature = "mega")]
 fn test_mega_evolution_is_an_option_when_pkmn_can_mega() {
     let mut state = State::default();
     state.sides[0].pokemon.pkmn[5].terastallized = true;
@@ -1023,6 +1024,56 @@ fn test_mega_evolution_is_an_option_when_pkmn_can_mega() {
 }
 
 #[test]
+#[cfg(not(feature = "mega"))]
+fn test_mega_evolution_is_not_an_option_when_feature_not_enabled() {
+    let mut state = State::default();
+    state.sides[0].pokemon.pkmn[5].terastallized = true;
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].terastallized = true;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
+
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+
+    // Give slot A a pokemon with a mega stone (e.g. Charizard + Charizarditex)
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::CHARIZARD;
+    state.sides[0].pokemon.pkmn[0].item = Items::CHARIZARDITEX;
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+    state.sides[1].pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
+
+    let has_mega_option = move_options.side_one_combined_options.iter().any(|(a, b)| {
+        matches!(a, MoveChoice::MoveMega(_, _, _)) || matches!(b, MoveChoice::MoveMega(_, _, _))
+    });
+
+    assert!(
+        !has_mega_option,
+        "Expected no MoveMega option when feature not enabled"
+    );
+}
+
+#[test]
+#[cfg(feature = "mega")]
 fn test_mega_evolution_is_not_an_option_when_pkmn_cannot_mega() {
     let mut state = State::default();
     state.sides[0].pokemon.pkmn[5].hp = 0;
@@ -1067,6 +1118,55 @@ fn test_mega_evolution_is_not_an_option_when_pkmn_cannot_mega() {
 }
 
 #[test]
+#[cfg(feature = "mega")]
+fn test_cannot_mega_when_teammate_is_mega() {
+    let mut state = State::default();
+    state.sides[0].pokemon.pkmn[5].hp = 0;
+    state.sides[0].pokemon.pkmn[4].hp = 0;
+    state.sides[0].pokemon.pkmn[3].hp = 0;
+    state.sides[0].pokemon.pkmn[2].hp = 0;
+    state.sides[1].pokemon.pkmn[5].hp = 0;
+    state.sides[1].pokemon.pkmn[4].hp = 0;
+    state.sides[1].pokemon.pkmn[3].hp = 0;
+    state.sides[1].pokemon.pkmn[2].hp = 0;
+
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[0].pokemon.pkmn[1].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[0].moves);
+    disable_all_moves(&mut state.sides[1].pokemon.pkmn[1].moves);
+
+    // mega stone, but teammate is mega already
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::CHARIZARD;
+    state.sides[0].pokemon.pkmn[0].item = Items::CHARIZARDITEX;
+    state.sides[0].pokemon.pkmn[1].mega_evolved = true;
+    state.sides[0].pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+    state.sides[1].pokemon.pkmn[0].moves.m0 = Move {
+        id: Choices::TACKLE,
+        disabled: false,
+        pp: 32,
+        choice: MOVES.get(&Choices::TACKLE).unwrap().clone(),
+    };
+
+    let mut move_options = MoveOptions::new();
+    state.get_all_options(&mut move_options);
+
+    let has_mega_option = move_options.side_one_combined_options.iter().any(|(a, b)| {
+        matches!(a, MoveChoice::MoveMega(_, _, _)) || matches!(b, MoveChoice::MoveMega(_, _, _))
+    });
+
+    assert!(
+        !has_mega_option,
+        "Expected no MoveMega option because teammate is mega-evolved"
+    );
+}
+
+#[test]
+#[cfg(feature = "mega")]
 fn test_only_one_slot_can_mega_evolve_per_turn() {
     let mut state = State::default();
     state.sides[0].pokemon.pkmn[5].hp = 0;

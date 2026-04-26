@@ -2294,6 +2294,12 @@ impl State {
                 active.ability =
                     Abilities::from(active.ability as i16 + instruction.ability_change);
             }
+            Instruction::ChangeBaseAbility(instruction) => {
+                let active =
+                    &mut self.get_side(instruction.side_ref).pokemon[&instruction.pokemon_index];
+                active.base_ability =
+                    Abilities::from(active.base_ability as i16 + instruction.ability_change);
+            }
             Instruction::Heal(instruction) => self.heal(
                 instruction.side_ref,
                 &instruction.pokemon_index,
@@ -2542,6 +2548,12 @@ impl State {
                     &mut self.get_side(instruction.side_ref).pokemon[&instruction.pokemon_index];
                 active.ability =
                     Abilities::from(active.ability as i16 - instruction.ability_change);
+            }
+            Instruction::ChangeBaseAbility(instruction) => {
+                let active =
+                    &mut self.get_side(instruction.side_ref).pokemon[&instruction.pokemon_index];
+                active.base_ability =
+                    Abilities::from(active.base_ability as i16 - instruction.ability_change);
             }
             Instruction::EnableMove(instruction) => self.disable_move(
                 instruction.side_ref,

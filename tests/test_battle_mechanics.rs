@@ -2774,6 +2774,11 @@ fn test_slower_pokemon_has_mega_evolution_weather_set_second() {
                 pokemon_index: PokemonIndex::P0,
                 ability_change: Abilities::DROUGHT as i16 - Abilities::NONE as i16,
             }),
+            Instruction::ChangeBaseAbility(ChangeAbilityInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                ability_change: Abilities::DROUGHT as i16 - Abilities::NONE as i16,
+            }),
             Instruction::ChangeType(ChangeType {
                 side_ref: SideReference::SideOne,
                 pokemon_index: PokemonIndex::P0,
@@ -2818,6 +2823,11 @@ fn test_slower_pokemon_has_mega_evolution_weather_set_second() {
                 amount: 52,
             }),
             Instruction::ChangeAbility(ChangeAbilityInstruction {
+                side_ref: SideReference::SideTwo,
+                pokemon_index: PokemonIndex::P0,
+                ability_change: Abilities::SANDSTREAM as i16 - Abilities::NONE as i16,
+            }),
+            Instruction::ChangeBaseAbility(ChangeAbilityInstruction {
                 side_ref: SideReference::SideTwo,
                 pokemon_index: PokemonIndex::P0,
                 ability_change: Abilities::SANDSTREAM as i16 - Abilities::NONE as i16,

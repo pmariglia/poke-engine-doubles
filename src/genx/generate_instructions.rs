@@ -4773,7 +4773,9 @@ fn mega_evolve(
     // change stats
     active_pkmn.recalculate_stats(side_ref, active_index, instructions);
 
-    // change ability
+    // change ability / base_ability
+    // base_ability is used to revert a pokemon's ability when it switches out after mega-evolving,
+    // so it also needs to be changed if the mega evolution changes the pokemon's ability
     if mega_evolve_data.ability != active_pkmn.ability {
         instructions
             .instruction_list
@@ -4783,6 +4785,16 @@ fn mega_evolve(
                 ability_change: mega_evolve_data.ability as i16 - active_pkmn.ability as i16,
             }));
         active_pkmn.ability = mega_evolve_data.ability;
+    }
+    if mega_evolve_data.ability != active_pkmn.base_ability {
+        instructions
+            .instruction_list
+            .push(Instruction::ChangeBaseAbility(ChangeAbilityInstruction {
+                side_ref,
+                pokemon_index: active_index,
+                ability_change: mega_evolve_data.ability as i16 - active_pkmn.base_ability as i16,
+            }));
+        active_pkmn.base_ability = mega_evolve_data.ability;
     }
     // change type
     if mega_evolve_data.types != active_pkmn.types {

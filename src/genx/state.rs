@@ -9,7 +9,7 @@ use crate::instruction::{
 };
 use crate::pokemon::PokemonName;
 use crate::state::{
-    LastUsedMove, Pokemon, PokemonBoostableStat, PokemonIndex, PokemonMoveIndex,
+    LastUsedMove, Pokemon, PokemonBoostableStat, PokemonIndex, PokemonMoveIndex, PokemonNature,
     PokemonSideCondition, PokemonStatus, PokemonType, Side, SideReference, SideSlot, SlotReference,
     State,
 };
@@ -689,14 +689,103 @@ impl Pokemon {
     }
     pub fn calculate_stats_from_base_stats(&self) -> (i16, i16, i16, i16, i16, i16) {
         let base_stats = self.id.base_stats();
-        (
+        let mut result = (
             base_stats.0 + self.evs.0 as i16 + 75,
             base_stats.1 + self.evs.1 as i16 + 20,
             base_stats.2 + self.evs.2 as i16 + 20,
             base_stats.3 + self.evs.3 as i16 + 20,
             base_stats.4 + self.evs.4 as i16 + 20,
             base_stats.5 + self.evs.5 as i16 + 20,
-        )
+        );
+        match self.nature {
+            PokemonNature::LONELY => {
+                result.1 = result.1 * 11 / 10; // +Atk
+                result.2 = result.2 * 9 / 10; // -Def
+            }
+            PokemonNature::ADAMANT => {
+                result.1 = result.1 * 11 / 10; // +Atk
+                result.3 = result.3 * 9 / 10; // -SpA
+            }
+            PokemonNature::NAUGHTY => {
+                result.1 = result.1 * 11 / 10; // +Atk
+                result.4 = result.4 * 9 / 10; // -SpD
+            }
+            PokemonNature::BRAVE => {
+                result.1 = result.1 * 11 / 10; // +Atk
+                result.5 = result.5 * 9 / 10; // -Spe
+            }
+            PokemonNature::BOLD => {
+                result.2 = result.2 * 11 / 10; // +Def
+                result.1 = result.1 * 9 / 10; // -Atk
+            }
+            PokemonNature::IMPISH => {
+                result.2 = result.2 * 11 / 10; // +Def
+                result.3 = result.3 * 9 / 10; // -SpA
+            }
+            PokemonNature::LAX => {
+                result.2 = result.2 * 11 / 10; // +Def
+                result.4 = result.4 * 9 / 10; // -SpD
+            }
+            PokemonNature::RELAXED => {
+                result.2 = result.2 * 11 / 10; // +Def
+                result.5 = result.5 * 9 / 10; // -Spe
+            }
+            PokemonNature::MODEST => {
+                result.3 = result.3 * 11 / 10; // +SpA
+                result.1 = result.1 * 9 / 10; // -Atk
+            }
+            PokemonNature::MILD => {
+                result.3 = result.3 * 11 / 10; // +SpA
+                result.2 = result.2 * 9 / 10; // -Def
+            }
+            PokemonNature::RASH => {
+                result.3 = result.3 * 11 / 10; // +SpA
+                result.4 = result.4 * 9 / 10; // -SpD
+            }
+            PokemonNature::QUIET => {
+                result.3 = result.3 * 11 / 10; // +SpA
+                result.5 = result.5 * 9 / 10; // -Spe
+            }
+            PokemonNature::CALM => {
+                result.4 = result.4 * 11 / 10; // +SpD
+                result.1 = result.1 * 9 / 10; // -Atk
+            }
+            PokemonNature::GENTLE => {
+                result.4 = result.4 * 11 / 10; // +SpD
+                result.2 = result.2 * 9 / 10; // -Def
+            }
+            PokemonNature::CAREFUL => {
+                result.4 = result.4 * 11 / 10; // +SpD
+                result.3 = result.3 * 9 / 10; // -SpA
+            }
+            PokemonNature::SASSY => {
+                result.4 = result.4 * 11 / 10; // +SpD
+                result.5 = result.5 * 9 / 10; // -Spe
+            }
+            PokemonNature::TIMID => {
+                result.5 = result.5 * 11 / 10; // +Spe
+                result.1 = result.1 * 9 / 10; // -Atk
+            }
+            PokemonNature::HASTY => {
+                result.5 = result.5 * 11 / 10; // +Spe
+                result.2 = result.2 * 9 / 10; // -Def
+            }
+            PokemonNature::JOLLY => {
+                result.5 = result.5 * 11 / 10; // +Spe
+                result.3 = result.3 * 9 / 10; // -SpA
+            }
+            PokemonNature::NAIVE => {
+                result.5 = result.5 * 11 / 10; // +Spe
+                result.4 = result.4 * 9 / 10; // -SpD
+            }
+            // Neutral natures: no change
+            PokemonNature::HARDY
+            | PokemonNature::DOCILE
+            | PokemonNature::SERIOUS
+            | PokemonNature::BASHFUL
+            | PokemonNature::QUIRKY => {}
+        }
+        result
     }
 
     fn add_moves_from_opponent_targets(

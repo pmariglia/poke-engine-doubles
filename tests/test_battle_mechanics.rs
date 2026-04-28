@@ -6409,6 +6409,56 @@ fn test_intimidate_into_defiant() {
 }
 
 #[test]
+fn test_intimidate_into_competitive() {
+    let mut state = State::default();
+    state.sides[0].pokemon.pkmn[2].ability = Abilities::INTIMIDATE;
+    state.sides[1].pokemon.pkmn[0].ability = Abilities::COMPETITIVE;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::Switch(PokemonIndex::P2),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::Switch(SwitchInstruction {
+                side_ref: SideReference::SideOne,
+                slot_ref: SlotReference::SlotA,
+                previous_index: PokemonIndex::P0,
+                next_index: PokemonIndex::P2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::Attack,
+                amount: -1,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotA,
+                stat: PokemonBoostableStat::SpecialAttack,
+                amount: 2,
+            }),
+            Instruction::Boost(BoostInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotB,
+                stat: PokemonBoostableStat::Attack,
+                amount: -1,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_intimidate_with_mirrorherb_into_defiant() {
     let mut state = State::default();
     state.sides[0].pokemon.pkmn[2].ability = Abilities::INTIMIDATE;

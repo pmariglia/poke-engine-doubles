@@ -991,6 +991,22 @@ pub fn apply_boost_instructions(
                     }));
                 target_slot.attack_boost += defiant_boost_amount;
                 stat_positively_boosted = true;
+            } else if boost_amount < 0
+                && target_pkmn_ability == Abilities::COMPETITIVE
+                && attacking_side_ref != target_side_ref
+                && target_slot.special_attack_boost < 6
+            {
+                let competitive_boost_amount = cmp::min(6 - target_slot.special_attack_boost, 2);
+                instructions
+                    .instruction_list
+                    .push(Instruction::Boost(BoostInstruction {
+                        side_ref: target_side_ref,
+                        slot_ref: *target_slot_ref,
+                        stat: PokemonBoostableStat::SpecialAttack,
+                        amount: competitive_boost_amount,
+                    }));
+                target_slot.special_attack_boost += competitive_boost_amount;
+                stat_positively_boosted = true;
             }
             if stat_positively_boosted {
                 for slot_ref in [SlotReference::SlotA, SlotReference::SlotB] {

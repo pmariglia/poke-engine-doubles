@@ -1201,6 +1201,7 @@ pub fn choice_before_move(
                 attacking_side_ref,
                 attacking_side_ref,
                 attacking_slot_ref,
+                *attacking_slot_ref,
                 instructions,
             );
         }
@@ -1479,6 +1480,7 @@ pub fn choice_special_effect(
                 attacking_side_ref,
                 attacking_side_ref,
                 slot_a,
+                *slot_a,
                 instructions,
             );
             apply_boost_instructions(
@@ -1489,6 +1491,7 @@ pub fn choice_special_effect(
                 attacking_side_ref,
                 attacking_side_ref,
                 slot_b,
+                *slot_b,
                 instructions,
             );
         }

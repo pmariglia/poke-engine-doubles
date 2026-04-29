@@ -500,6 +500,7 @@ pub fn commander_activating(
             attacking_side_ref,
             attacking_side_ref,
             &commander_slot_ref.get_other_slot(),
+            commander_slot_ref.get_other_slot(),
             instructions,
         );
     }
@@ -812,6 +813,7 @@ pub fn ability_after_damage_hit(
                         attacking_side_ref,
                         attacking_side_ref,
                         attacking_slot_ref,
+                        *attacking_slot_ref,
                         instructions,
                     );
                     apply_boost_instructions(
@@ -822,6 +824,7 @@ pub fn ability_after_damage_hit(
                         attacking_side_ref,
                         attacking_side_ref,
                         attacking_slot_ref,
+                        *attacking_slot_ref,
                         instructions,
                     );
                     apply_boost_instructions(
@@ -832,6 +835,7 @@ pub fn ability_after_damage_hit(
                         attacking_side_ref,
                         attacking_side_ref,
                         attacking_slot_ref,
+                        *attacking_slot_ref,
                         instructions,
                     );
                 }
@@ -884,6 +888,7 @@ pub fn ability_after_damage_hit(
                         attacking_side_ref,
                         attacking_side_ref,
                         attacking_slot_ref,
+                        *attacking_slot_ref,
                         instructions,
                     );
                 }
@@ -905,6 +910,7 @@ pub fn ability_after_damage_hit(
                         attacking_side_ref,
                         attacking_side_ref,
                         attacking_slot_ref,
+                        *attacking_slot_ref,
                         instructions,
                     );
                 }
@@ -927,6 +933,7 @@ pub fn ability_after_damage_hit(
                         attacking_side_ref,
                         attacking_side_ref,
                         attacking_slot_ref,
+                        *attacking_slot_ref,
                         instructions,
                     );
                 }
@@ -979,6 +986,7 @@ pub fn ability_after_damage_hit(
                             target_side_ref,
                             attacking_side_ref,
                             attacking_slot_ref,
+                            *target_slot_ref, // todo: does this make sense? Write a test for this
                             instructions,
                         );
                     } else if defending_pkmn.id == PokemonName::CRAMORANTGORGING {
@@ -1027,7 +1035,8 @@ pub fn ability_after_damage_hit(
                         &1,
                         attacking_side_ref,
                         target_side_ref,
-                        target_slot_ref,
+                        attacking_slot_ref,
+                        *target_slot_ref,
                         instructions,
                     );
                 }
@@ -1042,7 +1051,8 @@ pub fn ability_after_damage_hit(
                         &-1,
                         target_side_ref,
                         attacking_side_ref,
-                        attacking_slot_ref,
+                        target_slot_ref,
+                        *attacking_slot_ref,
                         instructions,
                     );
                 }
@@ -1107,6 +1117,7 @@ pub fn ability_after_damage_hit(
                         target_side_ref,
                         target_side_ref,
                         target_slot_ref,
+                        *target_slot_ref,
                         instructions,
                     );
                 }
@@ -1687,6 +1698,7 @@ pub fn ability_on_switch_in(
                     side_ref,
                     side_ref,
                     slot_ref,
+                    *slot_ref,
                     instructions,
                 );
             }
@@ -1699,6 +1711,7 @@ pub fn ability_on_switch_in(
                     side_ref,
                     side_ref,
                     slot_ref,
+                    *slot_ref,
                     instructions,
                 );
             }
@@ -1711,6 +1724,7 @@ pub fn ability_on_switch_in(
                     side_ref,
                     side_ref,
                     slot_ref,
+                    *slot_ref,
                     instructions,
                 );
             }
@@ -1723,6 +1737,7 @@ pub fn ability_on_switch_in(
                     side_ref,
                     side_ref,
                     slot_ref,
+                    *slot_ref,
                     instructions,
                 );
             }
@@ -1850,7 +1865,8 @@ pub fn ability_on_switch_in(
                         &-1,
                         side_ref,
                         side_ref.get_other_side(),
-                        &slot,
+                        slot_ref,
+                        slot,
                         instructions,
                     ) {
                         let (defender, pkmn_index) = defending_side.get_active_with_index(slot_ref);
@@ -1863,6 +1879,7 @@ pub fn ability_on_switch_in(
                                 side_ref.get_other_side(),
                                 side_ref.get_other_side(),
                                 &slot,
+                                slot,
                                 instructions,
                             ) {
                                 instructions.instruction_list.push(Instruction::ChangeItem(
@@ -1945,6 +1962,7 @@ pub fn ability_on_switch_in(
                         side_ref,
                         side_ref,
                         slot_ref,
+                        *slot_ref,
                         instructions,
                     );
                 } else {
@@ -1956,6 +1974,7 @@ pub fn ability_on_switch_in(
                         side_ref,
                         side_ref,
                         slot_ref,
+                        *slot_ref,
                         instructions,
                     );
                 }

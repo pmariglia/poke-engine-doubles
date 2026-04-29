@@ -379,6 +379,7 @@ fn boost_berry(
         side_ref,
         side_ref,
         slot_ref,
+        *slot_ref,
         instructions,
     );
     let attacking_side = state.get_side(side_ref);
@@ -897,6 +898,7 @@ pub fn item_on_switch_in(
                     side_ref,
                     side_ref,
                     slot_ref,
+                    *slot_ref,
                     instructions,
                 ) {
                     state.get_side(side_ref).get_active(slot_ref).item = Items::NONE;
@@ -921,6 +923,7 @@ pub fn item_on_switch_in(
                     side_ref,
                     side_ref,
                     slot_ref,
+                    *slot_ref,
                     instructions,
                 ) {
                     state.get_side(side_ref).get_active(slot_ref).item = Items::NONE;
@@ -945,6 +948,7 @@ pub fn item_on_switch_in(
                     side_ref,
                     side_ref,
                     slot_ref,
+                    *slot_ref,
                     instructions,
                 ) {
                     state.get_side(side_ref).get_active(slot_ref).item = Items::NONE;
@@ -969,6 +973,7 @@ pub fn item_on_switch_in(
                     side_ref,
                     side_ref,
                     slot_ref,
+                    *slot_ref,
                     instructions,
                 ) {
                     state.get_side(side_ref).get_active(slot_ref).item = Items::NONE;

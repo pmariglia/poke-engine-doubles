@@ -410,6 +410,7 @@ fn generate_instructions_from_switch(
                 switching_side_ref,
                 switching_side_ref,
                 slot_ref,
+                *slot_ref,
                 incoming_instructions,
             );
         }
@@ -922,17 +923,30 @@ pub fn apply_boost_instructions(
     stat: &PokemonBoostableStat,
     boost: &i8,
     attacking_side_ref: SideReference,
-    target_side_ref: SideReference,
-    target_slot_ref: &SlotReference,
+    mut target_side_ref: SideReference,
+    attacking_slot_ref: &SlotReference,
+    mut target_slot_ref: SlotReference,
     instructions: &mut StateInstructions,
 ) -> bool {
     // Single point for checking whether a boost can be applied to a pokemon
     // along with side effects that that boost
     // returns whether the requested boost was actually applied
     let mut boost_was_applied = false;
-    let target_slot = target_side.get_slot_immutable(target_slot_ref);
-    let target_pkmn = target_side.get_active_immutable(target_slot_ref);
+    let target_pkmn = target_side.get_active_immutable(&target_slot_ref);
     let target_pkmn_ability = target_pkmn.ability;
+
+    let (target_side_obj, other_side_obj) = if target_pkmn_ability == Abilities::MIRRORARMOR
+        && boost < &0
+        && attacking_side_ref != target_side_ref
+    {
+        target_side_ref = attacking_side_ref;
+        target_slot_ref = *attacking_slot_ref;
+        (other_side, target_side)
+    } else {
+        (target_side, other_side)
+    };
+    let target_slot = target_side_obj.get_slot_immutable(&target_slot_ref);
+    let target_pkmn = target_side_obj.get_active_immutable(&target_slot_ref);
 
     if boost != &0
         && !(target_side_ref != attacking_side_ref
@@ -944,8 +958,8 @@ pub fn apply_boost_instructions(
         if target_pkmn_ability == Abilities::CONTRARY {
             boost_amount *= -1;
         }
-        boost_amount = get_boost_amount(target_side, target_slot_ref, &stat, boost_amount);
-        let target_slot = target_side.get_slot(target_slot_ref);
+        boost_amount = get_boost_amount(target_side_obj, &target_slot_ref, &stat, boost_amount);
+        let target_slot = target_side_obj.get_slot(&target_slot_ref);
         let mut stat_positively_boosted = false;
         if boost_amount != 0 {
             boost_was_applied = true;
@@ -966,7 +980,7 @@ pub fn apply_boost_instructions(
                 .instruction_list
                 .push(Instruction::Boost(BoostInstruction {
                     side_ref: target_side_ref,
-                    slot_ref: *target_slot_ref,
+                    slot_ref: target_slot_ref,
                     stat: *stat,
                     amount: boost_amount,
                 }));
@@ -985,7 +999,7 @@ pub fn apply_boost_instructions(
                     .instruction_list
                     .push(Instruction::Boost(BoostInstruction {
                         side_ref: target_side_ref,
-                        slot_ref: *target_slot_ref,
+                        slot_ref: target_slot_ref,
                         stat: PokemonBoostableStat::Attack,
                         amount: defiant_boost_amount,
                     }));
@@ -1001,7 +1015,7 @@ pub fn apply_boost_instructions(
                     .instruction_list
                     .push(Instruction::Boost(BoostInstruction {
                         side_ref: target_side_ref,
-                        slot_ref: *target_slot_ref,
+                        slot_ref: target_slot_ref,
                         stat: PokemonBoostableStat::SpecialAttack,
                         amount: competitive_boost_amount,
                     }));
@@ -1010,8 +1024,8 @@ pub fn apply_boost_instructions(
             }
             if stat_positively_boosted {
                 for slot_ref in [SlotReference::SlotA, SlotReference::SlotB] {
-                    let slot_active_item = other_side.get_active_immutable(&slot_ref).item;
-                    let mirror_herb_boost_slot = other_side.get_slot(&slot_ref);
+                    let slot_active_item = other_side_obj.get_active_immutable(&slot_ref).item;
+                    let mirror_herb_boost_slot = other_side_obj.get_slot(&slot_ref);
                     if slot_active_item != Items::MIRRORHERB
                         || mirror_herb_boost_slot.attack_boost == 6
                     {
@@ -1066,7 +1080,8 @@ fn get_instructions_from_boosts(
             boost,
             attacking_side_reference,
             target_side_ref,
-            &target_slot_ref,
+            attacking_slot_reference,
+            target_slot_ref,
             incoming_instructions,
         );
     }

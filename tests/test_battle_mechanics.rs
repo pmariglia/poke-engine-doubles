@@ -3636,6 +3636,56 @@ fn test_helping_hand_being_used_on_ally() {
 }
 
 #[test]
+fn test_side_two_using_helping_hand() {
+    let mut state = State::default();
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::HELPINGHAND,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotB,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice {
+            choice: Choices::TACKLE,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::ApplyVolatileStatus(ApplyVolatileStatusInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotB,
+                volatile_status: PokemonVolatileStatus::HELPINGHAND,
+            }),
+            Instruction::Damage(DamageInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                damage_amount: 38,
+            }),
+            Instruction::RemoveVolatileStatus(RemoveVolatileStatusInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotB,
+                volatile_status: PokemonVolatileStatus::HELPINGHAND,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_aromatic_mist_being_used_on_ally() {
     let mut state = State::default();
 

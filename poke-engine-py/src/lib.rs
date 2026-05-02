@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use pyo3::types::{PyTuple, PyType};
+use pyo3::types::PyType;
 use pyo3::{pyfunction, pymethods, pymodule, wrap_pyfunction, Bound, PyResult};
 use std::collections::HashSet;
 
@@ -963,129 +963,21 @@ impl PyMctsResult {
 }
 
 #[derive(Clone)]
-#[pyclass(
-    name = "TeamPreviewFilterSide",
-    module = "poke_engine",
-    get_all,
-    set_all
-)]
-struct PyTeamPreviewFilterSide {
-    valid_pokemon: Vec<String>,
-    leads: Option<Vec<(String, String)>>,
-}
-
-#[pymethods]
-impl PyTeamPreviewFilterSide {
-    #[new]
-    #[pyo3(signature = (
-        valid_pokemon=Vec::<String>::new(),
-        leads=None,
-    ))]
-    fn new(valid_pokemon: Vec<String>, leads: Option<Vec<(String, String)>>) -> Self {
-        PyTeamPreviewFilterSide {
-            valid_pokemon,
-            leads,
-        }
-    }
-    fn __reduce__(&self, py: Python) -> PyResult<PyObject> {
-        let cls = py.get_type_bound::<PyTeamPreviewFilterSide>();
-        let args = PyTuple::new_bound(
-            py,
-            vec![
-                self.valid_pokemon.clone().into_py(py),
-                self.leads.clone().into_py(py),
-            ],
-        );
-        Ok(
-            PyTuple::new_bound(py, vec![cls.into_any().unbind(), args.into_any().unbind()])
-                .into_any()
-                .unbind(),
-        )
-    }
-}
-
-impl PyTeamPreviewFilterSide {
-    // the valid_pokemon and leads represent pokemon by their names
-    // use these to get PokemonIndex values and return the State::generate_team_preview_options result
-    fn to_team_preview_options(
-        &self,
-        side: &Side,
-    ) -> (Vec<PokemonIndex>, Option<Vec<(PokemonIndex, PokemonIndex)>>) {
-        let mut valid_indices = Vec::new();
-        for name in &self.valid_pokemon {
-            if let Ok(pokemon_name) = PokemonName::from_str(name) {
-                for (index, pokemon) in side.pokemon.into_iter().enumerate() {
-                    if pokemon.id == pokemon_name {
-                        valid_indices.push(PokemonIndex::from(index));
-                        break;
-                    }
-                }
-            }
-        }
-        let leads_indices = if let Some(leads) = &self.leads {
-            let mut lead_indices = Vec::new();
-            for (name1, name2) in leads {
-                let mut index1_opt = None;
-                let mut index2_opt = None;
-                if let Ok(pokemon_name1) = PokemonName::from_str(name1) {
-                    for (index, pokemon) in side.pokemon.into_iter().enumerate() {
-                        if pokemon.id == pokemon_name1 {
-                            index1_opt = Some(PokemonIndex::from(index));
-                            break;
-                        }
-                    }
-                }
-                if let Ok(pokemon_name2) = PokemonName::from_str(name2) {
-                    for (index, pokemon) in side.pokemon.into_iter().enumerate() {
-                        if pokemon.id == pokemon_name2 {
-                            index2_opt = Some(PokemonIndex::from(index));
-                            break;
-                        }
-                    }
-                }
-                if let (Some(index1), Some(index2)) = (index1_opt, index2_opt) {
-                    lead_indices.push((index1, index2));
-                }
-            }
-            Some(lead_indices)
-        } else {
-            None
-        };
-        (valid_indices, leads_indices)
-    }
-}
-
-#[derive(Clone)]
 #[pyclass(name = "TeamPreviewFilters", module = "poke_engine", get_all, set_all)]
 struct PyTeamPreviewFilters {
-    side_one: PyTeamPreviewFilterSide,
-    side_two: PyTeamPreviewFilterSide,
+    side_one: Vec<[u8; 4]>,
+    side_two: Vec<[u8; 4]>,
 }
 
 #[pymethods]
 impl PyTeamPreviewFilters {
     #[new]
     #[pyo3(signature = (
-        side_one=PyTeamPreviewFilterSide::new(Vec::new(), None),
-        side_two=PyTeamPreviewFilterSide::new(Vec::new(), None),
+        side_one=Vec::new(),
+        side_two=Vec::new(),
     ))]
-    fn new(side_one: PyTeamPreviewFilterSide, side_two: PyTeamPreviewFilterSide) -> Self {
+    fn new(side_one: Vec<[u8; 4]>, side_two: Vec<[u8; 4]>) -> Self {
         PyTeamPreviewFilters { side_one, side_two }
-    }
-    fn __reduce__(&self, py: Python) -> PyResult<PyObject> {
-        let cls = py.get_type_bound::<PyTeamPreviewFilters>();
-        let args = PyTuple::new_bound(
-            py,
-            vec![
-                self.side_one.clone().into_py(py),
-                self.side_two.clone().into_py(py),
-            ],
-        );
-        Ok(
-            PyTuple::new_bound(py, vec![cls.into_any().unbind(), args.into_any().unbind()])
-                .into_any()
-                .unbind(),
-        )
     }
 }
 
@@ -1102,16 +994,38 @@ fn mcts_team_preview(
         ));
     }
 
-    let s1_team_preview_options = team_preview_filter
+    let side_one_options_pokemon_index: Vec<[PokemonIndex; 4]> = team_preview_filter
         .side_one
-        .to_team_preview_options(&state.sides[0]);
-    let s1_options =
-        State::generate_team_preview_options(&s1_team_preview_options.0, s1_team_preview_options.1);
-    let s2_team_preview_options = team_preview_filter
+        .iter()
+        .map(|option| {
+            option
+                .iter()
+                .map(|&pkmn_id| PokemonIndex::deserialize(&pkmn_id.to_string()))
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap_or_else(|_| {
+                    panic!("Side one's options must contain exactly 4 Pokémon indices")
+                })
+        })
+        .collect();
+
+    let side_two_options_pokemon_index: Vec<[PokemonIndex; 4]> = team_preview_filter
         .side_two
-        .to_team_preview_options(&state.sides[1]);
-    let s2_options =
-        State::generate_team_preview_options(&s2_team_preview_options.0, s2_team_preview_options.1);
+        .iter()
+        .map(|option| {
+            option
+                .iter()
+                .map(|&pkmn_id| PokemonIndex::deserialize(&pkmn_id.to_string()))
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap_or_else(|_| {
+                    panic!("Side two's options must contain exactly 4 Pokémon indices")
+                })
+        })
+        .collect();
+
+    let s1_options = State::generate_team_preview_options(side_one_options_pokemon_index);
+    let s2_options = State::generate_team_preview_options(side_two_options_pokemon_index);
 
     let duration = Duration::from_millis(duration_ms);
     let mcts_result = perform_mcts(&mut state, s1_options, s2_options, duration);
@@ -1347,6 +1261,5 @@ fn py_poke_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyMctsResult>()?;
     m.add_class::<PyMctsSideResult>()?;
     m.add_class::<PyTeamPreviewFilters>()?;
-    m.add_class::<PyTeamPreviewFilterSide>()?;
     Ok(())
 }

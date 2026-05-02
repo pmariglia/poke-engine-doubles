@@ -1,52 +1,15 @@
 from poke_engine import (
     monte_carlo_tree_search_team_preview,
     TeamPreviewFilters,
-    TeamPreviewFilterSide,
 )
 
 from example_state import state
 
 state.team_preview = True
 
-team_preview_filter_s1 = TeamPreviewFilterSide(
-    valid_pokemon=[
-        state.side_one.pokemon[0].id,
-        state.side_one.pokemon[1].id,
-        state.side_one.pokemon[2].id,
-        state.side_one.pokemon[3].id,
-    ],
-    leads=[
-        (
-            "charmander",
-            "squirtle",
-        ),
-        (
-            "charmander",
-            "pikachu",
-        ),
-    ],
-)
-team_preview_filter_s2 = TeamPreviewFilterSide(
-    valid_pokemon=[
-        state.side_two.pokemon[0].id,
-        state.side_two.pokemon[1].id,
-        state.side_two.pokemon[2].id,
-        state.side_two.pokemon[3].id,
-    ],
-    leads=[
-        (
-            "charmander",
-            "squirtle",
-        ),
-        (
-            "charmander",
-            "bulbasaur",
-        ),
-    ],
-)
 team_preview_filters = TeamPreviewFilters(
-    side_one=team_preview_filter_s1,
-    side_two=team_preview_filter_s2,
+    side_one=[(0, 1, 2, 3), (0, 3, 2, 1)],
+    side_two=[(0, 1, 2, 3), (0, 2, 3, 1)],
 )
 
 

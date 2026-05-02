@@ -461,28 +461,16 @@ class MctsResult:
     side_two: List[MctsSideResult]
     iteration_count: int
 
-class TeamPreviewFilterSide:
-    """Team Preview Options for a side."""
-
-    valid_pokemon: List[str]
-    leads: List[Tuple[str, str]] | None
-
-    def __init__(
-        self,
-        valid_pokemon: List[str] = None,
-        leads: Optional[List[Tuple[str, str]]] = None,
-    ) -> None: ...
-
 class TeamPreviewFilters:
     """Team Preview Options for both Sides."""
 
-    side_one: TeamPreviewFilterSide
-    side_two: TeamPreviewFilterSide
+    side_one: list[Tuple[int, int, int, int]]
+    side_two: list[Tuple[int, int, int, int]]
 
     def __init__(
         self,
-        side_one: TeamPreviewFilterSide,
-        side_two: TeamPreviewFilterSide,
+        side_one: list[Tuple[int, int, int, int]],
+        side_two: list[Tuple[int, int, int, int]],
     ) -> None: ...
 
 def mcts_team_preview(

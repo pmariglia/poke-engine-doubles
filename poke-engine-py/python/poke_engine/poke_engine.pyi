@@ -472,6 +472,7 @@ class TeamPreviewFilters:
         side_one: list[Tuple[int, int, int, int]],
         side_two: list[Tuple[int, int, int, int]],
     ) -> None: ...
+    def debug_print(self) -> str: ...
 
 def mcts_team_preview(
     py_state: State, duration_ms: int, team_preview_filter: TeamPreviewFilters

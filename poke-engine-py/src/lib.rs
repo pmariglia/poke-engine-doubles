@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use pyo3::types::PyType;
+use pyo3::types::{PyTuple, PyType};
 use pyo3::{pyfunction, pymethods, pymodule, wrap_pyfunction, Bound, PyResult};
 use std::collections::HashSet;
 
@@ -978,6 +978,37 @@ impl PyTeamPreviewFilters {
     ))]
     fn new(side_one: Vec<[u8; 4]>, side_two: Vec<[u8; 4]>) -> Self {
         PyTeamPreviewFilters { side_one, side_two }
+    }
+    fn debug_print(&self) -> PyResult<String> {
+        let convert_to_string = |side: &Vec<[u8; 4]>| {
+            side.iter()
+                .map(|option| {
+                    let pkmn_ids: Vec<String> = option.iter().map(|&id| id.to_string()).collect();
+                    format!("{}", pkmn_ids.join(","))
+                })
+                .collect::<Vec<String>>()
+                .join(" ")
+        };
+        Ok(format!(
+            "{} -- {}",
+            convert_to_string(&self.side_one),
+            convert_to_string(&self.side_two)
+        ))
+    }
+    fn __reduce__(&self, py: Python) -> PyResult<PyObject> {
+        let cls = py.get_type_bound::<PyTeamPreviewFilters>();
+        let args = PyTuple::new_bound(
+            py,
+            vec![
+                self.side_one.clone().into_py(py),
+                self.side_two.clone().into_py(py),
+            ],
+        );
+        Ok(
+            PyTuple::new_bound(py, vec![cls.into_any().unbind(), args.into_any().unbind()])
+                .into_any()
+                .unbind(),
+        )
     }
 }
 

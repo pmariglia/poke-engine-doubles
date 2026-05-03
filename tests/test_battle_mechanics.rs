@@ -2985,6 +2985,28 @@ fn test_direct_boost_with_spread_move_only_boosts_once() {
     let expected_instructions = vec![
         StateInstructions {
             end_of_turn_triggered: true,
+            percentage: 90.47619,
+            instruction_list: vec![
+                Instruction::Damage(DamageInstruction {
+                    side_ref: SideReference::SideTwo,
+                    pokemon_index: PokemonIndex::P0,
+                    damage_amount: 37,
+                }),
+                Instruction::Damage(DamageInstruction {
+                    side_ref: SideReference::SideTwo,
+                    pokemon_index: PokemonIndex::P1,
+                    damage_amount: 37,
+                }),
+                Instruction::Boost(BoostInstruction {
+                    side_ref: SideReference::SideOne,
+                    slot_ref: SlotReference::SlotA,
+                    stat: PokemonBoostableStat::SpecialAttack,
+                    amount: -1,
+                }),
+            ],
+        },
+        StateInstructions {
+            end_of_turn_triggered: true,
             percentage: 4.7619057,
             instruction_list: vec![
                 Instruction::Damage(DamageInstruction {
@@ -3017,28 +3039,6 @@ fn test_direct_boost_with_spread_move_only_boosts_once() {
                 //     stat: PokemonBoostableStat::SpecialAttack,
                 //     amount: -1,
                 // }),
-            ],
-        },
-        StateInstructions {
-            end_of_turn_triggered: true,
-            percentage: 90.47619,
-            instruction_list: vec![
-                Instruction::Damage(DamageInstruction {
-                    side_ref: SideReference::SideTwo,
-                    pokemon_index: PokemonIndex::P0,
-                    damage_amount: 37,
-                }),
-                Instruction::Damage(DamageInstruction {
-                    side_ref: SideReference::SideTwo,
-                    pokemon_index: PokemonIndex::P1,
-                    damage_amount: 37,
-                }),
-                Instruction::Boost(BoostInstruction {
-                    side_ref: SideReference::SideOne,
-                    slot_ref: SlotReference::SlotA,
-                    stat: PokemonBoostableStat::SpecialAttack,
-                    amount: -1,
-                }),
             ],
         },
     ];
@@ -4165,23 +4165,6 @@ fn test_direclaw() {
         },
         StateInstructions {
             end_of_turn_triggered: true,
-            percentage: 9.79847,
-            instruction_list: vec![
-                Instruction::Damage(DamageInstruction {
-                    side_ref: SideReference::SideTwo,
-                    pokemon_index: PokemonIndex::P0,
-                    damage_amount: 34,
-                }),
-                Instruction::ChangeStatus(ChangeStatusInstruction {
-                    side_ref: SideReference::SideTwo,
-                    pokemon_index: PokemonIndex::P0,
-                    old_status: PokemonStatus::NONE,
-                    new_status: PokemonStatus::SLEEP,
-                }),
-            ],
-        },
-        StateInstructions {
-            end_of_turn_triggered: true,
             percentage: 10.0125,
             instruction_list: vec![
                 Instruction::Damage(DamageInstruction {
@@ -4216,6 +4199,23 @@ fn test_direclaw() {
                     side_ref: SideReference::SideTwo,
                     pokemon_index: PokemonIndex::P0,
                     damage_amount: 12,
+                }),
+            ],
+        },
+        StateInstructions {
+            end_of_turn_triggered: true,
+            percentage: 9.79847,
+            instruction_list: vec![
+                Instruction::Damage(DamageInstruction {
+                    side_ref: SideReference::SideTwo,
+                    pokemon_index: PokemonIndex::P0,
+                    damage_amount: 34,
+                }),
+                Instruction::ChangeStatus(ChangeStatusInstruction {
+                    side_ref: SideReference::SideTwo,
+                    pokemon_index: PokemonIndex::P0,
+                    old_status: PokemonStatus::NONE,
+                    new_status: PokemonStatus::SLEEP,
                 }),
             ],
         },
@@ -6752,17 +6752,17 @@ fn test_accuracy_lowered_affects_move_hit_chance() {
     let expected_instructions = vec![
         StateInstructions {
             end_of_turn_triggered: true,
-            percentage: 25.0,
-            instruction_list: vec![],
-        },
-        StateInstructions {
-            end_of_turn_triggered: true,
             percentage: 75.0,
             instruction_list: vec![Instruction::Damage(DamageInstruction {
                 side_ref: SideReference::SideTwo,
                 pokemon_index: PokemonIndex::P0,
                 damage_amount: 25,
             })],
+        },
+        StateInstructions {
+            end_of_turn_triggered: true,
+            percentage: 25.0,
+            instruction_list: vec![],
         },
     ];
     assert_eq!(expected_instructions, vec_of_instructions);
@@ -6870,39 +6870,7 @@ fn test_muddywater_accuracy_lowers_opponents_chance_to_hit() {
     let expected_instructions = vec![
         StateInstructions {
             end_of_turn_triggered: true,
-            percentage: 10.087666,
-            instruction_list: vec![
-                Instruction::Damage(DamageInstruction {
-                    side_ref: SideReference::SideOne,
-                    pokemon_index: PokemonIndex::P1,
-                    damage_amount: 28,
-                }),
-                Instruction::Damage(DamageInstruction {
-                    side_ref: SideReference::SideTwo,
-                    pokemon_index: PokemonIndex::P0,
-                    damage_amount: 25,
-                }),
-            ],
-        },
-        StateInstructions {
-            end_of_turn_triggered: true,
-            percentage: 10.087665,
-            instruction_list: vec![
-                Instruction::Damage(DamageInstruction {
-                    side_ref: SideReference::SideOne,
-                    pokemon_index: PokemonIndex::P0,
-                    damage_amount: 28,
-                }),
-                Instruction::Damage(DamageInstruction {
-                    side_ref: SideReference::SideTwo,
-                    pokemon_index: PokemonIndex::P0,
-                    damage_amount: 25,
-                }),
-            ],
-        },
-        StateInstructions {
-            end_of_turn_triggered: true,
-            percentage: 40.014412,
+            percentage: 40.01441,
             instruction_list: vec![
                 Instruction::Damage(DamageInstruction {
                     side_ref: SideReference::SideOne,
@@ -6950,29 +6918,7 @@ fn test_muddywater_accuracy_lowers_opponents_chance_to_hit() {
         },
         StateInstructions {
             end_of_turn_triggered: true,
-            percentage: 4.2872586,
-            instruction_list: vec![
-                Instruction::Damage(DamageInstruction {
-                    side_ref: SideReference::SideOne,
-                    pokemon_index: PokemonIndex::P0,
-                    damage_amount: 28,
-                }),
-                Instruction::Boost(BoostInstruction {
-                    side_ref: SideReference::SideOne,
-                    slot_ref: SlotReference::SlotA,
-                    stat: PokemonBoostableStat::Accuracy,
-                    amount: -1,
-                }),
-                Instruction::Damage(DamageInstruction {
-                    side_ref: SideReference::SideOne,
-                    pokemon_index: PokemonIndex::P1,
-                    damage_amount: 28,
-                }),
-            ],
-        },
-        StateInstructions {
-            end_of_turn_triggered: true,
-            percentage: 12.861777,
+            percentage: 12.861776,
             instruction_list: vec![
                 Instruction::Damage(DamageInstruction {
                     side_ref: SideReference::SideOne,
@@ -6999,7 +6945,39 @@ fn test_muddywater_accuracy_lowers_opponents_chance_to_hit() {
         },
         StateInstructions {
             end_of_turn_triggered: true,
-            percentage: 5.5121903,
+            percentage: 10.087666,
+            instruction_list: vec![
+                Instruction::Damage(DamageInstruction {
+                    side_ref: SideReference::SideOne,
+                    pokemon_index: PokemonIndex::P1,
+                    damage_amount: 28,
+                }),
+                Instruction::Damage(DamageInstruction {
+                    side_ref: SideReference::SideTwo,
+                    pokemon_index: PokemonIndex::P0,
+                    damage_amount: 25,
+                }),
+            ],
+        },
+        StateInstructions {
+            end_of_turn_triggered: true,
+            percentage: 10.087664,
+            instruction_list: vec![
+                Instruction::Damage(DamageInstruction {
+                    side_ref: SideReference::SideOne,
+                    pokemon_index: PokemonIndex::P0,
+                    damage_amount: 28,
+                }),
+                Instruction::Damage(DamageInstruction {
+                    side_ref: SideReference::SideTwo,
+                    pokemon_index: PokemonIndex::P0,
+                    damage_amount: 25,
+                }),
+            ],
+        },
+        StateInstructions {
+            end_of_turn_triggered: true,
+            percentage: 5.51219,
             instruction_list: vec![
                 Instruction::Damage(DamageInstruction {
                     side_ref: SideReference::SideOne,
@@ -7030,6 +7008,28 @@ fn test_muddywater_accuracy_lowers_opponents_chance_to_hit() {
                 }),
             ],
         },
+        StateInstructions {
+            end_of_turn_triggered: true,
+            percentage: 4.287258,
+            instruction_list: vec![
+                Instruction::Damage(DamageInstruction {
+                    side_ref: SideReference::SideOne,
+                    pokemon_index: PokemonIndex::P0,
+                    damage_amount: 28,
+                }),
+                Instruction::Boost(BoostInstruction {
+                    side_ref: SideReference::SideOne,
+                    slot_ref: SlotReference::SlotA,
+                    stat: PokemonBoostableStat::Accuracy,
+                    amount: -1,
+                }),
+                Instruction::Damage(DamageInstruction {
+                    side_ref: SideReference::SideOne,
+                    pokemon_index: PokemonIndex::P1,
+                    damage_amount: 28,
+                }),
+            ],
+        },
     ];
     assert_eq!(expected_instructions, vec_of_instructions);
 }
@@ -7057,17 +7057,17 @@ fn test_move_that_can_miss_with_perfect_accuracy() {
     let expected_instructions = vec![
         StateInstructions {
             end_of_turn_triggered: true,
-            percentage: 10.000002,
-            instruction_list: vec![],
-        },
-        StateInstructions {
-            end_of_turn_triggered: true,
             percentage: 90.0,
             instruction_list: vec![Instruction::Damage(DamageInstruction {
                 side_ref: SideReference::SideTwo,
                 pokemon_index: PokemonIndex::P0,
                 damage_amount: 14,
             })],
+        },
+        StateInstructions {
+            end_of_turn_triggered: true,
+            percentage: 10.000002,
+            instruction_list: vec![],
         },
     ];
     assert_eq!(expected_instructions, vec_of_instructions);

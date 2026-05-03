@@ -3221,17 +3221,29 @@ fn run_move(
 fn remove_low_chance_instructions(
     instructions: &mut Vec<(StateInstructions, Vec<RemainingToMove>)>,
     threshold: f32,
+    min_keep: usize,
+    max_keep: usize,
 ) {
     let total_percentage: f32 = instructions.iter().map(|(ins, _)| ins.percentage).sum();
     let min_percentage = total_percentage * threshold / 100.0;
 
+    instructions.sort_unstable_by(|a, b| {
+        b.0.percentage
+            .partial_cmp(&a.0.percentage)
+            .unwrap_or(cmp::Ordering::Equal)
+    });
+
+    instructions.truncate(max_keep);
+
+    let mut kept = 0;
     let mut new_total = 0.0;
     instructions.retain(|(instruction, _)| {
-        if instruction.percentage < min_percentage {
-            false
-        } else {
+        if kept < min_keep || instruction.percentage >= min_percentage {
+            kept += 1;
             new_total += instruction.percentage;
             true
+        } else {
+            false
         }
     });
     for instruction in instructions.iter_mut() {
@@ -5307,7 +5319,7 @@ pub fn generate_instructions_from_move_pair(
             i += 1;
         }
         combine_duplicate_instructions(&mut state_instructions_vec);
-        remove_low_chance_instructions(&mut state_instructions_vec, 4.0);
+        remove_low_chance_instructions(&mut state_instructions_vec, 4.0, 3, 10);
         num_moves_done += 1;
     }
 
@@ -5328,10 +5340,32 @@ pub fn generate_instructions_from_move_pair(
         state.reverse_instructions(&state_instruction.instruction_list);
     }
 
-    state_instructions_vec
+    let res: Vec<StateInstructions> = state_instructions_vec
         .into_iter()
         .map(|(state_instr, _)| state_instr)
-        .collect()
+        .collect();
+
+    if res.len() == 0 {
+        println!("State: {}", state.serialize());
+        println!(
+            "Side one a move: {:?}, choice: {:?}",
+            side_one_a_move, side_one_a_choice
+        );
+        println!(
+            "Side one b move: {:?}, choice: {:?}",
+            side_one_b_move, side_one_b_choice
+        );
+        println!(
+            "Side two a move: {:?}, choice: {:?}",
+            side_two_a_move, side_two_a_choice
+        );
+        println!(
+            "Side two b move: {:?}, choice: {:?}",
+            side_two_b_move, side_two_b_choice
+        );
+    }
+
+    res
 }
 
 /*

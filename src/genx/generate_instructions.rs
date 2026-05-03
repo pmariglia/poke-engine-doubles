@@ -1837,6 +1837,9 @@ fn move_has_no_effect(
     {
         return true;
     }
+    if target_side.side_conditions.quick_guard > 0 && choice.priority > 0 {
+        return true;
+    }
 
     if choice.flags.powder
         && choice.target == MoveTarget::Target
@@ -3736,6 +3739,18 @@ fn add_end_of_turn_instructions(
                     },
                 ));
             side.side_conditions.wide_guard -= 1;
+        }
+        if side.side_conditions.quick_guard > 0 {
+            incoming_instructions
+                .instruction_list
+                .push(Instruction::ChangeSideCondition(
+                    ChangeSideConditionInstruction {
+                        side_ref,
+                        side_condition: PokemonSideCondition::QuickGuard,
+                        amount: -1,
+                    },
+                ));
+            side.side_conditions.quick_guard -= 1;
         }
         if side.side_conditions.reflect > 0 {
             incoming_instructions

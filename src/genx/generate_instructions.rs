@@ -5355,32 +5355,10 @@ pub fn generate_instructions_from_move_pair(
         state.reverse_instructions(&state_instruction.instruction_list);
     }
 
-    let res: Vec<StateInstructions> = state_instructions_vec
+    state_instructions_vec
         .into_iter()
         .map(|(state_instr, _)| state_instr)
-        .collect();
-
-    if res.len() == 0 {
-        println!("State: {}", state.serialize());
-        println!(
-            "Side one a move: {:?}, choice: {:?}",
-            side_one_a_move, side_one_a_choice
-        );
-        println!(
-            "Side one b move: {:?}, choice: {:?}",
-            side_one_b_move, side_one_b_choice
-        );
-        println!(
-            "Side two a move: {:?}, choice: {:?}",
-            side_two_a_move, side_two_a_choice
-        );
-        println!(
-            "Side two b move: {:?}, choice: {:?}",
-            side_two_b_move, side_two_b_choice
-        );
-    }
-
-    res
+        .collect()
 }
 
 /*

@@ -9,16 +9,11 @@ use crate::instruction::{
 };
 use crate::pokemon::PokemonName;
 use crate::state::{
-    LastUsedMove, Pokemon, PokemonBoostableStat, PokemonIndex, PokemonMoveIndex,
+    LastUsedMove, Pokemon, PokemonBoostableStat, PokemonIndex, PokemonMoveIndex, PokemonNature,
     PokemonSideCondition, PokemonStatus, PokemonType, Side, SideReference, SideSlot, SlotReference,
     State,
 };
 use std::str::FromStr;
-
-fn common_pkmn_stat_calc(stat: u16, ev: u16, level: u16) -> u16 {
-    // 31 IV always used
-    ((2 * stat + 31 + (ev / 4)) * level) / 100
-}
 
 fn multiply_boost(boost_num: i8, stat_value: i16) -> i16 {
     match boost_num {
@@ -249,7 +244,7 @@ impl MoveChoice {
                     )
                     .to_lowercase()
                 } else {
-                    format!("{},tera", mv.id).to_lowercase()
+                    format!("{},mega", mv.id).to_lowercase()
                 }
             }
             MoveChoice::Move(target_slot, target_side, index) => {
@@ -311,6 +306,12 @@ impl MoveChoice {
         } else {
             false
         };
+        let is_mega = if s.ends_with(",mega") {
+            s = s.trim_end_matches(",mega").to_string();
+            true
+        } else {
+            false
+        };
         let parts: Vec<&str> = s.split(',').collect();
         let move_name_part;
         let side_ref_str;
@@ -357,6 +358,12 @@ impl MoveChoice {
             if format!("{:?}", mv.id).to_lowercase() == move_name {
                 return if is_tera {
                     Some(MoveChoice::MoveTera(
+                        target_slot_ref,
+                        target_side_ref,
+                        move_iter.pokemon_move_index,
+                    ))
+                } else if is_mega {
+                    Some(MoveChoice::MoveMega(
                         target_slot_ref,
                         target_side_ref,
                         move_iter.pokemon_move_index,
@@ -682,21 +689,103 @@ impl Pokemon {
     }
     pub fn calculate_stats_from_base_stats(&self) -> (i16, i16, i16, i16, i16, i16) {
         let base_stats = self.id.base_stats();
-        (
-            (common_pkmn_stat_calc(base_stats.0 as u16, self.evs.0 as u16, self.level as u16)
-                + self.level as u16
-                + 10) as i16,
-            (common_pkmn_stat_calc(base_stats.1 as u16, self.evs.1 as u16, self.level as u16) + 5)
-                as i16,
-            (common_pkmn_stat_calc(base_stats.2 as u16, self.evs.2 as u16, self.level as u16) + 5)
-                as i16,
-            (common_pkmn_stat_calc(base_stats.3 as u16, self.evs.3 as u16, self.level as u16) + 5)
-                as i16,
-            (common_pkmn_stat_calc(base_stats.4 as u16, self.evs.4 as u16, self.level as u16) + 5)
-                as i16,
-            (common_pkmn_stat_calc(base_stats.5 as u16, self.evs.5 as u16, self.level as u16) + 5)
-                as i16,
-        )
+        let mut result = (
+            base_stats.0 + self.evs.0 as i16 + 75,
+            base_stats.1 + self.evs.1 as i16 + 20,
+            base_stats.2 + self.evs.2 as i16 + 20,
+            base_stats.3 + self.evs.3 as i16 + 20,
+            base_stats.4 + self.evs.4 as i16 + 20,
+            base_stats.5 + self.evs.5 as i16 + 20,
+        );
+        match self.nature {
+            PokemonNature::LONELY => {
+                result.1 = result.1 * 11 / 10; // +Atk
+                result.2 = result.2 * 9 / 10; // -Def
+            }
+            PokemonNature::ADAMANT => {
+                result.1 = result.1 * 11 / 10; // +Atk
+                result.3 = result.3 * 9 / 10; // -SpA
+            }
+            PokemonNature::NAUGHTY => {
+                result.1 = result.1 * 11 / 10; // +Atk
+                result.4 = result.4 * 9 / 10; // -SpD
+            }
+            PokemonNature::BRAVE => {
+                result.1 = result.1 * 11 / 10; // +Atk
+                result.5 = result.5 * 9 / 10; // -Spe
+            }
+            PokemonNature::BOLD => {
+                result.2 = result.2 * 11 / 10; // +Def
+                result.1 = result.1 * 9 / 10; // -Atk
+            }
+            PokemonNature::IMPISH => {
+                result.2 = result.2 * 11 / 10; // +Def
+                result.3 = result.3 * 9 / 10; // -SpA
+            }
+            PokemonNature::LAX => {
+                result.2 = result.2 * 11 / 10; // +Def
+                result.4 = result.4 * 9 / 10; // -SpD
+            }
+            PokemonNature::RELAXED => {
+                result.2 = result.2 * 11 / 10; // +Def
+                result.5 = result.5 * 9 / 10; // -Spe
+            }
+            PokemonNature::MODEST => {
+                result.3 = result.3 * 11 / 10; // +SpA
+                result.1 = result.1 * 9 / 10; // -Atk
+            }
+            PokemonNature::MILD => {
+                result.3 = result.3 * 11 / 10; // +SpA
+                result.2 = result.2 * 9 / 10; // -Def
+            }
+            PokemonNature::RASH => {
+                result.3 = result.3 * 11 / 10; // +SpA
+                result.4 = result.4 * 9 / 10; // -SpD
+            }
+            PokemonNature::QUIET => {
+                result.3 = result.3 * 11 / 10; // +SpA
+                result.5 = result.5 * 9 / 10; // -Spe
+            }
+            PokemonNature::CALM => {
+                result.4 = result.4 * 11 / 10; // +SpD
+                result.1 = result.1 * 9 / 10; // -Atk
+            }
+            PokemonNature::GENTLE => {
+                result.4 = result.4 * 11 / 10; // +SpD
+                result.2 = result.2 * 9 / 10; // -Def
+            }
+            PokemonNature::CAREFUL => {
+                result.4 = result.4 * 11 / 10; // +SpD
+                result.3 = result.3 * 9 / 10; // -SpA
+            }
+            PokemonNature::SASSY => {
+                result.4 = result.4 * 11 / 10; // +SpD
+                result.5 = result.5 * 9 / 10; // -Spe
+            }
+            PokemonNature::TIMID => {
+                result.5 = result.5 * 11 / 10; // +Spe
+                result.1 = result.1 * 9 / 10; // -Atk
+            }
+            PokemonNature::HASTY => {
+                result.5 = result.5 * 11 / 10; // +Spe
+                result.2 = result.2 * 9 / 10; // -Def
+            }
+            PokemonNature::JOLLY => {
+                result.5 = result.5 * 11 / 10; // +Spe
+                result.3 = result.3 * 9 / 10; // -SpA
+            }
+            PokemonNature::NAIVE => {
+                result.5 = result.5 * 11 / 10; // +Spe
+                result.4 = result.4 * 9 / 10; // -SpD
+            }
+            // Neutral natures: no change
+            PokemonNature::HARDY
+            | PokemonNature::DOCILE
+            | PokemonNature::SERIOUS
+            | PokemonNature::BASHFUL
+            | PokemonNature::QUIRKY => {}
+        }
+        result
     }
 
     fn add_moves_from_opponent_targets(
@@ -968,8 +1057,9 @@ impl Pokemon {
         disabled: bool,
         taunted: bool,
         can_tera: bool,
+        side_can_mega: bool,
     ) {
-        let can_mega = self.can_mega_evolve();
+        let can_mega = side_can_mega && self.can_mega_evolve();
         let cannot_use_status_moves = self.item == Items::ASSAULTVEST || taunted;
 
         let mut iter = self.moves.into_iter();
@@ -1406,6 +1496,21 @@ impl Side {
         true
     }
 
+    #[cfg(not(feature = "mega"))]
+    pub fn can_use_mega(&self) -> bool {
+        false
+    }
+
+    #[cfg(feature = "mega")]
+    pub fn can_use_mega(&self) -> bool {
+        for p in self.pokemon.into_iter() {
+            if p.mega_evolved {
+                return false;
+            }
+        }
+        true
+    }
+
     pub fn add_switches(&self, vec: &mut Vec<MoveChoice>) {
         let mut iter = self.pokemon.into_iter();
         while let Some(p) = iter.next() {
@@ -1470,51 +1575,34 @@ impl Side {
     }
 }
 
+const ALL_POKEMON_INDICES: [PokemonIndex; 6] = [
+    PokemonIndex::P0,
+    PokemonIndex::P1,
+    PokemonIndex::P2,
+    PokemonIndex::P3,
+    PokemonIndex::P4,
+    PokemonIndex::P5,
+];
+
 impl State {
     pub fn generate_team_preview_options(
-        indices: &[PokemonIndex],
-        leads: Option<Vec<(PokemonIndex, PokemonIndex)>>,
+        teams: Vec<[PokemonIndex; 4]>,
     ) -> Vec<(MoveChoice, MoveChoice)> {
-        let n = indices.len();
-        let mut options = Vec::new();
-
-        for fi in 0..n {
-            for fj in (fi + 1)..n {
-                let faint_a = indices[fi];
-                let faint_b = indices[fj];
-
-                let brought: Vec<PokemonIndex> = indices
+        teams
+            .into_iter()
+            .map(|team| {
+                let fainted: Vec<PokemonIndex> = ALL_POKEMON_INDICES
                     .iter()
                     .copied()
-                    .filter(|&i| i != faint_a && i != faint_b)
+                    .filter(|i| !team.contains(i))
                     .collect();
 
-                let lead_pairs: Vec<(PokemonIndex, PokemonIndex)> = match &leads {
-                    Some(forced) => forced
-                        .iter()
-                        .copied()
-                        .filter(|&(a, b)| brought.contains(&a) && brought.contains(&b))
-                        .collect(),
-                    None => {
-                        let mut pairs = Vec::new();
-                        for li in 0..brought.len() {
-                            for lj in (li + 1)..brought.len() {
-                                pairs.push((brought[li], brought[lj]));
-                            }
-                        }
-                        pairs
-                    }
-                };
-
-                for (lead_a, lead_b) in lead_pairs {
-                    options.push((
-                        MoveChoice::TeamPreview(lead_a, faint_a),
-                        MoveChoice::TeamPreview(lead_b, faint_b),
-                    ));
-                }
-            }
-        }
-        options
+                (
+                    MoveChoice::TeamPreview(team[0], fainted[0]),
+                    MoveChoice::TeamPreview(team[1], fainted[1]),
+                )
+            })
+            .collect()
     }
 
     pub fn root_get_all_options(
@@ -1706,6 +1794,7 @@ impl State {
                 disabled,
                 taunted,
                 side.can_use_tera(),
+                side.can_use_mega(),
             );
 
             if !side.trapped(
@@ -2140,125 +2229,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_team_preview_options_count() {
-        let indices = vec![
-            PokemonIndex::P0,
-            PokemonIndex::P1,
-            PokemonIndex::P2,
-            PokemonIndex::P3,
-            PokemonIndex::P4,
-            PokemonIndex::P5,
-        ];
-        let options = State::generate_team_preview_options(&indices, None);
-        assert_eq!(options.len(), 90);
-    }
-    #[test]
     fn test_leads_all_options_contain_forced_pair() {
-        let indices = vec![
+        let teams = vec![[
             PokemonIndex::P0,
             PokemonIndex::P1,
             PokemonIndex::P2,
             PokemonIndex::P3,
-            PokemonIndex::P4,
-            PokemonIndex::P5,
-        ];
-        let forced = vec![(PokemonIndex::P0, PokemonIndex::P1)];
-        let options = State::generate_team_preview_options(&indices, Some(forced));
-
-        // every option must have P0 and P1 as leads (in either slot)
-        for (a, b) in &options {
-            let leads = match (a, b) {
-                (MoveChoice::TeamPreview(la, _), MoveChoice::TeamPreview(lb, _)) => (*la, *lb),
-                _ => panic!("Expected TeamPreview variants"),
-            };
-            assert!(
-                (leads.0 == PokemonIndex::P0 && leads.1 == PokemonIndex::P1)
-                    || (leads.0 == PokemonIndex::P1 && leads.1 == PokemonIndex::P0),
-            );
-        }
-    }
-
-    #[test]
-    fn test_leads_count_single_pair() {
-        let indices = vec![
-            PokemonIndex::P0,
-            PokemonIndex::P1,
-            PokemonIndex::P2,
-            PokemonIndex::P3,
-            PokemonIndex::P4,
-            PokemonIndex::P5,
-        ];
-        let forced = vec![(PokemonIndex::P0, PokemonIndex::P1)];
-        let options = State::generate_team_preview_options(&indices, Some(forced));
-
-        // P0 and P1 are always leads, so we only choose 2 to faint from the remaining 4
-        // C(4,2) = 6
-        assert_eq!(options.len(), 6);
-    }
-
-    #[test]
-    fn test_leads_count_multiple_pairs() {
-        let indices = vec![
-            PokemonIndex::P0,
-            PokemonIndex::P1,
-            PokemonIndex::P2,
-            PokemonIndex::P3,
-            PokemonIndex::P4,
-            PokemonIndex::P5,
-        ];
-        let forced = vec![
-            (PokemonIndex::P0, PokemonIndex::P1),
-            (PokemonIndex::P0, PokemonIndex::P2),
-        ];
-        let options = State::generate_team_preview_options(&indices, Some(forced));
-
-        // for forced pair (P0, P1): P2-P5 available to faint, C(4,2)=6 faint combos
-        //   but faint combos that include P0 or P1 are skipped (those would remove a lead)
-        //   all 4 remaining are P2,P3,P4,P5 so all 6 are valid
-        // for forced pair (P0, P2): similarly 6 valid faint combos from P1,P3,P4,P5
-        // total: 12
-        assert_eq!(options.len(), 12);
-    }
-
-    #[test]
-    fn test_leads_skipped_when_lead_would_be_fainted() {
-        let indices = vec![
-            PokemonIndex::P0,
-            PokemonIndex::P1,
-            PokemonIndex::P2,
-            PokemonIndex::P3,
-            PokemonIndex::P4,
-            PokemonIndex::P5,
-        ];
-        let forced = vec![(PokemonIndex::P0, PokemonIndex::P1)];
-        let options = State::generate_team_preview_options(&indices, Some(forced));
-
-        // no option should have P0 or P1 as a faint
-        for (a, b) in &options {
-            let (faint_a, faint_b) = match (a, b) {
-                (MoveChoice::TeamPreview(_, fa), MoveChoice::TeamPreview(_, fb)) => (*fa, *fb),
-                _ => panic!("Expected TeamPreview variants"),
-            };
-            assert_ne!(faint_a, PokemonIndex::P0);
-            assert_ne!(faint_a, PokemonIndex::P1);
-            assert_ne!(faint_b, PokemonIndex::P0);
-            assert_ne!(faint_b, PokemonIndex::P1);
-        }
-    }
-
-    #[test]
-    fn test_leads_together_with_reduces_indices() {
-        let indices = vec![
-            PokemonIndex::P0,
-            PokemonIndex::P1,
-            PokemonIndex::P2,
-            PokemonIndex::P3,
-        ];
-        let forced = vec![
-            (PokemonIndex::P0, PokemonIndex::P1),
-            (PokemonIndex::P0, PokemonIndex::P3),
-        ];
-        let options = State::generate_team_preview_options(&indices, Some(forced));
-        assert_eq!(options.len(), 2);
+        ]];
+        let options = State::generate_team_preview_options(teams);
+        assert_eq!(
+            options,
+            vec![(
+                MoveChoice::TeamPreview(PokemonIndex::P0, PokemonIndex::P4),
+                MoveChoice::TeamPreview(PokemonIndex::P1, PokemonIndex::P5)
+            )]
+        );
     }
 }

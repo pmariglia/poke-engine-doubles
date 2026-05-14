@@ -35,6 +35,7 @@ gen7 = []
 gen8 = []
 gen9 = []
 terastallization = ["gen9"]
+mega = ["gen9"]
 
 default = []
 

@@ -613,62 +613,59 @@ fn command_loop(mut io_data: IOData) {
                     continue;
                 }
 
-                let parse_indices = |s: &str| -> Vec<PokemonIndex> {
-                    s.split(',')
-                        .filter_map(|x| Some(PokemonIndex::deserialize(x.trim())))
-                        .collect()
+                let parse_team = |s: &str| -> Option<[PokemonIndex; 4]> {
+                    let parts: Vec<&str> = s.split(',').collect();
+                    if parts.len() != 4 {
+                        return None;
+                    }
+                    Some([
+                        PokemonIndex::deserialize(parts[0].trim()),
+                        PokemonIndex::deserialize(parts[1].trim()),
+                        PokemonIndex::deserialize(parts[2].trim()),
+                        PokemonIndex::deserialize(parts[3].trim()),
+                    ])
                 };
 
-                let parse_leads = |s: &str| -> Vec<(PokemonIndex, PokemonIndex)> {
-                    s.split(',')
-                        .filter_map(|pair| {
-                            let parts: Vec<&str> = pair.trim().split('-').collect();
-                            if parts.len() != 2 {
-                                return None;
-                            }
-                            Some((
-                                PokemonIndex::deserialize(parts[0]),
-                                PokemonIndex::deserialize(parts[1]),
-                            ))
-                        })
-                        .collect()
-                };
+                let remaining: Vec<&str> = args.collect();
+                if remaining.len() < 3 {
+                    println!("Usage: team-preview <s1-team1> <s1-team2> ... -- <s2-team1> <s2-team2> ... <time_ms>");
+                    println!("  e.g: tp 0,1,2,3 0,2,1,3 -- 0,1,2,3 0,2,1,3 5000");
+                    continue;
+                }
 
-                let (s1_indices, s1_leads, s2_indices, s2_leads, max_time_ms) = match (
-                    args.next(),
-                    args.next(),
-                    args.next(),
-                    args.next(),
-                    args.next(),
-                ) {
-                    (Some(s1i), Some(s1l), Some(s2i), Some(s2l), Some(t)) => (
-                        parse_indices(s1i),
-                        Some(parse_leads(s1l)),
-                        parse_indices(s2i),
-                        Some(parse_leads(s2l)),
-                        match t.parse::<u64>() {
-                            Ok(v) => v,
-                            Err(_) => {
-                                println!("Invalid time: {}", t);
-                                continue;
-                            }
-                        },
-                    ),
-                    _ => {
-                        println!("Usage: team-preview <s1-indices> <s1-leads> <s2-indices> <s2-leads> <time_ms>");
-                        println!("  e.g: tp 0,1,2,3,4,5 0-1,0-2,1-2 0,1,2,3,4,5 0-1,0-2,1-2 5000");
+                let sep_pos = match remaining.iter().position(|&s| s == "--") {
+                    Some(p) => p,
+                    None => {
+                        println!("Missing '--' separator between side one and side two options");
                         continue;
                     }
                 };
 
-                let side_one_options = State::generate_team_preview_options(
-                    &s1_indices,
-                    Some(s1_leads.unwrap_or_default()),
-                );
-                let side_two_options = State::generate_team_preview_options(
-                    &s2_indices,
-                    Some(s2_leads.unwrap_or_default()),
-                );
+                let max_time_ms = match remaining.last().and_then(|t| t.parse::<u64>().ok()) {
+                    Some(v) => v,
+                    None => {
+                        println!("Last argument must be a valid time in ms");
+                        continue;
+                    }
+                };
+
+                let s1_teams: Vec<[PokemonIndex; 4]> = remaining[..sep_pos]
+                    .iter()
+                    .filter_map(|s| parse_team(s))
+                    .collect();
+
+                let s2_teams: Vec<[PokemonIndex; 4]> = remaining[sep_pos + 1..remaining.len() - 1]
+                    .iter()
+                    .filter_map(|s| parse_team(s))
+                    .collect();
+
+                if s1_teams.is_empty() || s2_teams.is_empty() {
+                    println!("Each side must have at least one valid team entry");
+                    continue;
+                }
+
+                let side_one_options = State::generate_team_preview_options(s1_teams);
+                let side_two_options = State::generate_team_preview_options(s2_teams);
 
                 let start_time = std::time::Instant::now();
                 let result = perform_mcts(

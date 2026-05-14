@@ -20,8 +20,8 @@ use crate::instruction::{
     ChangeVolatileStatusDurationInstruction, ChangeWeather, DecrementRestTurnsInstruction,
     HealInstruction, InsertStellarBoostedTypeInstruction, RemoveVolatileStatusInstruction,
     SetSleepTurnsInstruction, ToggleBatonPassingInstruction,
-    ToggleDamageDealtHitSubstituteInstruction, ToggleShedTailingInstruction,
-    ToggleTrickRoomInstruction,
+    ToggleDamageDealtHitSubstituteInstruction, ToggleMegaEvolvedInstruction,
+    ToggleShedTailingInstruction, ToggleTrickRoomInstruction,
 };
 use crate::instruction::{DamageSubstituteInstruction, ToggleTerastallizedInstruction};
 use crate::instruction::{FormeChangeInstruction, SetLastUsedMoveInstruction};
@@ -44,6 +44,8 @@ use std::cmp;
 use crate::choices::MultiAccuracyMove;
 use crate::pokemon::PokemonName;
 
+pub const PARALYSIS_CHANCE: f32 = 0.125;
+pub const THAW_CHANCE: f32 = 0.25;
 pub const BASE_CRIT_CHANCE: f32 = 1.0 / 24.0;
 pub const MAX_SLEEP_TURNS: i8 = 3;
 pub const HIT_SELF_IN_CONFUSION_CHANCE: f32 = 1.0 / 3.0;
@@ -61,10 +63,11 @@ const PROTECT_VOLATILES: [PokemonVolatileStatus; 6] = [
 ];
 
 fn chance_to_wake_up(turns_asleep: i8) -> f32 {
-    if turns_asleep == 0 {
-        0.0
-    } else {
-        1.0 / (1 + MAX_SLEEP_TURNS - turns_asleep) as f32
+    match turns_asleep {
+        0 => 0.0,
+        1 => 0.333,
+        2 => 1.0,
+        _ => panic!("turns_asleep should never be above 2 when calculating wake up chance"),
     }
 }
 
@@ -407,6 +410,7 @@ fn generate_instructions_from_switch(
                 switching_side_ref,
                 switching_side_ref,
                 slot_ref,
+                *slot_ref,
                 incoming_instructions,
             );
         }
@@ -919,17 +923,30 @@ pub fn apply_boost_instructions(
     stat: &PokemonBoostableStat,
     boost: &i8,
     attacking_side_ref: SideReference,
-    target_side_ref: SideReference,
-    target_slot_ref: &SlotReference,
+    mut target_side_ref: SideReference,
+    attacking_slot_ref: &SlotReference,
+    mut target_slot_ref: SlotReference,
     instructions: &mut StateInstructions,
 ) -> bool {
     // Single point for checking whether a boost can be applied to a pokemon
     // along with side effects that that boost
     // returns whether the requested boost was actually applied
     let mut boost_was_applied = false;
-    let target_slot = target_side.get_slot_immutable(target_slot_ref);
-    let target_pkmn = target_side.get_active_immutable(target_slot_ref);
+    let target_pkmn = target_side.get_active_immutable(&target_slot_ref);
     let target_pkmn_ability = target_pkmn.ability;
+
+    let (target_side_obj, other_side_obj) = if target_pkmn_ability == Abilities::MIRRORARMOR
+        && boost < &0
+        && attacking_side_ref != target_side_ref
+    {
+        target_side_ref = attacking_side_ref;
+        target_slot_ref = *attacking_slot_ref;
+        (other_side, target_side)
+    } else {
+        (target_side, other_side)
+    };
+    let target_slot = target_side_obj.get_slot_immutable(&target_slot_ref);
+    let target_pkmn = target_side_obj.get_active_immutable(&target_slot_ref);
 
     if boost != &0
         && !(target_side_ref != attacking_side_ref
@@ -941,8 +958,8 @@ pub fn apply_boost_instructions(
         if target_pkmn_ability == Abilities::CONTRARY {
             boost_amount *= -1;
         }
-        boost_amount = get_boost_amount(target_side, target_slot_ref, &stat, boost_amount);
-        let target_slot = target_side.get_slot(target_slot_ref);
+        boost_amount = get_boost_amount(target_side_obj, &target_slot_ref, &stat, boost_amount);
+        let target_slot = target_side_obj.get_slot(&target_slot_ref);
         let mut stat_positively_boosted = false;
         if boost_amount != 0 {
             boost_was_applied = true;
@@ -963,7 +980,7 @@ pub fn apply_boost_instructions(
                 .instruction_list
                 .push(Instruction::Boost(BoostInstruction {
                     side_ref: target_side_ref,
-                    slot_ref: *target_slot_ref,
+                    slot_ref: target_slot_ref,
                     stat: *stat,
                     amount: boost_amount,
                 }));
@@ -982,17 +999,33 @@ pub fn apply_boost_instructions(
                     .instruction_list
                     .push(Instruction::Boost(BoostInstruction {
                         side_ref: target_side_ref,
-                        slot_ref: *target_slot_ref,
+                        slot_ref: target_slot_ref,
                         stat: PokemonBoostableStat::Attack,
                         amount: defiant_boost_amount,
                     }));
                 target_slot.attack_boost += defiant_boost_amount;
                 stat_positively_boosted = true;
+            } else if boost_amount < 0
+                && target_pkmn_ability == Abilities::COMPETITIVE
+                && attacking_side_ref != target_side_ref
+                && target_slot.special_attack_boost < 6
+            {
+                let competitive_boost_amount = cmp::min(6 - target_slot.special_attack_boost, 2);
+                instructions
+                    .instruction_list
+                    .push(Instruction::Boost(BoostInstruction {
+                        side_ref: target_side_ref,
+                        slot_ref: target_slot_ref,
+                        stat: PokemonBoostableStat::SpecialAttack,
+                        amount: competitive_boost_amount,
+                    }));
+                target_slot.special_attack_boost += competitive_boost_amount;
+                stat_positively_boosted = true;
             }
             if stat_positively_boosted {
                 for slot_ref in [SlotReference::SlotA, SlotReference::SlotB] {
-                    let slot_active_item = other_side.get_active_immutable(&slot_ref).item;
-                    let mirror_herb_boost_slot = other_side.get_slot(&slot_ref);
+                    let slot_active_item = other_side_obj.get_active_immutable(&slot_ref).item;
+                    let mirror_herb_boost_slot = other_side_obj.get_slot(&slot_ref);
                     if slot_active_item != Items::MIRRORHERB
                         || mirror_herb_boost_slot.attack_boost == 6
                     {
@@ -1047,7 +1080,8 @@ fn get_instructions_from_boosts(
             boost,
             attacking_side_reference,
             target_side_ref,
-            &target_slot_ref,
+            attacking_slot_reference,
+            target_slot_ref,
             incoming_instructions,
         );
     }
@@ -1383,6 +1417,15 @@ fn get_instructions_from_pivot(
             {
                 continue;
             }
+
+            let saved_move = if let MoveChoice::MoveMega(slot_ref, side_ref, pokemon_move_index) =
+                rtm.move_choice
+            {
+                MoveChoice::Move(slot_ref, side_ref, pokemon_move_index)
+            } else {
+                rtm.move_choice
+            };
+
             let slot = state.get_side(rtm.side_ref).get_slot(&rtm.slot_ref);
             incoming_instructions
                 .instruction_list
@@ -1390,11 +1433,11 @@ fn get_instructions_from_pivot(
                     SetSecondMoveSwitchOutMoveInstruction {
                         side_ref: rtm.side_ref,
                         slot_ref: rtm.slot_ref,
-                        new_choice: rtm.move_choice,
+                        new_choice: saved_move,
                         previous_choice: slot.switch_out_move_second_saved_move,
                     },
                 ));
-            slot.switch_out_move_second_saved_move = rtm.move_choice;
+            slot.switch_out_move_second_saved_move = saved_move;
         }
     }
 }
@@ -1794,6 +1837,9 @@ fn move_has_no_effect(
     {
         return true;
     }
+    if target_side.side_conditions.quick_guard > 0 && choice.priority > 0 {
+        return true;
+    }
 
     if choice.flags.powder
         && choice.target == MoveTarget::Target
@@ -2157,18 +2203,18 @@ fn generate_instructions_from_existing_status_conditions(
         PokemonStatus::PARALYZE => {
             // Fully-Paralyzed Branch
             let mut fully_paralyzed_instruction = incoming_instructions.clone();
-            fully_paralyzed_instruction.update_percentage(0.25);
+            fully_paralyzed_instruction.update_percentage(PARALYSIS_CHANCE);
             final_instructions.push((fully_paralyzed_instruction, remaining_to_move.clone()));
 
             // Non-Paralyzed Branch
-            incoming_instructions.update_percentage(0.75);
+            incoming_instructions.update_percentage(1.0 - PARALYSIS_CHANCE);
         }
         PokemonStatus::FREEZE => {
             let mut still_frozen_instruction = incoming_instructions.clone();
-            still_frozen_instruction.update_percentage(0.80);
+            still_frozen_instruction.update_percentage(1.0 - THAW_CHANCE);
             final_instructions.push((still_frozen_instruction, remaining_to_move.clone()));
 
-            incoming_instructions.update_percentage(0.20);
+            incoming_instructions.update_percentage(THAW_CHANCE);
             attacker_active.status = PokemonStatus::NONE;
             incoming_instructions
                 .instruction_list
@@ -3178,17 +3224,29 @@ fn run_move(
 fn remove_low_chance_instructions(
     instructions: &mut Vec<(StateInstructions, Vec<RemainingToMove>)>,
     threshold: f32,
+    min_keep: usize,
+    max_keep: usize,
 ) {
     let total_percentage: f32 = instructions.iter().map(|(ins, _)| ins.percentage).sum();
     let min_percentage = total_percentage * threshold / 100.0;
 
+    instructions.sort_unstable_by(|a, b| {
+        b.0.percentage
+            .partial_cmp(&a.0.percentage)
+            .unwrap_or(cmp::Ordering::Equal)
+    });
+
+    instructions.truncate(max_keep);
+
+    let mut kept = 0;
     let mut new_total = 0.0;
     instructions.retain(|(instruction, _)| {
-        if instruction.percentage < min_percentage {
-            false
-        } else {
+        if kept < min_keep || instruction.percentage >= min_percentage {
+            kept += 1;
             new_total += instruction.percentage;
             true
+        } else {
+            false
         }
     });
     for instruction in instructions.iter_mut() {
@@ -3681,6 +3739,18 @@ fn add_end_of_turn_instructions(
                     },
                 ));
             side.side_conditions.wide_guard -= 1;
+        }
+        if side.side_conditions.quick_guard > 0 {
+            incoming_instructions
+                .instruction_list
+                .push(Instruction::ChangeSideCondition(
+                    ChangeSideConditionInstruction {
+                        side_ref,
+                        side_condition: PokemonSideCondition::QuickGuard,
+                        amount: -1,
+                    },
+                ));
+            side.side_conditions.quick_guard -= 1;
         }
         if side.side_conditions.reflect > 0 {
             incoming_instructions
@@ -4335,11 +4405,11 @@ fn add_end_of_turn_instructions(
             }
             if has_saltcure {
                 let active_pkmn = side.get_active(slot_ref);
-                let mut divisor = 8.0;
+                let mut divisor = 16.0;
                 if active_pkmn.has_type(&PokemonType::WATER)
                     || active_pkmn.has_type(&PokemonType::STEEL)
                 {
-                    divisor = 4.0;
+                    divisor = 8.0;
                 }
                 let damage_amount =
                     cmp::min((active_pkmn.maxhp as f32 / divisor) as i16, active_pkmn.hp);
@@ -4498,6 +4568,7 @@ fn execute_move_effects(
       // without some performance hits.
 
     if let Some(boost) = &choice.boost {
+        // known bug: see test_direct_boost_with_spread_move_only_boosts_once
         if final_run_move || boost.target != MoveTarget::User {
             get_instructions_from_boosts(
                 state,
@@ -4760,7 +4831,9 @@ fn mega_evolve(
     // change stats
     active_pkmn.recalculate_stats(side_ref, active_index, instructions);
 
-    // change ability
+    // change ability / base_ability
+    // base_ability is used to revert a pokemon's ability when it switches out after mega-evolving,
+    // so it also needs to be changed if the mega evolution changes the pokemon's ability
     if mega_evolve_data.ability != active_pkmn.ability {
         instructions
             .instruction_list
@@ -4770,6 +4843,16 @@ fn mega_evolve(
                 ability_change: mega_evolve_data.ability as i16 - active_pkmn.ability as i16,
             }));
         active_pkmn.ability = mega_evolve_data.ability;
+    }
+    if mega_evolve_data.ability != active_pkmn.base_ability {
+        instructions
+            .instruction_list
+            .push(Instruction::ChangeBaseAbility(ChangeAbilityInstruction {
+                side_ref,
+                pokemon_index: active_index,
+                ability_change: mega_evolve_data.ability as i16 - active_pkmn.base_ability as i16,
+            }));
+        active_pkmn.base_ability = mega_evolve_data.ability;
     }
     // change type
     if mega_evolve_data.types != active_pkmn.types {
@@ -4783,6 +4866,16 @@ fn mega_evolve(
             }));
         active_pkmn.types = mega_evolve_data.types;
     }
+
+    instructions
+        .instruction_list
+        .push(Instruction::ToggleMegaEvolved(
+            ToggleMegaEvolvedInstruction {
+                side_ref,
+                pokemon_index: active_index,
+            },
+        ));
+    active_pkmn.mega_evolved = true;
 
     // ability on switch in
     ability_on_switch_in(state, side_ref, &slot_ref, instructions);
@@ -5241,7 +5334,7 @@ pub fn generate_instructions_from_move_pair(
             i += 1;
         }
         combine_duplicate_instructions(&mut state_instructions_vec);
-        remove_low_chance_instructions(&mut state_instructions_vec, 4.0);
+        remove_low_chance_instructions(&mut state_instructions_vec, 4.0, 3, 10);
         num_moves_done += 1;
     }
 

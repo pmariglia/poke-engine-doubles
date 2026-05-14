@@ -195,6 +195,8 @@ class Pokemon:
     :type sleep_turns: int
     :param weight_kg: Weight in kilograms
     :type weight_kg: float
+    :param mega_evolved: if the Pokemon has mega_evolved
+    :type mega_evolved: bool
     :param terastallized: if the Pokemon is terastallized
     :type terastallized: bool
     :param tera_type: Tera type
@@ -227,6 +229,7 @@ class Pokemon:
     rest_turns: int
     sleep_turns: int
     weight_kg: float
+    mega_evolved: bool
     terastallized: bool
     tera_type: str
     moves: List[Move]
@@ -245,7 +248,7 @@ class Pokemon:
         base_ability: str = "",
         item: str = "none",
         nature: str = "serious",
-        evs: Tuple[int, int, int, int, int, int] = (85, 85, 85, 85, 85, 85),
+        evs: Tuple[int, int, int, int, int, int] = (11, 11, 11, 11, 11, 11),
         attack: int = 100,
         defense: int = 100,
         special_attack: int = 100,
@@ -256,6 +259,7 @@ class Pokemon:
         sleep_turns: int = 0,
         weight_kg: float = 0.0,
         moves: Optional[List[Move]] = None,
+        mega_evolved: bool = False,
         terastallized: bool = False,
         tera_type: str = "typeless",
         times_attacked: int = 0,
@@ -457,29 +461,18 @@ class MctsResult:
     side_two: List[MctsSideResult]
     iteration_count: int
 
-class TeamPreviewFilterSide:
-    """Team Preview Options for a side."""
-
-    valid_pokemon: List[str]
-    leads: List[Tuple[str, str]] | None
-
-    def __init__(
-        self,
-        valid_pokemon: List[str] = None,
-        leads: Optional[List[Tuple[str, str]]] = None,
-    ) -> None: ...
-
 class TeamPreviewFilters:
     """Team Preview Options for both Sides."""
 
-    side_one: TeamPreviewFilterSide
-    side_two: TeamPreviewFilterSide
+    side_one: list[Tuple[int, int, int, int]]
+    side_two: list[Tuple[int, int, int, int]]
 
     def __init__(
         self,
-        side_one: TeamPreviewFilterSide,
-        side_two: TeamPreviewFilterSide,
+        side_one: list[Tuple[int, int, int, int]],
+        side_two: list[Tuple[int, int, int, int]],
     ) -> None: ...
+    def debug_print(self) -> str: ...
 
 def mcts_team_preview(
     py_state: State, duration_ms: int, team_preview_filter: TeamPreviewFilters

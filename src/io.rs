@@ -6,6 +6,7 @@ use crate::engine::generate_instructions::{
 use crate::engine::state::MoveChoice;
 use crate::instruction::{Instruction, StateInstructions};
 use crate::mcts::{perform_mcts, MctsResult};
+use crate::mcts_threaded::perform_mcts_shared_tree;
 use crate::state::{PokemonIndex, SideReference, SlotReference, State};
 use clap::Parser;
 use std::io;
@@ -40,8 +41,11 @@ struct MonteCarloTreeSearch {
     #[clap(short, long, required = true)]
     state: String,
 
-    #[clap(short, long, default_value_t = 5000)]
+    #[clap(short = 't', long, default_value_t = 5000)]
     time_to_search_ms: u64,
+
+    #[clap(short = 'n', long, default_value_t = 1)]
+    threads: usize,
 }
 
 #[derive(Parser)]
@@ -221,12 +225,22 @@ pub fn main() {
             SubCommand::MonteCarloTreeSearch(mcts) => {
                 state = State::deserialize(mcts.state.as_str());
                 (side_one_options, side_two_options) = state.root_get_all_options();
-                let result = perform_mcts(
-                    &mut state,
-                    side_one_options.clone(),
-                    side_two_options.clone(),
-                    std::time::Duration::from_millis(mcts.time_to_search_ms),
-                );
+                let result = if mcts.threads > 1 {
+                    perform_mcts_shared_tree(
+                        &mut state,
+                        side_one_options.clone(),
+                        side_two_options.clone(),
+                        std::time::Duration::from_millis(mcts.time_to_search_ms),
+                        mcts.threads,
+                    )
+                } else {
+                    perform_mcts(
+                        &mut state,
+                        side_one_options.clone(),
+                        side_two_options.clone(),
+                        std::time::Duration::from_millis(mcts.time_to_search_ms),
+                    )
+                };
                 pprint_mcts_result(&state, result);
             }
             SubCommand::CalculateDamage(_calculate_damage) => panic!("Not implemented yet"),
@@ -607,6 +621,38 @@ fn command_loop(mut io_data: IOData) {
                     continue;
                 }
             },
+            "monte-carlo-tree-search-parallel" | "mctsp" => {
+                let worker_count = match args.next() {
+                    Some(s) => s.parse::<usize>().unwrap(),
+                    None => {
+                        println!(
+                            "Usage: monte-carlo-tree-search-parallel <worker_count> <timeout_ms>"
+                        );
+                        continue;
+                    }
+                };
+                let max_time_ms = match args.next() {
+                    Some(s) => s.parse::<u64>().unwrap(),
+                    None => {
+                        println!(
+                            "Usage: monte-carlo-tree-search-parallel <worker_count> <timeout_ms>"
+                        );
+                        continue;
+                    }
+                };
+                let (side_one_options, side_two_options) = io_data.state.root_get_all_options();
+                let start_time = std::time::Instant::now();
+                let result = perform_mcts_shared_tree(
+                    &mut io_data.state,
+                    side_one_options.clone(),
+                    side_two_options.clone(),
+                    std::time::Duration::from_millis(max_time_ms),
+                    worker_count,
+                );
+                let elapsed = start_time.elapsed();
+                pprint_mcts_result(&io_data.state, result);
+                println!("\nTook: {:?}", elapsed);
+            }
             "team-preview" | "tp" => {
                 if !io_data.state.team_preview {
                     println!("Team preview must be active");

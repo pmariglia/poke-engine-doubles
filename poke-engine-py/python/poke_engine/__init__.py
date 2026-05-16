@@ -90,7 +90,9 @@ class MctsResult:
         )
 
 
-def monte_carlo_tree_search(state: State, duration_ms: int = 1000) -> MctsResult:
+def monte_carlo_tree_search(
+    state: State, duration_ms: int = 1000, threads: int = 1
+) -> MctsResult:
     """
     Perform monte-carlo-tree-search on the given state and for the given duration
 
@@ -98,10 +100,12 @@ def monte_carlo_tree_search(state: State, duration_ms: int = 1000) -> MctsResult
     :type state: State
     :param duration_ms: time in milliseconds to run the search
     :type duration_ms: int
+    :param threads: number of threads to use for the search
+    :type threads: int
     :return: the result of the search
     :rtype: MctsResult
     """
-    return MctsResult._from_rust(mcts(state, duration_ms))
+    return MctsResult._from_rust(mcts(state, duration_ms, threads))
 
 
 def monte_carlo_tree_search_team_preview(

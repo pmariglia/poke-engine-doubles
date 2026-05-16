@@ -487,12 +487,13 @@ def mcts_team_preview(
     """
     ...
 
-def mcts(py_state: State, duration_ms: int) -> MctsResult:
+def mcts(py_state: State, duration_ms: int, threads: int) -> MctsResult:
     """
     Perform Monte Carlo Tree Search on the given state.
 
     :param py_state: The game state to analyze
     :param duration_ms: Duration in milliseconds to run MCTS
+    :param threads: Number of threads to use for MCTS
     :return: MCTS results for both sides
     """
     ...

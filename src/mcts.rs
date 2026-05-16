@@ -3,9 +3,9 @@ use crate::engine::generate_instructions::generate_instructions_from_move_pair;
 use crate::engine::state::{MoveChoice, MoveOptions};
 use crate::instruction::StateInstructions;
 use crate::state::State;
-use rand::distributions::WeightedIndex;
+use rand::distr::weighted::WeightedIndex;
 use rand::prelude::*;
-use rand::thread_rng;
+use rand::rng;
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -21,7 +21,6 @@ pub struct Node {
     pub root: bool,
     pub depth: u8,
     pub parent: *mut Node,
-    pub children: HashMap<(u16, u16), Vec<Node>>,
     pub times_visited: u32,
 
     // represents the instructions that led to this node from the parent
@@ -41,7 +40,6 @@ impl Node {
             parent: std::ptr::null_mut(),
             instructions: StateInstructions::default(),
             times_visited: 0,
-            children: HashMap::new(),
             s1_options: None,
             s2_options: None,
         }
@@ -139,6 +137,7 @@ impl Node {
         &mut self,
         state: &mut State,
         move_options: &mut MoveOptions,
+        children: &mut HashMap<(usize, u16, u16), Vec<Node>>,
     ) -> (*mut Node, usize, usize) {
         let return_node = self as *mut Node;
         if self.s1_options.is_none() {
@@ -163,20 +162,20 @@ impl Node {
 
         let s1_key = self.s1_options.as_ref().unwrap()[s1_mc_index].to_u16();
         let s2_key = self.s2_options.as_ref().unwrap()[s2_mc_index].to_u16();
-        let child_vector = self.children.get_mut(&(s1_key, s2_key));
-        match child_vector {
+        let key = (return_node as usize, s1_key, s2_key);
+        match children.get_mut(&key) {
             Some(child_vector) => {
                 let child_vec_ptr = child_vector as *mut Vec<Node>;
                 let chosen_child = self.sample_node(child_vec_ptr);
                 state.apply_instructions(&(*chosen_child).instructions.instruction_list);
-                (*chosen_child).selection(state, move_options)
+                (*chosen_child).selection(state, move_options, children)
             }
             None => (return_node, s1_mc_index, s2_mc_index),
         }
     }
 
     unsafe fn sample_node(&self, move_vector: *mut Vec<Node>) -> *mut Node {
-        let mut rng = thread_rng();
+        let mut rng = rng();
         let weights: Vec<f64> = (*move_vector)
             .iter()
             .map(|x| x.instructions.percentage as f64)
@@ -208,10 +207,12 @@ impl Node {
         state: &mut State,
         s1_move_index: usize,
         s2_move_index: usize,
+        children: &mut HashMap<(usize, u16, u16), Vec<Node>>,
     ) -> *mut Node {
         if self.depth >= 4 {
             return self as *mut Node;
         }
+        let node_addr = self as *mut Node as usize;
         let s1_option = &self.s1_options.as_ref().unwrap()[s1_move_index];
         let s2_option = &self.s2_options.as_ref().unwrap()[s2_move_index];
         let s1_move = &s1_option.move_choice;
@@ -219,7 +220,7 @@ impl Node {
         if self.should_not_expand(state, &s1_move, &s2_move) {
             return self as *mut Node;
         }
-        let key = (s1_option.to_u16(), s2_option.to_u16());
+        let key = (node_addr, s1_option.to_u16(), s2_option.to_u16());
         let should_branch_on_damage = self.should_branch_on_damage();
         let mut new_instructions = generate_instructions_from_move_pair(
             state,
@@ -248,7 +249,7 @@ impl Node {
         // this is the node that the rollout will be done on
         let new_node_ptr = self.sample_node(&mut this_pair_vec);
         state.apply_instructions(&(*new_node_ptr).instructions.instruction_list);
-        self.children.insert(key, this_pair_vec);
+        children.insert(key, this_pair_vec);
         new_node_ptr
     }
 
@@ -352,9 +353,11 @@ fn do_mcts(
     state: &mut State,
     root_eval: &f32,
     move_options: &mut MoveOptions,
+    children: &mut HashMap<(usize, u16, u16), Vec<Node>>,
 ) {
-    let (mut new_node, s1_move, s2_move) = unsafe { root_node.selection(state, move_options) };
-    new_node = unsafe { (*new_node).expand(state, s1_move, s2_move) };
+    let (mut new_node, s1_move, s2_move) =
+        unsafe { root_node.selection(state, move_options, children) };
+    new_node = unsafe { (*new_node).expand(state, s1_move, s2_move, children) };
     let rollout_result = unsafe { (*new_node).rollout(state, root_eval) };
     unsafe { (*new_node).backpropagate(rollout_result, state) }
 }
@@ -372,11 +375,18 @@ pub fn perform_mcts(
     root_node.root = true;
 
     let mut combined_options = MoveOptions::new();
+    let mut children: HashMap<(usize, u16, u16), Vec<Node>> = HashMap::new();
     let root_eval = evaluate(state);
     let start_time = std::time::Instant::now();
     while start_time.elapsed() < max_time {
         for _ in 0..1000 {
-            do_mcts(&mut root_node, state, &root_eval, &mut combined_options);
+            do_mcts(
+                &mut root_node,
+                state,
+                &root_eval,
+                &mut combined_options,
+                &mut children,
+            );
         }
 
         /*
@@ -423,36 +433,4 @@ pub fn perform_mcts(
     };
 
     result
-}
-
-pub fn _analyze_leaf_node_depths(root_node: &Node) {
-    let mut depth_counts: HashMap<usize, usize> = HashMap::new();
-
-    fn collect_leaf_depths(node: &Node, depth_counts: &mut HashMap<usize, usize>) {
-        // A leaf node is one with no children
-        if node.children.is_empty() {
-            *depth_counts.entry(node.depth as usize).or_insert(0) += 1;
-        } else {
-            // Recursively traverse all children
-            for child_vector in node.children.values() {
-                for child in child_vector {
-                    collect_leaf_depths(child, depth_counts);
-                }
-            }
-        }
-    }
-
-    collect_leaf_depths(root_node, &mut depth_counts);
-
-    // Print results sorted by depth
-    let mut depths: Vec<_> = depth_counts.keys().collect();
-    depths.sort();
-
-    println!("Leaf node count by depth:");
-    for &depth in depths {
-        println!("Depth {}: {} leaf nodes", depth, depth_counts[&depth]);
-    }
-
-    let total_leaves: usize = depth_counts.values().sum();
-    println!("Total leaf nodes: {}", total_leaves);
 }

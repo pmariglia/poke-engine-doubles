@@ -5,6 +5,7 @@ pub mod choices;
 pub mod instruction;
 pub mod io;
 pub mod mcts;
+pub mod mcts_threaded;
 pub mod pokemon;
 pub mod state;
 

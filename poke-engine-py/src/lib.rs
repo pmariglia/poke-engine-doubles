@@ -14,6 +14,7 @@ use poke_engine::engine::state::{
 };
 use poke_engine::instruction::{Instruction, StateInstructions};
 use poke_engine::mcts::{perform_mcts, MctsResult, MctsSideResult};
+use poke_engine::mcts_threaded::perform_mcts_shared_tree;
 use poke_engine::pokemon::PokemonName;
 use poke_engine::state::{
     LastUsedMove, Move, Pokemon, PokemonIndex, PokemonMoves, PokemonNature, PokemonStatus,
@@ -1065,7 +1066,7 @@ fn mcts_team_preview(
 }
 
 #[pyfunction]
-fn mcts(py_state: PyState, mut duration_ms: u64) -> PyResult<PyMctsResult> {
+fn mcts(py_state: PyState, mut duration_ms: u64, threads: usize) -> PyResult<PyMctsResult> {
     let mut state: State = py_state.into();
     let (s1_options, s2_options) = state.root_get_all_options();
     if s1_options.len() <= 1 {
@@ -1073,7 +1074,11 @@ fn mcts(py_state: PyState, mut duration_ms: u64) -> PyResult<PyMctsResult> {
     }
 
     let duration = Duration::from_millis(duration_ms);
-    let mcts_result = perform_mcts(&mut state, s1_options, s2_options, duration);
+    let mcts_result = if threads > 1 {
+        perform_mcts_shared_tree(&mut state, s1_options, s2_options, duration, threads)
+    } else {
+        perform_mcts(&mut state, s1_options, s2_options, duration)
+    };
     let py_mcts_result = PyMctsResult::from_mcts_result(mcts_result, &state);
     Ok(py_mcts_result)
 }

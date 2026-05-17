@@ -109,7 +109,7 @@ def monte_carlo_tree_search(
 
 
 def monte_carlo_tree_search_team_preview(
-    state: State, filters: TeamPreviewFilters, duration_ms: int = 1000
+    state: State, filters: TeamPreviewFilters, duration_ms: int = 1000, threads: int = 1
 ) -> MctsResult:
     """
     Perform monte-carlo-tree-search on the given state and for the given duration
@@ -119,7 +119,12 @@ def monte_carlo_tree_search_team_preview(
     :param duration_ms: time in milliseconds to run the search
     :type duration_ms: int
     :param filters: an instance of TeamPreviewFilters
+    :type filters: TeamPreviewFilters
+    :param threads: number of threads to use for the search
+    :type threads: int
     :return: the result of the search
     :rtype: MctsResult
     """
-    return MctsResult._from_rust(mcts_team_preview(state, duration_ms, filters))
+    return MctsResult._from_rust(
+        mcts_team_preview(state, duration_ms, filters, threads)
+    )

@@ -1018,6 +1018,7 @@ fn mcts_team_preview(
     py_state: PyState,
     duration_ms: u64,
     team_preview_filter: PyTeamPreviewFilters,
+    threads: usize,
 ) -> PyResult<PyMctsResult> {
     let mut state: State = py_state.into();
     if !state.team_preview {
@@ -1060,7 +1061,12 @@ fn mcts_team_preview(
     let s2_options = State::generate_team_preview_options(side_two_options_pokemon_index);
 
     let duration = Duration::from_millis(duration_ms);
-    let mcts_result = perform_mcts(&mut state, s1_options, s2_options, duration);
+    let mcts_result = if threads > 1 {
+        perform_mcts_shared_tree(&mut state, s1_options, s2_options, duration, threads)
+    } else {
+        perform_mcts(&mut state, s1_options, s2_options, duration)
+    };
+
     let py_mcts_result = PyMctsResult::from_mcts_result(mcts_result, &state);
     Ok(py_mcts_result)
 }

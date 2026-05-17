@@ -475,7 +475,10 @@ class TeamPreviewFilters:
     def debug_print(self) -> str: ...
 
 def mcts_team_preview(
-    py_state: State, duration_ms: int, team_preview_filter: TeamPreviewFilters
+    py_state: State,
+    duration_ms: int,
+    team_preview_filter: TeamPreviewFilters,
+    threads: int = 1,
 ) -> MctsResult:
     """
     Perform Monte Carlo Tree Search on the given state.
@@ -483,6 +486,7 @@ def mcts_team_preview(
     :param py_state: The game state to analyze
     :param duration_ms: Duration in milliseconds to run MCTS
     :param team_preview_filter: an instance of TeamPreviewFilters
+    :param threads: number of threads to use for the search
     :return: MCTS results for both sides
     """
     ...

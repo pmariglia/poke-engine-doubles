@@ -137,7 +137,12 @@ pub struct Node {
     // backpropagates
     // I8 effectively means you can't use more than 127 threads without risking overflow
     virtual_losses: AtomicI8,
-    options: OnceLock<SharedNodeOptions>,
+
+    // boxed so an un-expanded node only carries a pointer slot inline
+    // instead of the full SharedNodeOptions (two empty Vecs). leaves
+    // outnumber internal nodes, so the inline reservation was almost always
+    // dead weight. the heap alloc now only happens when a node is expanded
+    options: OnceLock<Box<SharedNodeOptions>>,
 }
 
 impl Node {
@@ -155,7 +160,7 @@ impl Node {
         });
         let _ = node
             .options
-            .set(SharedNodeOptions::new(s1_options, s2_options));
+            .set(Box::new(SharedNodeOptions::new(s1_options, s2_options)));
         node
     }
 
@@ -178,10 +183,10 @@ impl Node {
         self.options.get_or_init(|| {
             let mut move_options = MoveOptions::new();
             state.get_all_options(&mut move_options);
-            SharedNodeOptions::new(
+            Box::new(SharedNodeOptions::new(
                 move_options.side_one_combined_options,
                 move_options.side_two_combined_options,
-            )
+            ))
         })
     }
 

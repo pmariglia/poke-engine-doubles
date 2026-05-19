@@ -92,6 +92,23 @@ impl SharedNodeOptions {
             s2: s2_options.into_iter().map(MoveNode::new).collect(),
         }
     }
+
+    // drains a reusable MoveOptions buffer so its underlying Vec
+    // allocations stay with the worker thread for the next node
+    fn from_move_options(move_options: &mut MoveOptions) -> Self {
+        Self {
+            s1: move_options
+                .side_one_combined_options
+                .drain(..)
+                .map(MoveNode::new)
+                .collect(),
+            s2: move_options
+                .side_two_combined_options
+                .drain(..)
+                .map(MoveNode::new)
+                .collect(),
+        }
+    }
 }
 
 pub struct SharedBranch {
@@ -179,19 +196,15 @@ impl Node {
         self as *const Node as usize
     }
 
-    fn ensure_options(&self, state: &State) -> &SharedNodeOptions {
+    fn ensure_options(&self, state: &State, move_options: &mut MoveOptions) -> &SharedNodeOptions {
         self.options.get_or_init(|| {
-            let mut move_options = MoveOptions::new();
-            state.get_all_options(&mut move_options);
-            Box::new(SharedNodeOptions::new(
-                move_options.side_one_combined_options,
-                move_options.side_two_combined_options,
-            ))
+            state.get_all_options(move_options);
+            Box::new(SharedNodeOptions::from_move_options(move_options))
         })
     }
 
-    fn select_move_pair(&self, state: &State) -> (usize, usize) {
-        let options = self.ensure_options(state);
+    fn select_move_pair(&self, state: &State, move_options: &mut MoveOptions) -> (usize, usize) {
+        let options = self.ensure_options(state, move_options);
         let parent_visits = self
             .times_visited
             .load(Ordering::Acquire)
@@ -209,10 +222,11 @@ impl Node {
         rng: &mut R,
         children: &ChildMap,
         path: &mut Vec<PathStep>,
+        move_options: &mut MoveOptions,
     ) -> (Arc<Node>, usize, usize) {
         let mut current = root.clone();
         loop {
-            let (s1_index, s2_index) = current.select_move_pair(state);
+            let (s1_index, s2_index) = current.select_move_pair(state, move_options);
             let options = current.options.get().expect("options set during selection");
 
             let key = (current.as_key(), s1_index, s2_index);
@@ -370,10 +384,12 @@ fn do_mcts<R: Rng + ?Sized>(
     rng: &mut R,
     children: &ChildMap,
     path: &mut Vec<PathStep>,
+    move_options: &mut MoveOptions,
 ) {
     path.clear();
 
-    let (leaf, s1_index, s2_index) = Node::selection(root, state, rng, children, path);
+    let (leaf, s1_index, s2_index) =
+        Node::selection(root, state, rng, children, path, move_options);
 
     // is the leaf's parent the root? required by the doubles
     // should_branch_on_damage heuristic. an empty path means the leaf
@@ -444,6 +460,7 @@ pub fn perform_mcts_shared_tree(
                 let mut rng = rng();
                 let mut iterations_until_deadline_check = 0u32;
                 let mut path = Vec::with_capacity(16);
+                let mut move_options = MoveOptions::new();
 
                 loop {
                     if iterations_until_deadline_check == 0 {
@@ -465,6 +482,7 @@ pub fn perform_mcts_shared_tree(
                         &mut rng,
                         &children,
                         &mut path,
+                        &mut move_options,
                     );
                     iterations_until_deadline_check -= 1;
                 }

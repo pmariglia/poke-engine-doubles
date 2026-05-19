@@ -41,6 +41,14 @@ pub struct MoveOptions {
     pub side_two_slot_b_options: Vec<MoveChoice>,
     pub side_one_combined_options: Vec<(MoveChoice, MoveChoice)>,
     pub side_two_combined_options: Vec<(MoveChoice, MoveChoice)>,
+    // scratch scratchpads for heuristic ranking (parallel to combined_options).
+    // owned by MoveOptions so the allocation stays with the worker across nodes.
+    pub side_one_pair_scores: Vec<f32>,
+    pub side_two_pair_scores: Vec<f32>,
+    // scratch index permutation used to materialize MoveNode vecs in
+    // heuristic-sorted order without allocating per node populate.
+    pub side_one_sort_indices: Vec<usize>,
+    pub side_two_sort_indices: Vec<usize>,
 }
 
 impl MoveOptions {
@@ -52,23 +60,41 @@ impl MoveOptions {
             side_two_slot_b_options: Vec::with_capacity(9),
             side_one_combined_options: Vec::with_capacity(81),
             side_two_combined_options: Vec::with_capacity(81),
+            side_one_pair_scores: Vec::with_capacity(81),
+            side_two_pair_scores: Vec::with_capacity(81),
+            side_one_sort_indices: Vec::with_capacity(81),
+            side_two_sort_indices: Vec::with_capacity(81),
         }
     }
     pub fn combine_slot_options(&mut self) {
+        self.combine_slot_options_keep_buffers();
+        self.clear_slot_buffers();
+    }
+    // pair-combine step without clearing the per-slot option buffers.
+    // useful when the caller wants to read the slot vectors after combining
+    // (e.g. for heuristic ranking that wants per-slot scores cached before
+    // walking the pair list). pair the call with clear_slot_buffers() when done.
+    pub fn combine_slot_options_keep_buffers(&mut self) {
         MoveOptions::combine_side_slot_options(
-            &mut self.side_one_slot_a_options,
-            &mut self.side_one_slot_b_options,
+            &self.side_one_slot_a_options,
+            &self.side_one_slot_b_options,
             &mut self.side_one_combined_options,
         );
         MoveOptions::combine_side_slot_options(
-            &mut self.side_two_slot_a_options,
-            &mut self.side_two_slot_b_options,
+            &self.side_two_slot_a_options,
+            &self.side_two_slot_b_options,
             &mut self.side_two_combined_options,
         );
     }
+    pub fn clear_slot_buffers(&mut self) {
+        self.side_one_slot_a_options.clear();
+        self.side_one_slot_b_options.clear();
+        self.side_two_slot_a_options.clear();
+        self.side_two_slot_b_options.clear();
+    }
     pub fn combine_side_slot_options(
-        slot_a_options: &mut Vec<MoveChoice>,
-        slot_b_options: &mut Vec<MoveChoice>,
+        slot_a_options: &[MoveChoice],
+        slot_b_options: &[MoveChoice],
         combined_options: &mut Vec<(MoveChoice, MoveChoice)>,
     ) {
         let capacity = slot_a_options.len() * slot_b_options.len();
@@ -115,8 +141,6 @@ impl MoveOptions {
                 combined_options.push((MoveChoice::None, MoveChoice::None));
             }
         }
-        slot_a_options.clear();
-        slot_b_options.clear();
     }
 }
 
@@ -1808,6 +1832,20 @@ impl State {
     }
 
     pub fn get_all_options(&self, move_options: &mut MoveOptions) {
+        self.fill_slot_options(move_options);
+        move_options.combine_slot_options();
+    }
+
+    // same as get_all_options but does not clear the per-slot option buffers
+    // after combining. callers that want to inspect the slot vectors after
+    // combining (e.g. for heuristic ranking) should use this and pair the call
+    // with move_options.clear_slot_buffers() when done.
+    pub fn get_all_options_keep_slot_buffers(&self, move_options: &mut MoveOptions) {
+        self.fill_slot_options(move_options);
+        move_options.combine_slot_options_keep_buffers();
+    }
+
+    fn fill_slot_options(&self, move_options: &mut MoveOptions) {
         // Get active pokemon references
         let side_one_active_a = self.sides[0].get_active_immutable(&SlotReference::SlotA);
         let side_one_active_b = self.sides[0].get_active_immutable(&SlotReference::SlotB);
@@ -1835,7 +1873,6 @@ impl State {
                 &mut move_options.side_two_slot_b_options,
                 &self.sides[1],
             );
-            move_options.combine_slot_options();
             return;
         }
 
@@ -1853,7 +1890,6 @@ impl State {
                 &mut move_options.side_one_slot_b_options,
                 &self.sides[0],
             );
-            move_options.combine_slot_options();
             return;
         }
 
@@ -1897,7 +1933,6 @@ impl State {
                 move_options.side_two_slot_b_options.push(MoveChoice::None);
             }
 
-            move_options.combine_slot_options();
             return;
         }
 
@@ -1964,8 +1999,6 @@ impl State {
         if move_options.side_two_slot_b_options.is_empty() {
             move_options.side_two_slot_b_options.push(MoveChoice::None);
         }
-
-        move_options.combine_slot_options();
     }
 
     pub fn reset_toxic_count(

@@ -2,6 +2,7 @@
 pub mod engine;
 
 pub mod choices;
+pub mod heuristics;
 pub mod instruction;
 pub mod io;
 pub mod mcts;

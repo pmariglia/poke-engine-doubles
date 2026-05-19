@@ -1,9 +1,10 @@
 use crate::engine::evaluate::evaluate;
 use crate::engine::generate_instructions::generate_instructions_from_move_pair;
 use crate::engine::state::{MoveChoice, MoveOptions};
+use crate::heuristics::rank_side_pairs;
 use crate::instruction::StateInstructions;
 use crate::mcts::{MctsResult, MctsSideResult};
-use crate::state::State;
+use crate::state::{SideReference, State};
 use dashmap::DashMap;
 use rand::prelude::*;
 use rand::rng;
@@ -16,6 +17,19 @@ const MCTS_DEADLINE_CHECK_INTERVAL: u32 = 1_000;
 const MCTS_MAX_ITERATIONS_PER_TREE: u32 = 25_000_000;
 const MCTS_MAX_DEPTH: u8 = 5;
 const SCORE_SCALE: f32 = 400.0;
+
+// progressive widening: at parent visit count N, only the top
+// K = max(1, min(len, ceil(WIDEN_C * sqrt(N)))) options (by heuristic rank)
+// are visible to UCB1. options past K are ignored by selection until N grows
+// enough to admit them. with WIDEN_C = 2.0 the schedule is roughly:
+//   N=1    -> K=2
+//   N=10   -> K=7
+//   N=100  -> K=20
+//   N=1k   -> K=64
+//   N=10k  -> K=200
+// the root (which accrues visits fastest) opens fully well before the search
+// ends; internal nodes stay pruned in proportion to how often they're visited.
+const WIDEN_C: f32 = 2.0;
 
 // added to a MoveNode's `visits` only, so while a
 // thread is in flight through that move it reads like this many extra losing
@@ -31,6 +45,16 @@ type ChildMap = DashMap<(usize, usize, usize), SharedBranch>;
 fn sigmoid(x: f32) -> f32 {
     // Tuned so that ~400 points is very close to 1.0
     1.0 / (1.0 + (-0.0062 * x).exp())
+}
+
+// see WIDEN_C for the formula and schedule.
+fn widen_k(parent_visits: u32, len: usize) -> usize {
+    if len <= 1 {
+        return len;
+    }
+    let n = parent_visits.max(1) as f32;
+    let k = (WIDEN_C * n.sqrt()).ceil() as usize;
+    k.max(1).min(len)
 }
 
 pub struct MoveNode {
@@ -93,22 +117,69 @@ impl SharedNodeOptions {
         }
     }
 
-    // drains a reusable MoveOptions buffer so its underlying Vec
-    // allocations stay with the worker thread for the next node
-    fn from_move_options(move_options: &mut MoveOptions) -> Self {
-        Self {
-            s1: move_options
-                .side_one_combined_options
-                .drain(..)
-                .map(MoveNode::new)
-                .collect(),
-            s2: move_options
-                .side_two_combined_options
-                .drain(..)
-                .map(MoveNode::new)
-                .collect(),
-        }
+    // builds a SharedNodeOptions from a freshly-filled MoveOptions, ranking
+    // each side's pairs by the heuristic and sorting the resulting MoveNode
+    // vecs so index 0 is the highest-ranked pair. drains the reusable
+    // MoveOptions buffers so allocations stay with the worker for the next node.
+    fn from_ranked_move_options(state: &State, move_options: &mut MoveOptions) -> Self {
+        move_options.side_one_pair_scores.clear();
+        rank_side_pairs(
+            state,
+            SideReference::SideOne,
+            &move_options.side_one_slot_a_options,
+            &move_options.side_one_slot_b_options,
+            &move_options.side_one_combined_options,
+            &mut move_options.side_one_pair_scores,
+        );
+        move_options.side_two_pair_scores.clear();
+        rank_side_pairs(
+            state,
+            SideReference::SideTwo,
+            &move_options.side_two_slot_a_options,
+            &move_options.side_two_slot_b_options,
+            &move_options.side_two_combined_options,
+            &mut move_options.side_two_pair_scores,
+        );
+        move_options.clear_slot_buffers();
+
+        let s1 = build_sorted_movenodes(
+            &mut move_options.side_one_combined_options,
+            &mut move_options.side_one_pair_scores,
+            &mut move_options.side_one_sort_indices,
+        );
+        let s2 = build_sorted_movenodes(
+            &mut move_options.side_two_combined_options,
+            &mut move_options.side_two_pair_scores,
+            &mut move_options.side_two_sort_indices,
+        );
+        Self { s1, s2 }
     }
+}
+
+// drains `pairs` into a Vec<MoveNode> ordered by descending `scores`.
+// uses `indices` as reusable scratch; both vecs are left empty on return.
+fn build_sorted_movenodes(
+    pairs: &mut Vec<(MoveChoice, MoveChoice)>,
+    scores: &mut Vec<f32>,
+    indices: &mut Vec<usize>,
+) -> Vec<MoveNode> {
+    let n = pairs.len();
+    debug_assert_eq!(n, scores.len());
+    indices.clear();
+    indices.extend(0..n);
+    indices.sort_by(|&a, &b| {
+        scores[b]
+            .partial_cmp(&scores[a])
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    let mut out = Vec::with_capacity(n);
+    for &i in indices.iter() {
+        out.push(MoveNode::new(pairs[i]));
+    }
+    pairs.clear();
+    scores.clear();
+    indices.clear();
+    out
 }
 
 pub struct SharedBranch {
@@ -198,8 +269,11 @@ impl Node {
 
     fn ensure_options(&self, state: &State, move_options: &mut MoveOptions) -> &SharedNodeOptions {
         self.options.get_or_init(|| {
-            state.get_all_options(move_options);
-            Box::new(SharedNodeOptions::from_move_options(move_options))
+            state.get_all_options_keep_slot_buffers(move_options);
+            Box::new(SharedNodeOptions::from_ranked_move_options(
+                state,
+                move_options,
+            ))
         })
     }
 
@@ -266,7 +340,8 @@ impl Node {
     }
 
     fn maximize_ucb_for_side(&self, side_options: &[MoveNode], parent_visits: u32) -> usize {
-        side_options
+        let k = widen_k(parent_visits, side_options.len());
+        side_options[..k]
             .iter()
             .enumerate()
             .max_by(|(_, a), (_, b)| {

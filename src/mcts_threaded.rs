@@ -37,6 +37,38 @@ const WIDEN_C: f32 = 2.0;
 // this is purely a diversification deterrent, so the magnitude is a tuning knob
 const VIRTUAL_LOSS_VISITS: u32 = 3;
 
+// hard cap on the widened slice for *non-root* nodes. raising this means
+// more selection work per internal node visit; lowering it means PW can't
+// keep admitting more moves once parent_visits is huge. the root ignores
+// this cap entirely and always sees every available option (see
+// maximize_ucb_for_side) -- root selection happens every iteration and the
+// user wants all options scored, not gated by PW's sqrt schedule.
+const MAX_WIDEN: usize = 64;
+
+// first-play urgency / smoothed exploration:
+//
+// the textbook UCB1 bonus is sqrt(c * ln(N) / n). at n = 0 that's +inf, which
+// makes a freshly admitted move under progressive widening grab the next
+// selection unconditionally, and after exactly one rollout its bonus collapses
+// to sqrt(c * ln(N)) -- still huge, which is the "flood" the user was seeing.
+//
+// instead, replace `n` with `n + V_MIN` in both the unvisited branch and the
+// visited branch. V_MIN is set per call to parent_visits / k -- the visit
+// count an unvisited move would have if all k widened siblings were explored
+// equally. this gives:
+//   - n = 0:        bonus = sqrt(c * ln(N) / V_MIN)         (no singularity)
+//   - n small:      bonus ~ sqrt(c * ln(N) / V_MIN)         (no transition flood)
+//   - n >> V_MIN:   bonus ~ sqrt(c * ln(N) / n)             (standard UCB1)
+//
+// unvisited moves use the parent's per-side mean Q (sum_score / sum_visits
+// over visited siblings in the widened slice, defaulting to 0.5 when no
+// sibling is visited yet, with a tunable pessimism reduction). because every
+// move shares the same V_MIN-smoothed denominator, an unvisited move can
+// win selection without ever exploding -- it's compared against visited
+// peers' actual averages plus the same bonus.
+const FPU_REDUCTION: f32 = 0.0;
+const FPU_DEFAULT_Q: f32 = 0.5;
+
 // node map type alias for clarity.
 // key: (parent node address, s1_move_index, s2_move_index)
 // value: the branch (weighted list of outcome nodes for that move pair)
@@ -48,13 +80,14 @@ fn sigmoid(x: f32) -> f32 {
 }
 
 // see WIDEN_C for the formula and schedule.
+#[inline]
 fn widen_k(parent_visits: u32, len: usize) -> usize {
     if len <= 1 {
         return len;
     }
     let n = parent_visits.max(1) as f32;
     let k = (WIDEN_C * n.sqrt()).ceil() as usize;
-    k.max(1).min(len)
+    k.max(1).min(len).min(MAX_WIDEN)
 }
 
 pub struct MoveNode {
@@ -88,16 +121,6 @@ impl MoveNode {
 
     fn total_score_f32(&self) -> f32 {
         self.total_score.load(Ordering::Acquire) as f32 / SCORE_SCALE
-    }
-
-    fn ucb1(&self, parent_visits: u32) -> f32 {
-        let visits = self.visits.load(Ordering::Acquire);
-        if visits == 0 {
-            return f32::INFINITY;
-        }
-        let average_score = self.total_score_f32() / visits as f32;
-        let exploration = 2.0 * (parent_visits as f32).ln().max(0.0) / visits as f32;
-        average_score + exploration.sqrt()
     }
 }
 
@@ -340,17 +363,58 @@ impl Node {
     }
 
     fn maximize_ucb_for_side(&self, side_options: &[MoveNode], parent_visits: u32) -> usize {
-        let k = widen_k(parent_visits, side_options.len());
-        side_options[..k]
-            .iter()
-            .enumerate()
-            .max_by(|(_, a), (_, b)| {
-                a.ucb1(parent_visits)
-                    .partial_cmp(&b.ucb1(parent_visits))
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            })
-            .map(|(i, _)| i)
-            .unwrap_or(0)
+        // root bypasses progressive widening: every option is admitted from
+        // the start, so the search distributes visits across the full move
+        // list rather than only the heuristic top-K.
+        let k = if self.root {
+            side_options.len()
+        } else {
+            widen_k(parent_visits, side_options.len())
+        };
+        if k == 0 {
+            return 0;
+        }
+        let slice = &side_options[..k];
+
+        // pre-pass: parent's per-side mean Q over visited siblings. side-1
+        // stores `score` and side-2 stores `1 - score` (see add_result), so
+        // sum_score / sum_visits already lives in this side's perspective.
+        let mut sum_score = 0.0f32;
+        let mut sum_visits: u32 = 0;
+        for node in slice {
+            let v = node.visits.load(Ordering::Acquire);
+            if v > 0 {
+                sum_score += node.total_score_f32();
+                sum_visits += v;
+            }
+        }
+        let fpu_q = if sum_visits > 0 {
+            (sum_score / sum_visits as f32 - FPU_REDUCTION).max(0.0)
+        } else {
+            FPU_DEFAULT_Q
+        };
+        let v_min = (parent_visits.max(1) as f32 / k as f32).max(1.0);
+        let two_log_n = 2.0 * (parent_visits as f32).ln().max(0.0);
+
+        // max pass; ties resolve to the earlier index (top heuristic rank)
+        // because we use a strict `>` against best_ucb.
+        let mut best_idx = 0usize;
+        let mut best_ucb = f32::NEG_INFINITY;
+        for (i, node) in slice.iter().enumerate() {
+            let visits = node.visits.load(Ordering::Acquire);
+            let avg = if visits > 0 {
+                node.total_score_f32() / visits as f32
+            } else {
+                fpu_q
+            };
+            let denom = visits as f32 + v_min;
+            let ucb = avg + (two_log_n / denom).sqrt();
+            if ucb > best_ucb {
+                best_idx = i;
+                best_ucb = ucb;
+            }
+        }
+        best_idx
     }
 
     /// looks up or creates the child branch for `(s1_index, s2_index)` and

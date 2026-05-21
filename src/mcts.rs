@@ -407,6 +407,8 @@ pub fn perform_mcts(
         }
     }
 
+    print_tree_stats(&root_node, &children);
+
     let result = MctsResult {
         s1: root_node
             .s1_options
@@ -434,4 +436,72 @@ pub fn perform_mcts(
     };
 
     result
+}
+
+// debug helper: walks the built tree from `root` via the children map and
+// prints per-depth counts of nodes, leaves, and visits. a leaf is a node
+// that has no entry in the children map (either depth-capped, terminal, or
+// simply never re-selected after being created by its parent's expand).
+//
+// useful for sanity-checking search shape -- a deep tree (visits concentrated
+// at large depth values) suggests good exploitation; a shallow, wide tree
+// (many leaves at depth 0-1) suggests the search is fanning out at the root
+// without descending.
+fn print_tree_stats(root: &Node, children: &HashMap<(usize, u16, u16), Box<[Node]>>) {
+    let mut by_parent: HashMap<usize, Vec<&Node>> = HashMap::new();
+    for (key, kids) in children.iter() {
+        let bucket = by_parent.entry(key.0).or_default();
+        for child in kids.iter() {
+            bucket.push(child);
+        }
+    }
+
+    let mut nodes_by_depth: HashMap<u8, u64> = HashMap::new();
+    let mut leaves_by_depth: HashMap<u8, u64> = HashMap::new();
+    let mut visits_by_depth: HashMap<u8, u64> = HashMap::new();
+    let mut total_nodes = 0u64;
+
+    let mut stack: Vec<&Node> = vec![root];
+    while let Some(node) = stack.pop() {
+        let depth = node.depth;
+        let visits = node.times_visited as u64;
+
+        *nodes_by_depth.entry(depth).or_insert(0) += 1;
+        *visits_by_depth.entry(depth).or_insert(0) += visits;
+        total_nodes += 1;
+
+        let addr = node as *const Node as usize;
+        let mut had_children = false;
+        if let Some(kids) = by_parent.get(&addr) {
+            for child in kids {
+                had_children = true;
+                stack.push(*child);
+            }
+        }
+        if !had_children {
+            *leaves_by_depth.entry(depth).or_insert(0) += 1;
+        }
+    }
+
+    let mut depths: Vec<u8> = nodes_by_depth.keys().copied().collect();
+    depths.sort();
+    let total_leaves: u64 = leaves_by_depth.values().sum();
+
+    println!();
+    println!("== Tree shape ==");
+    println!("Distinct nodes: {}", total_nodes);
+    println!("Leaf nodes:     {}", total_leaves);
+    println!("Branch entries: {}", children.len());
+    println!();
+    println!(
+        "{:>5}  {:>12}  {:>12}  {:>14}  {:>12}",
+        "depth", "nodes", "leaves", "total_visits", "avg_visits"
+    );
+    for d in depths {
+        let n = nodes_by_depth[&d];
+        let l = leaves_by_depth.get(&d).copied().unwrap_or(0);
+        let v = visits_by_depth[&d];
+        let avg = if n > 0 { v as f64 / n as f64 } else { 0.0 };
+        println!("{:>5}  {:>12}  {:>12}  {:>14}  {:>12.1}", d, n, l, v, avg);
+    }
 }

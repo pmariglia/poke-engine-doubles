@@ -19,7 +19,7 @@ const SLOT_SCORE_TABLE_LEN: usize = 91;
 // damaging-move scoring constants. all tunable here.
 const SPREAD_MULTIPLIER: f32 = 1.5;
 const STAB_BONUS: f32 = 1.5;
-const TERA_OR_MEGA_BONUS: f32 = 10.0;
+const MEGA_BONUS: f32 = 10.0;
 const PRIORITY_BONUS_PER_STEP: f32 = 5.0;
 const LOW_HP_FINISH_BONUS_MAX: f32 = 1.0; // multiplier added at hp=0
 
@@ -38,9 +38,9 @@ const SWITCH_LOW_HP_BONUS: f32 = 30.0; // applied when current active is near de
 const SWITCH_MATCHUP_WEIGHT: f32 = 20.0; // scales the type-matchup term
 
 // Fake Out is filtered upstream to only appear when usable (just switched in),
-// so any FAKEOUT we see here is high-EV: priority +3, guaranteed flinch on
-// non-Inner-Focus targets, and decent damage. push it well above mid-range
-// attacks so progressive widening keeps it in the top-K early.
+// so any FAKEOUT we see here is high-EV: priority +3, guaranteed flinch
+// and damage. push it well above mid-range attacks so progressive widening
+// keeps it in the top-K early.
 const FAKEOUT_BONUS: f32 = 180.0;
 
 // flat penalty applied to a protect-family move when the attacking slot's
@@ -106,11 +106,8 @@ pub fn score_move_choice(
                 score_damaging_move(attacker, target, choice)
             };
 
-            let tera_or_mega_bonus = if matches!(
-                mc,
-                MoveChoice::MoveTera(_, _, _) | MoveChoice::MoveMega(_, _, _)
-            ) {
-                TERA_OR_MEGA_BONUS
+            let mega_bonus = if matches!(mc, MoveChoice::MoveMega(_, _, _)) {
+                MEGA_BONUS
             } else {
                 0.0
             };
@@ -133,7 +130,7 @@ pub fn score_move_choice(
                 0.0
             };
 
-            base + tera_or_mega_bonus + fakeout_bonus - protect_spam_penalty
+            base + mega_bonus + fakeout_bonus - protect_spam_penalty
         }
         MoveChoice::Switch(target_index) => {
             let attacker_side = state.get_side_immutable(side_ref);

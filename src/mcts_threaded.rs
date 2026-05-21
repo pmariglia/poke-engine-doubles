@@ -640,6 +640,8 @@ pub fn perform_mcts_shared_tree(
         }
     });
 
+    print_tree_stats(&root, &children);
+
     let options = root.options.get().expect("root options initialized");
     MctsResult {
         s1: options
@@ -661,5 +663,84 @@ pub fn perform_mcts_shared_tree(
             })
             .collect(),
         iteration_count: root.times_visited.load(Ordering::Acquire),
+    }
+}
+
+// debug helper: walks the built tree from `root` via the global children map
+// and prints per-depth counts of nodes, leaves, and visits. a leaf is a node
+// that has no entry in the children map (either depth-capped, terminal, or
+// simply never re-selected after being created by its parent's expand).
+//
+// useful for sanity-checking how FPU / progressive-widening shape the search:
+// a deep tree (visits concentrated at large depth values) suggests good
+// exploitation; a shallow, wide tree (many leaves at depth 0-1) suggests the
+// search is fanning out at the root without descending.
+fn print_tree_stats(root: &Arc<Node>, children: &ChildMap) {
+    use std::collections::{HashMap, HashSet};
+
+    // pre-group children by parent address; walking the dashmap once and
+    // bucketing avoids probing every (s1, s2) cell from each parent.
+    let mut by_parent: HashMap<usize, Vec<*const Node>> = HashMap::new();
+    for entry in children.iter() {
+        let parent_addr = entry.key().0;
+        let bucket = by_parent.entry(parent_addr).or_default();
+        for child in entry.nodes.iter() {
+            bucket.push(child as *const Node);
+        }
+    }
+
+    let mut nodes_by_depth: HashMap<u8, u64> = HashMap::new();
+    let mut leaves_by_depth: HashMap<u8, u64> = HashMap::new();
+    let mut visits_by_depth: HashMap<u8, u64> = HashMap::new();
+    let mut total_nodes = 0u64;
+
+    let mut stack: Vec<*const Node> = vec![Arc::as_ptr(root)];
+    let mut seen: HashSet<usize> = HashSet::new();
+    seen.insert(root.as_key());
+
+    while let Some(node_ptr) = stack.pop() {
+        let node = unsafe { &*node_ptr };
+        let depth = node.depth;
+        let visits = node.times_visited.load(Ordering::Acquire) as u64;
+
+        *nodes_by_depth.entry(depth).or_insert(0) += 1;
+        *visits_by_depth.entry(depth).or_insert(0) += visits;
+        total_nodes += 1;
+
+        let mut had_children = false;
+        if let Some(kids) = by_parent.get(&node.as_key()) {
+            for &child in kids {
+                had_children = true;
+                let addr = child as usize;
+                if seen.insert(addr) {
+                    stack.push(child);
+                }
+            }
+        }
+        if !had_children {
+            *leaves_by_depth.entry(depth).or_insert(0) += 1;
+        }
+    }
+
+    let mut depths: Vec<u8> = nodes_by_depth.keys().copied().collect();
+    depths.sort();
+    let total_leaves: u64 = leaves_by_depth.values().sum();
+
+    println!();
+    println!("== Tree shape ==");
+    println!("Distinct nodes: {}", total_nodes);
+    println!("Leaf nodes:     {}", total_leaves);
+    println!("Branch entries: {}", children.len());
+    println!();
+    println!(
+        "{:>5}  {:>12}  {:>12}  {:>14}  {:>12}",
+        "depth", "nodes", "leaves", "total_visits", "avg_visits"
+    );
+    for d in depths {
+        let n = nodes_by_depth[&d];
+        let l = leaves_by_depth.get(&d).copied().unwrap_or(0);
+        let v = visits_by_depth[&d];
+        let avg = if n > 0 { v as f64 / n as f64 } else { 0.0 };
+        println!("{:>5}  {:>12}  {:>12}  {:>14}  {:>12.1}", d, n, l, v, avg);
     }
 }

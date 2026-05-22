@@ -137,7 +137,7 @@ impl Node {
         &mut self,
         state: &mut State,
         move_options: &mut MoveOptions,
-        children: &mut HashMap<(usize, u16, u16), Vec<Node>>,
+        children: &mut HashMap<(usize, u16, u16), Box<[Node]>>,
     ) -> (*mut Node, usize, usize) {
         let return_node = self as *mut Node;
         if self.s1_options.is_none() {
@@ -165,7 +165,7 @@ impl Node {
         let key = (return_node as usize, s1_key, s2_key);
         match children.get_mut(&key) {
             Some(child_vector) => {
-                let child_vec_ptr = child_vector as *mut Vec<Node>;
+                let child_vec_ptr = child_vector as *mut Box<[Node]>;
                 let chosen_child = self.sample_node(child_vec_ptr);
                 state.apply_instructions(&(*chosen_child).instructions.instruction_list);
                 (*chosen_child).selection(state, move_options, children)
@@ -174,7 +174,7 @@ impl Node {
         }
     }
 
-    unsafe fn sample_node(&self, move_vector: *mut Vec<Node>) -> *mut Node {
+    unsafe fn sample_node(&self, move_vector: *mut Box<[Node]>) -> *mut Node {
         let mut rng = rng();
         let weights: Vec<f64> = (*move_vector)
             .iter()
@@ -207,7 +207,7 @@ impl Node {
         state: &mut State,
         s1_move_index: usize,
         s2_move_index: usize,
-        children: &mut HashMap<(usize, u16, u16), Vec<Node>>,
+        children: &mut HashMap<(usize, u16, u16), Box<[Node]>>,
     ) -> *mut Node {
         if self.depth >= 4 {
             return self as *mut Node;
@@ -247,9 +247,10 @@ impl Node {
 
         // sample a node from the new instruction list.
         // this is the node that the rollout will be done on
-        let new_node_ptr = self.sample_node(&mut this_pair_vec);
+        let mut boxed = this_pair_vec.into_boxed_slice();
+        let new_node_ptr = self.sample_node(&mut boxed);
         state.apply_instructions(&(*new_node_ptr).instructions.instruction_list);
-        children.insert(key, this_pair_vec);
+        children.insert(key, boxed);
         new_node_ptr
     }
 
@@ -353,7 +354,7 @@ fn do_mcts(
     state: &mut State,
     root_eval: &f32,
     move_options: &mut MoveOptions,
-    children: &mut HashMap<(usize, u16, u16), Vec<Node>>,
+    children: &mut HashMap<(usize, u16, u16), Box<[Node]>>,
 ) {
     let (mut new_node, s1_move, s2_move) =
         unsafe { root_node.selection(state, move_options, children) };
@@ -375,7 +376,7 @@ pub fn perform_mcts(
     root_node.root = true;
 
     let mut combined_options = MoveOptions::new();
-    let mut children: HashMap<(usize, u16, u16), Vec<Node>> = HashMap::new();
+    let mut children: HashMap<(usize, u16, u16), Box<[Node]>> = HashMap::new();
     let root_eval = evaluate(state);
     let start_time = std::time::Instant::now();
     while start_time.elapsed() < max_time {

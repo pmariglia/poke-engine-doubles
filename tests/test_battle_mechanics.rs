@@ -2876,6 +2876,114 @@ fn test_slower_pokemon_has_mega_evolution_weather_set_second() {
 }
 
 #[test]
+fn test_switching_into_drizzle_with_megaevolve_into_drought() {
+    // basically test that switching always happend before mega-evolution
+    let mut state = State::default();
+    state.sides[0].pokemon.pkmn[0].id = PokemonName::CHARIZARD;
+    state.sides[0].pokemon.pkmn[0].item = Items::CHARIZARDITEY;
+
+    state.sides[1].pokemon.pkmn[2].id = PokemonName::PELIPPER;
+    state.sides[1].pokemon.pkmn[2].ability = Abilities::DRIZZLE;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::MoveMega(
+                SlotReference::SlotA,
+                SideReference::SideTwo,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice {
+            choice: Choices::NONE,
+            move_choice: MoveChoice::Switch(PokemonIndex::P2),
+        },
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            // pelipper switch in
+            Instruction::Switch(SwitchInstruction {
+                side_ref: SideReference::SideTwo,
+                slot_ref: SlotReference::SlotA,
+                previous_index: PokemonIndex::P0,
+                next_index: PokemonIndex::P2,
+            }),
+            Instruction::ChangeWeather(ChangeWeather {
+                new_weather: Weather::RAIN,
+                new_weather_turns_remaining: 5,
+                previous_weather: Weather::NONE,
+                previous_weather_turns_remaining: -1,
+            }),
+            // charizard formechange
+            Instruction::FormeChange(FormeChangeInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                name_change: PokemonName::CHARIZARDMEGAY as i16 - PokemonName::CHARIZARD as i16,
+            }),
+            Instruction::ChangeAttack(ChangeStatInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                amount: 35,
+            }),
+            Instruction::ChangeDefense(ChangeStatInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                amount: 9,
+            }),
+            Instruction::ChangeSpecialAttack(ChangeStatInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                amount: 90,
+            }),
+            Instruction::ChangeSpecialDefense(ChangeStatInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                amount: 46,
+            }),
+            Instruction::ChangeSpeed(ChangeStatInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                amount: 31,
+            }),
+            Instruction::ChangeAbility(ChangeAbilityInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                ability_change: Abilities::DROUGHT as i16 - Abilities::NONE as i16,
+            }),
+            Instruction::ChangeBaseAbility(ChangeAbilityInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                ability_change: Abilities::DROUGHT as i16 - Abilities::NONE as i16,
+            }),
+            Instruction::ChangeType(ChangeType {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+                new_types: (PokemonType::FIRE, PokemonType::FLYING),
+                old_types: (PokemonType::NORMAL, PokemonType::TYPELESS),
+            }),
+            Instruction::ToggleMegaEvolved(ToggleMegaEvolvedInstruction {
+                side_ref: SideReference::SideOne,
+                pokemon_index: PokemonIndex::P0,
+            }),
+            Instruction::ChangeWeather(ChangeWeather {
+                new_weather: Weather::SUN,
+                new_weather_turns_remaining: 5,
+                previous_weather: Weather::RAIN,
+                previous_weather_turns_remaining: 5,
+            }),
+            Instruction::DecrementWeatherTurnsRemaining,
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_fainting_target_does_not_allow_them_to_move() {
     let mut state = State::default();
     state.sides[0].pokemon.pkmn[0].hp = 1;

@@ -212,7 +212,6 @@ fn generate_instructions_from_switch(
     incoming_instructions: &mut StateInstructions,
 ) {
     let should_last_used_move = state.use_last_used_move;
-    state.apply_instructions(&incoming_instructions.instruction_list);
 
     let side = state.get_side(switching_side_ref);
     let slot = side.get_slot(&slot_ref);
@@ -522,8 +521,6 @@ fn generate_instructions_from_switch(
             )
         }
     }
-
-    state.reverse_instructions(&incoming_instructions.instruction_list);
 }
 
 fn generate_instructions_from_increment_side_condition(
@@ -1473,6 +1470,7 @@ fn get_instructions_from_drag(
 
     for pkmn_id in defending_side_alive_reserve_indices {
         let mut cloned_instructions = incoming_instructions.clone();
+        state.apply_instructions(&cloned_instructions.instruction_list);
         generate_instructions_from_switch(
             state,
             target_slot_reference,
@@ -1480,6 +1478,7 @@ fn get_instructions_from_drag(
             target_side_reference,
             &mut cloned_instructions,
         );
+        state.reverse_instructions(&cloned_instructions.instruction_list);
         cloned_instructions.update_percentage(1.0 / num_alive_reserve as f32);
         frozen_instructions.push((cloned_instructions, remaining_to_move.clone()));
     }
@@ -2627,18 +2626,6 @@ fn run_move(
             &attacking_slot,
             &mut incoming_instructions,
         );
-    }
-
-    if choice.category == MoveCategory::Switch {
-        generate_instructions_from_switch(
-            state,
-            &attacking_slot,
-            choice.switch_id,
-            attacking_side,
-            &mut incoming_instructions,
-        );
-        final_instructions.push((incoming_instructions, remaining_to_move));
-        return;
     }
 
     let attacker_side = state.get_side(attacking_side);
@@ -5124,6 +5111,56 @@ pub fn generate_instructions_from_move_pair(
         Vec::with_capacity(16);
     let mut incoming_instructions: StateInstructions = StateInstructions::default();
 
+    // run switches first
+    let s1_a_switch = if let MoveChoice::Switch(switch_id) = side_one_a_move {
+        generate_instructions_from_switch(
+            state,
+            &SlotReference::SlotA,
+            *switch_id,
+            SideReference::SideOne,
+            &mut incoming_instructions,
+        );
+        true
+    } else {
+        false
+    };
+    let s1_b_switch = if let MoveChoice::Switch(switch_id) = side_one_b_move {
+        generate_instructions_from_switch(
+            state,
+            &SlotReference::SlotB,
+            *switch_id,
+            SideReference::SideOne,
+            &mut incoming_instructions,
+        );
+        true
+    } else {
+        false
+    };
+    let s2_a_switch = if let MoveChoice::Switch(switch_id) = side_two_a_move {
+        generate_instructions_from_switch(
+            state,
+            &SlotReference::SlotA,
+            *switch_id,
+            SideReference::SideTwo,
+            &mut incoming_instructions,
+        );
+        true
+    } else {
+        false
+    };
+    let s2_b_switch = if let MoveChoice::Switch(switch_id) = side_two_b_move {
+        generate_instructions_from_switch(
+            state,
+            &SlotReference::SlotB,
+            *switch_id,
+            SideReference::SideTwo,
+            &mut incoming_instructions,
+        );
+        true
+    } else {
+        false
+    };
+
     // Run terstallization type changes / mega-evolutions
     // Note: only create/apply instructions, don't apply changes
     // generate_instructions_from_move() assumes instructions have not been applied
@@ -5200,37 +5237,45 @@ pub fn generate_instructions_from_move_pair(
         s2_b_tera,
     );
 
-    let need_to_move = vec![
-        RemainingToMove {
+    let mut need_to_move = Vec::with_capacity(4);
+    if !s1_a_switch {
+        need_to_move.push(RemainingToMove {
             side_ref: SideReference::SideOne,
             slot_ref: SlotReference::SlotA,
             move_choice: side_one_a_move.clone(),
             choice: side_one_a_choice.clone(),
-        },
-        RemainingToMove {
+        });
+    }
+    if !s1_b_switch {
+        need_to_move.push(RemainingToMove {
             side_ref: SideReference::SideOne,
             slot_ref: SlotReference::SlotB,
             move_choice: side_one_b_move.clone(),
             choice: side_one_b_choice.clone(),
-        },
-        RemainingToMove {
+        });
+    }
+    if !s2_a_switch {
+        need_to_move.push(RemainingToMove {
             side_ref: SideReference::SideTwo,
             slot_ref: SlotReference::SlotA,
             move_choice: side_two_a_move.clone(),
             choice: side_two_a_choice.clone(),
-        },
-        RemainingToMove {
+        });
+    }
+    if !s2_b_switch {
+        need_to_move.push(RemainingToMove {
             side_ref: SideReference::SideTwo,
             slot_ref: SlotReference::SlotB,
             move_choice: side_two_b_move.clone(),
             choice: side_two_b_choice.clone(),
-        },
-    ];
+        });
+    }
 
+    let num_moves_to_do = need_to_move.len();
     state_instructions_vec.push((incoming_instructions, need_to_move));
 
     let mut num_moves_done = 0;
-    while num_moves_done < 4 {
+    while num_moves_done < num_moves_to_do {
         let mut i = 0;
         let vec_len = state_instructions_vec.len();
         while i < vec_len {

@@ -5179,9 +5179,6 @@ pub fn generate_instructions_from_move_pair(
         false
     };
 
-    // Run terstallization type changes / mega-evolutions
-    // Note: only create/apply instructions, don't apply changes
-    // generate_instructions_from_move() assumes instructions have not been applied
     if s1_a_tera {
         generate_instructions_from_tera(
             state,

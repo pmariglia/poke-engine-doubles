@@ -5,7 +5,7 @@ use super::abilities::{
 };
 use super::choice_effects::{
     charge_choice_to_volatile, choice_after_damage_hit, choice_before_move, choice_change_type,
-    choice_hazard_clear, choice_special_effect, modify_choice,
+    choice_hazard_clear, choice_special_effect, modify_choice, precompute_variable_base_power,
 };
 use crate::choices::{
     Boost, Choices, Effect, Heal, MoveChoiceTarget, MoveTarget, MultiHitMove, Secondary,
@@ -1992,6 +1992,16 @@ fn before_move(
         target_slot,
         incoming_instructions,
     );
+    // Compute weight-based base power before item checks so type-reducing berries
+    // (e.g. Chople Berry vs Low Kick) see the real base power and halve it correctly.
+    precompute_variable_base_power(
+        state,
+        choice,
+        attacking_side_ref,
+        attacking_slot_ref,
+        target_side,
+        target_slot,
+    );
     item_before_move(
         state,
         choice,
@@ -3131,6 +3141,19 @@ fn run_move(
         }
     }
 
+    // Parental Bond: single-hit damaging moves hit twice (second hit = 25% damage).
+    // Does not apply to already-multi-hit moves or status moves.
+    let parental_bond = state
+        .get_side(attacking_side)
+        .get_active(&attacking_slot)
+        .ability
+        == Abilities::PARENTALBOND
+        && hit_count == 1
+        && choice.category != MoveCategory::Status;
+    if parental_bond {
+        hit_count = 2;
+    }
+
     let (_, defender_side) = state.get_both_sides(attacking_side);
     let defender_active = defender_side.get_active(&target_slot);
     let mut does_damage = false;
@@ -3177,6 +3200,7 @@ fn run_move(
             &mut final_instructions,
             &remaining_to_move,
             final_run_move,
+            parental_bond,
         );
     } else {
         state.reverse_instructions(&incoming_instructions.instruction_list);
@@ -3201,6 +3225,7 @@ fn run_move(
                 &mut final_instructions,
                 &remaining_to_move,
                 final_run_move,
+                parental_bond,
             );
         }
     }
@@ -4482,14 +4507,20 @@ fn execute_move_effects(
     final_instructions: &mut Vec<(StateInstructions, Vec<RemainingToMove>)>,
     remaining_to_move: &Vec<RemainingToMove>,
     final_run_move: bool,
+    parental_bond: bool,
 ) {
     let mut hit_sub = false;
-    for _ in 0..hit_count {
+    for hit_num in 0..hit_count {
+        let current_damage = if parental_bond && hit_num == 1 {
+            ((damage_amount as f32 * 0.25) as i16).max(1)
+        } else {
+            damage_amount
+        };
         if does_damage {
             hit_sub = generate_instructions_from_damage(
                 state,
                 choice,
-                damage_amount,
+                current_damage,
                 attacking_side,
                 &attacking_slot,
                 target_side,

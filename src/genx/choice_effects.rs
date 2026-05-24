@@ -782,38 +782,10 @@ pub fn modify_choice(
                 attacker_choice.base_power *= 1.3;
             }
         }
-        Choices::GRASSKNOT | Choices::LOWKICK => {
-            let target_active = target_side.get_active_immutable(target_slot_ref);
-            if target_active.weight_kg < 10.0 {
-                attacker_choice.base_power = 20.0;
-            } else if target_active.weight_kg < 25.0 {
-                attacker_choice.base_power = 40.0;
-            } else if target_active.weight_kg < 50.0 {
-                attacker_choice.base_power = 60.0;
-            } else if target_active.weight_kg < 100.0 {
-                attacker_choice.base_power = 80.0;
-            } else if target_active.weight_kg < 200.0 {
-                attacker_choice.base_power = 100.0;
-            } else {
-                attacker_choice.base_power = 120.0;
-            }
-        }
-        Choices::HEATCRASH | Choices::HEAVYSLAM => {
-            let attacker = attacking_side.get_active_immutable(attacking_slot_ref);
-            let target = target_side.get_active_immutable(target_slot_ref);
-            let weight_ratio = target.weight_kg / attacker.weight_kg;
-            if weight_ratio > 0.5 {
-                attacker_choice.base_power = 40.0;
-            } else if weight_ratio > 0.3335 {
-                attacker_choice.base_power = 60.0;
-            } else if weight_ratio >= 0.2501 {
-                attacker_choice.base_power = 80.0;
-            } else if weight_ratio >= 0.2001 {
-                attacker_choice.base_power = 100.0;
-            } else {
-                attacker_choice.base_power = 120.0;
-            }
-        }
+        // Weight-based moves: power is pre-computed in precompute_variable_base_power
+        // (which runs before item checks) so type-reducing berries halve the correct value.
+        // Skip here to avoid overwriting a berry-halved base_power.
+        Choices::GRASSKNOT | Choices::LOWKICK | Choices::HEATCRASH | Choices::HEAVYSLAM => {}
         _ => {}
     }
 }
@@ -2243,5 +2215,58 @@ pub fn charge_volatile_to_choice(volatile: &PokemonVolatileStatus) -> Option<Cho
         PokemonVolatileStatus::SOLARBEAM => Some(Choices::SOLARBEAM),
         PokemonVolatileStatus::SOLARBLADE => Some(Choices::SOLARBLADE),
         _ => None,
+    }
+}
+
+/// Set the base power for moves whose power depends on the target's weight (Low Kick,
+/// Grass Knot) or the attacker/target weight ratio (Heat Crash, Heavy Slam).
+///
+/// This must run BEFORE item_before_move so type-reducing berries (e.g. Chople Berry
+/// against Low Kick) see the real base power and halve it correctly. The corresponding
+/// cases in modify_choice are no-ops so this value is never overwritten.
+pub fn precompute_variable_base_power(
+    state: &State,
+    choice: &mut Choice,
+    attacking_side_ref: SideReference,
+    attacking_slot_ref: &SlotReference,
+    target_side_ref: SideReference,
+    target_slot_ref: &SlotReference,
+) {
+    let (attacking_side, target_side) =
+        state.get_sides_immutable(attacking_side_ref, target_side_ref);
+    match choice.move_id {
+        Choices::GRASSKNOT | Choices::LOWKICK => {
+            let w = target_side.get_active_immutable(target_slot_ref).weight_kg;
+            choice.base_power = if w < 10.0 {
+                20.0
+            } else if w < 25.0 {
+                40.0
+            } else if w < 50.0 {
+                60.0
+            } else if w < 100.0 {
+                80.0
+            } else if w < 200.0 {
+                100.0
+            } else {
+                120.0
+            };
+        }
+        Choices::HEATCRASH | Choices::HEAVYSLAM => {
+            let attacker = attacking_side.get_active_immutable(attacking_slot_ref);
+            let target = target_side.get_active_immutable(target_slot_ref);
+            let ratio = target.weight_kg / attacker.weight_kg;
+            choice.base_power = if ratio > 0.5 {
+                40.0
+            } else if ratio > 0.3335 {
+                60.0
+            } else if ratio >= 0.2501 {
+                80.0
+            } else if ratio >= 0.2001 {
+                100.0
+            } else {
+                120.0
+            };
+        }
+        _ => {}
     }
 }

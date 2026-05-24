@@ -2999,6 +2999,7 @@ fn run_move(
     let attacker = state
         .get_side_immutable(attacking_side)
         .get_active_immutable(&attacking_slot);
+    let attacker_ability = attacker.ability;
     if choice.move_id == Choices::SLEEPTALK && attacker.status == PokemonStatus::SLEEP {
         let new_choices = attacker.get_sleep_talk_choices();
         state.reverse_instructions(&incoming_instructions.instruction_list);
@@ -3161,6 +3162,15 @@ fn run_move(
         }
     }
 
+    // Parental Bond: single-hit damaging moves hit twice (second hit = 25% damage).
+    // Does not apply to already-multi-hit moves or status moves.
+    let parental_bond = attacker_ability == Abilities::PARENTALBOND
+        && hit_count == 1
+        && choice.category != MoveCategory::Status;
+    if parental_bond {
+        hit_count = 2;
+    }
+
     if incoming_instructions.percentage != 0.0 {
         execute_move_effects(
             state,
@@ -3170,6 +3180,7 @@ fn run_move(
             target_slot,
             incoming_instructions,
             hit_count,
+            parental_bond,
             does_damage,
             regular_damage,
             choice,
@@ -3194,6 +3205,7 @@ fn run_move(
                 target_slot,
                 branch_ins,
                 hit_count,
+                parental_bond,
                 does_damage,
                 branch_damage,
                 choice,
@@ -4475,6 +4487,7 @@ fn execute_move_effects(
     target_slot: SlotReference,
     mut instructions: StateInstructions,
     hit_count: i8,
+    parental_bond: bool,
     does_damage: bool,
     damage_amount: i16,
     choice: &mut Choice,
@@ -4484,12 +4497,17 @@ fn execute_move_effects(
     final_run_move: bool,
 ) {
     let mut hit_sub = false;
-    for _ in 0..hit_count {
+    for hit_num in 0..hit_count {
+        let current_damage = if parental_bond && hit_num == 1 {
+            ((damage_amount as f32 * 0.25) as i16).max(1)
+        } else {
+            damage_amount
+        };
         if does_damage {
             hit_sub = generate_instructions_from_damage(
                 state,
                 choice,
-                damage_amount,
+                current_damage,
                 attacking_side,
                 &attacking_slot,
                 target_side,

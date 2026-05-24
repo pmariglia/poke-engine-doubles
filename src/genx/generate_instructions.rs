@@ -1852,7 +1852,7 @@ fn move_has_no_effect(
         && target.has_type(&PokemonType::GROUND)
     {
         return true;
-    } else if choice.move_id == Choices::ENCORE {
+    } else if choice.move_id == Choices::ENCORE || choice.move_id == Choices::DISABLE {
         return match state
             .get_side_immutable(target_side_ref)
             .get_slot_immutable(target_slot_ref)

@@ -785,17 +785,17 @@ pub fn modify_choice(
         Choices::GRASSKNOT | Choices::LOWKICK => {
             let target_active = target_side.get_active_immutable(target_slot_ref);
             if target_active.weight_kg < 10.0 {
-                attacker_choice.base_power = 20.0;
+                attacker_choice.base_power *= 1.0;
             } else if target_active.weight_kg < 25.0 {
-                attacker_choice.base_power = 40.0;
+                attacker_choice.base_power *= 2.0;
             } else if target_active.weight_kg < 50.0 {
-                attacker_choice.base_power = 60.0;
+                attacker_choice.base_power *= 3.0;
             } else if target_active.weight_kg < 100.0 {
-                attacker_choice.base_power = 80.0;
+                attacker_choice.base_power *= 4.0;
             } else if target_active.weight_kg < 200.0 {
-                attacker_choice.base_power = 100.0;
+                attacker_choice.base_power *= 5.0;
             } else {
-                attacker_choice.base_power = 120.0;
+                attacker_choice.base_power *= 6.0;
             }
         }
         Choices::HEATCRASH | Choices::HEAVYSLAM => {
@@ -803,15 +803,15 @@ pub fn modify_choice(
             let target = target_side.get_active_immutable(target_slot_ref);
             let weight_ratio = target.weight_kg / attacker.weight_kg;
             if weight_ratio > 0.5 {
-                attacker_choice.base_power = 40.0;
+                attacker_choice.base_power *= 2.0;
             } else if weight_ratio > 0.3335 {
-                attacker_choice.base_power = 60.0;
+                attacker_choice.base_power *= 3.0;
             } else if weight_ratio >= 0.2501 {
-                attacker_choice.base_power = 80.0;
+                attacker_choice.base_power *= 4.0;
             } else if weight_ratio >= 0.2001 {
-                attacker_choice.base_power = 100.0;
+                attacker_choice.base_power *= 5.0;
             } else {
-                attacker_choice.base_power = 120.0;
+                attacker_choice.base_power *= 6.0;
             }
         }
         _ => {}

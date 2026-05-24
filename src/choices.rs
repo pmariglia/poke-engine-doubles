@@ -5442,6 +5442,7 @@ lazy_static! {
             Choices::GRASSKNOT,
             Choice {
                 move_id: Choices::GRASSKNOT,
+                base_power: 20.0,  // defaults to 20bp and is multiplied based on target weight elsewhere
                 category: MoveCategory::Special,
                 move_type: PokemonType::GRASS,
                 flags: Flags {
@@ -6005,6 +6006,7 @@ lazy_static! {
             Choices::HEATCRASH,
             Choice {
                 move_id: Choices::HEATCRASH,
+                base_power: 20.0,  // defaults to 20bp and is multiplied based on target weight elsewhere
                 category: MoveCategory::Physical,
                 move_type: PokemonType::FIRE,
                 flags: Flags {
@@ -6041,6 +6043,7 @@ lazy_static! {
             Choices::HEAVYSLAM,
             Choice {
                 move_id: Choices::HEAVYSLAM,
+                base_power: 20.0,  // defaults to 20bp and is multiplied based on target weight elsewhere
                 category: MoveCategory::Physical,
                 move_type: PokemonType::STEEL,
                 flags: Flags {
@@ -7854,6 +7857,7 @@ lazy_static! {
             Choices::LOWKICK,
             Choice {
                 move_id: Choices::LOWKICK,
+                base_power: 20.0,  // defaults to 20bp and is multiplied based on target weight elsewhere
                 category: MoveCategory::Physical,
                 move_type: PokemonType::FIGHTING,
                 flags: Flags {

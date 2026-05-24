@@ -15,10 +15,6 @@ crate-type = ["lib"]
 name = "poke-engine"
 path = "src/main.rs"
 
-[[bin]]
-name = "rank-debug"
-path = "src/bin/rank_debug.rs"
-
 [profile.release]
 debug = 1
 

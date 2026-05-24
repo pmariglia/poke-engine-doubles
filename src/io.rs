@@ -3,11 +3,12 @@ use crate::engine::evaluate::evaluate;
 use crate::engine::generate_instructions::{
     calculate_damage_rolls, generate_instructions_from_move_pair,
 };
-use crate::engine::state::MoveChoice;
+use crate::engine::state::{MoveChoice, MoveOptions};
+use crate::heuristics::{pair_synergy, rank_side_pairs, score_move_choice, SLOT_SCORE_TABLE_LEN};
 use crate::instruction::{Instruction, StateInstructions};
 use crate::mcts::{perform_mcts, MctsResult};
 use crate::mcts_threaded::perform_mcts_shared_tree;
-use crate::state::{PokemonIndex, SideReference, SlotReference, State};
+use crate::state::{PokemonIndex, Side, SideReference, SlotReference, State};
 use clap::Parser;
 use std::io;
 use std::io::Write;
@@ -34,6 +35,7 @@ enum SubCommand {
     MonteCarloTreeSearch(MonteCarloTreeSearch),
     CalculateDamage(CalculateDamage),
     GenerateInstructions(GenerateInstructions),
+    RankMoves(RankMoves),
 }
 
 #[derive(Parser)]
@@ -79,6 +81,15 @@ struct GenerateInstructions {
 
     #[clap(short = 'd', long, required = true)]
     side_two_move_b: String,
+}
+
+#[derive(Parser)]
+struct RankMoves {
+    #[clap(short, long, required = true)]
+    state: String,
+
+    #[clap(short, long, required = false)]
+    limit: Option<usize>,
 }
 
 impl Default for IOData {
@@ -242,6 +253,55 @@ pub fn main() {
                     )
                 };
                 pprint_mcts_result(&state, result);
+            }
+            SubCommand::RankMoves(rank_moves) => {
+                state = State::deserialize(rank_moves.state.as_str());
+                let mut move_options = MoveOptions::new();
+                state.get_all_options_keep_slot_buffers(&mut move_options);
+                rank_side_pairs(
+                    &state,
+                    SideReference::SideOne,
+                    &move_options.side_one_slot_a_options,
+                    &move_options.side_one_slot_b_options,
+                    &move_options.side_one_combined_options,
+                    &mut move_options.side_one_pair_scores,
+                );
+                rank_side_pairs(
+                    &state,
+                    SideReference::SideTwo,
+                    &move_options.side_two_slot_a_options,
+                    &move_options.side_two_slot_b_options,
+                    &move_options.side_two_combined_options,
+                    &mut move_options.side_two_pair_scores,
+                );
+                for side in 0..2 {
+                    print_side(
+                        &format!("Side {}", side + 1),
+                        &state,
+                        &state.sides[side],
+                        if side == 0 {
+                            SideReference::SideOne
+                        } else {
+                            SideReference::SideTwo
+                        },
+                        if side == 0 {
+                            &move_options.side_one_slot_a_options
+                        } else {
+                            &move_options.side_two_slot_a_options
+                        },
+                        if side == 0 {
+                            &move_options.side_one_slot_b_options
+                        } else {
+                            &move_options.side_two_slot_b_options
+                        },
+                        if side == 0 {
+                            &move_options.side_one_combined_options
+                        } else {
+                            &move_options.side_two_combined_options
+                        },
+                        rank_moves.limit,
+                    );
+                }
             }
             SubCommand::CalculateDamage(_calculate_damage) => panic!("Not implemented yet"),
             //     state = State::deserialize(calculate_damage.state.as_str());
@@ -653,6 +713,66 @@ fn command_loop(mut io_data: IOData) {
                 pprint_mcts_result(&io_data.state, result);
                 println!("\nTook: {:?}", elapsed);
             }
+            "rank-moves" | "rm" => {
+                let run_count = match args.next() {
+                    Some(s) => s.parse::<usize>().unwrap(),
+                    None => 1,
+                };
+                let mut move_options = MoveOptions::new();
+                io_data
+                    .state
+                    .get_all_options_keep_slot_buffers(&mut move_options);
+
+                let start_time = std::time::Instant::now();
+                for _ in 0..run_count {
+                    rank_side_pairs(
+                        &io_data.state,
+                        SideReference::SideOne,
+                        &move_options.side_one_slot_a_options,
+                        &move_options.side_one_slot_b_options,
+                        &move_options.side_one_combined_options,
+                        &mut move_options.side_one_pair_scores,
+                    );
+                    rank_side_pairs(
+                        &io_data.state,
+                        SideReference::SideTwo,
+                        &move_options.side_two_slot_a_options,
+                        &move_options.side_two_slot_b_options,
+                        &move_options.side_two_combined_options,
+                        &mut move_options.side_two_pair_scores,
+                    );
+                }
+                let elapsed = start_time.elapsed();
+                for side in 0..2 {
+                    print_side(
+                        &format!("Side {}", side + 1),
+                        &io_data.state,
+                        &io_data.state.sides[side],
+                        if side == 0 {
+                            SideReference::SideOne
+                        } else {
+                            SideReference::SideTwo
+                        },
+                        if side == 0 {
+                            &move_options.side_one_slot_a_options
+                        } else {
+                            &move_options.side_two_slot_a_options
+                        },
+                        if side == 0 {
+                            &move_options.side_one_slot_b_options
+                        } else {
+                            &move_options.side_two_slot_b_options
+                        },
+                        if side == 0 {
+                            &move_options.side_one_combined_options
+                        } else {
+                            &move_options.side_two_combined_options
+                        },
+                        None,
+                    );
+                }
+                println!("\nTook: {:?}", elapsed);
+            }
             "team-preview" | "tp" => {
                 if !io_data.state.team_preview {
                     println!("Team preview must be active");
@@ -767,5 +887,140 @@ fn command_loop(mut io_data: IOData) {
                 println!("Unknown command: {}", command);
             }
         }
+    }
+}
+
+fn print_side(
+    label: &str,
+    state: &State,
+    side: &Side,
+    side_ref: SideReference,
+    slot_a_options: &[MoveChoice],
+    slot_b_options: &[MoveChoice],
+    pairs: &[(MoveChoice, MoveChoice)],
+    pair_limit: Option<usize>,
+) {
+    // fill per-slot score caches indexed by MoveChoice::to_u8() — same shape
+    // as rank_side_pairs uses internally.
+    let mut slot_a_scores = [0.0f32; SLOT_SCORE_TABLE_LEN];
+    let mut slot_b_scores = [0.0f32; SLOT_SCORE_TABLE_LEN];
+    for mc in slot_a_options {
+        slot_a_scores[mc.to_u8() as usize] =
+            score_move_choice(state, side_ref, SlotReference::SlotA, mc);
+    }
+    for mc in slot_b_options {
+        slot_b_scores[mc.to_u8() as usize] =
+            score_move_choice(state, side_ref, SlotReference::SlotB, mc);
+    }
+
+    println!("############ {} ############", label);
+    print_slot_table(
+        &format!("{} Slot A", label),
+        side,
+        SlotReference::SlotA,
+        slot_a_options,
+        &slot_a_scores,
+    );
+    println!();
+    print_slot_table(
+        &format!("{} Slot B", label),
+        side,
+        SlotReference::SlotB,
+        slot_b_options,
+        &slot_b_scores,
+    );
+    println!();
+    print_pair_table(
+        &format!("{} Combined", label),
+        state,
+        side,
+        side_ref,
+        pairs,
+        &slot_a_scores,
+        &slot_b_scores,
+        pair_limit,
+    );
+}
+
+fn print_pair_table(
+    label: &str,
+    state: &State,
+    side: &Side,
+    side_ref: SideReference,
+    pairs: &[(MoveChoice, MoveChoice)],
+    slot_a_scores: &[f32; SLOT_SCORE_TABLE_LEN],
+    slot_b_scores: &[f32; SLOT_SCORE_TABLE_LEN],
+    limit: Option<usize>,
+) {
+    // build (a_score, b_score, synergy, combined) per pair
+    let breakdowns: Vec<(f32, f32, f32, f32)> = pairs
+        .iter()
+        .map(|(a, b)| {
+            let a_s = slot_a_scores[a.to_u8() as usize];
+            let b_s = slot_b_scores[b.to_u8() as usize];
+            let syn = pair_synergy(state, side_ref, a, b);
+            (a_s, b_s, syn, a_s + b_s + syn)
+        })
+        .collect();
+
+    let mut indices: Vec<usize> = (0..pairs.len()).collect();
+    indices.sort_by(|&a, &b| {
+        breakdowns[b]
+            .3
+            .partial_cmp(&breakdowns[a].3)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    let shown = limit.unwrap_or(indices.len()).min(indices.len());
+    println!(
+        "--- {} --- ({} pairs, showing top {})",
+        label,
+        pairs.len(),
+        shown
+    );
+    println!(
+        "{:>4}  {:>8}  {:>8}  {:>8}  {:>8}  {:<40}  {}",
+        "rank", "combined", "slotA", "slotB", "synergy", "slotA-move", "slotB-move"
+    );
+    for (rank, &i) in indices.iter().take(shown).enumerate() {
+        let (a, b) = &pairs[i];
+        let (a_s, b_s, syn, combined) = breakdowns[i];
+        println!(
+            "{:>4}  {:>8.2}  {:>8.2}  {:>8.2}  {:>8.2}  {:<40}  {}",
+            rank,
+            combined,
+            a_s,
+            b_s,
+            syn,
+            a.to_string(side, &SlotReference::SlotA),
+            b.to_string(side, &SlotReference::SlotB),
+        );
+    }
+}
+
+fn print_slot_table(
+    label: &str,
+    side: &Side,
+    slot_ref: SlotReference,
+    options: &[MoveChoice],
+    slot_scores: &[f32; SLOT_SCORE_TABLE_LEN],
+) {
+    let mut indices: Vec<usize> = (0..options.len()).collect();
+    indices.sort_by(|&a, &b| {
+        let sa = slot_scores[options[a].to_u8() as usize];
+        let sb = slot_scores[options[b].to_u8() as usize];
+        sb.partial_cmp(&sa).unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    println!("--- {} --- ({} options)", label, options.len());
+    println!("{:>4}  {:>8}  {}", "rank", "score", "move");
+    for (rank, &i) in indices.iter().enumerate() {
+        let mc = &options[i];
+        println!(
+            "{:>4}  {:>8.2}  {}",
+            rank,
+            slot_scores[mc.to_u8() as usize],
+            mc.to_string(side, &slot_ref),
+        );
     }
 }

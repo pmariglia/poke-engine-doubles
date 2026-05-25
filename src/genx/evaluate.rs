@@ -8,6 +8,7 @@ use crate::state::{Pokemon, PokemonStatus, Side, SideReference, SideSlot, SlotRe
 const POKEMON_ALIVE: f32 = 30.0;
 const POKEMON_HP: f32 = 100.0;
 const USED_TERA: f32 = -50.0;
+const USED_MEGA: f32 = 15.0;
 
 const POKEMON_ATTACK_BOOST: f32 = 30.0;
 const POKEMON_DEFENSE_BOOST: f32 = 15.0;
@@ -210,6 +211,7 @@ pub fn evaluate(state: &State) -> f32 {
     let side_two_b = &state.sides[1].pokemon[state.sides[1].slot_b.active_index];
     let mut iter = state.sides[0].pokemon.into_iter();
     let mut s1_used_tera = false;
+    let mut s1_used_mega = false;
     let mut side_one_has_alive_reserve = false;
     while let Some(pkmn) = iter.next() {
         if pkmn.hp > 0 {
@@ -223,6 +225,9 @@ pub fn evaluate(state: &State) -> f32 {
         }
         if pkmn.terastallized {
             s1_used_tera = true;
+        }
+        if pkmn.mega_evolved {
+            s1_used_mega = true;
         }
     }
     if state.sides[0].pokemon[state.sides[0].slot_a.active_index].hp > 0 {
@@ -246,8 +251,12 @@ pub fn evaluate(state: &State) -> f32 {
     if s1_used_tera {
         score += USED_TERA;
     }
+    if s1_used_mega {
+        score += USED_MEGA;
+    }
     let mut iter = state.sides[1].pokemon.into_iter();
     let mut s2_used_tera = false;
+    let mut s2_used_mega = false;
     let mut side_two_has_alive_reserve = false;
     while let Some(pkmn) = iter.next() {
         if pkmn.hp > 0 {
@@ -261,6 +270,9 @@ pub fn evaluate(state: &State) -> f32 {
         }
         if pkmn.terastallized {
             s2_used_tera = true;
+        }
+        if pkmn.mega_evolved {
+            s2_used_mega = true;
         }
     }
     if state.sides[1].pokemon[state.sides[1].slot_a.active_index].hp > 0 {
@@ -283,6 +295,9 @@ pub fn evaluate(state: &State) -> f32 {
     }
     if s2_used_tera {
         score -= USED_TERA;
+    }
+    if s2_used_mega {
+        score -= USED_MEGA;
     }
 
     let s1a_speed = get_effective_speed(state, SideReference::SideOne, &SlotReference::SlotA);

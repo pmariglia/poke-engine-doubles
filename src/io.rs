@@ -834,11 +834,12 @@ fn command_loop(mut io_data: IOData) {
                 let side_two_options = State::generate_team_preview_options(s2_teams);
 
                 let start_time = std::time::Instant::now();
-                let result = perform_mcts(
+                let result = perform_mcts_shared_tree(
                     &mut io_data.state,
                     side_one_options,
                     side_two_options,
                     std::time::Duration::from_millis(max_time_ms),
+                    4
                 );
                 let elapsed = start_time.elapsed();
                 pprint_mcts_result(&io_data.state, result);

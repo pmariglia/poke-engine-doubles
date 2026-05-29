@@ -3518,6 +3518,46 @@ fn test_tailwind_when_ally_has_windrider() {
 }
 
 #[test]
+fn test_tailwind_when_ally_has_windrider_does_not_overflow() {
+    let mut state = State::default();
+    state.sides[0].pokemon.pkmn[1].ability = Abilities::WINDRIDER;
+    state.sides[0].slot_b.attack_boost = 6;
+
+    let vec_of_instructions = set_moves_on_pkmn_and_call_generate_instructions(
+        &mut state,
+        TestMoveChoice {
+            choice: Choices::TAILWIND,
+            move_choice: MoveChoice::Move(
+                SlotReference::SlotA,
+                SideReference::SideOne,
+                PokemonMoveIndex::M0,
+            ),
+        },
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+        TestMoveChoice::default(),
+    );
+
+    let expected_instructions = vec![StateInstructions {
+        end_of_turn_triggered: true,
+        percentage: 100.0,
+        instruction_list: vec![
+            Instruction::ChangeSideCondition(ChangeSideConditionInstruction {
+                side_ref: SideReference::SideOne,
+                side_condition: PokemonSideCondition::Tailwind,
+                amount: 4,
+            }),
+            Instruction::ChangeSideCondition(ChangeSideConditionInstruction {
+                side_ref: SideReference::SideOne,
+                side_condition: PokemonSideCondition::Tailwind,
+                amount: -1,
+            }),
+        ],
+    }];
+    assert_eq!(expected_instructions, vec_of_instructions);
+}
+
+#[test]
 fn test_armortail_stop_increased_priority_single_target() {
     let mut state = State::default();
     state.sides[1].pokemon.pkmn[0].ability = Abilities::ARMORTAIL;

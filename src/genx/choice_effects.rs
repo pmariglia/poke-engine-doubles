@@ -1458,15 +1458,18 @@ pub fn choice_special_effect(
             let partner_slot_ref = attacking_slot_ref.get_other_slot();
             let ally_pkmn = attacking_side.get_active_immutable(&partner_slot_ref);
             if ally_pkmn.ability == Abilities::WINDRIDER {
-                instructions
-                    .instruction_list
-                    .push(Instruction::Boost(BoostInstruction {
-                        side_ref: attacking_side_ref,
-                        slot_ref: partner_slot_ref,
-                        stat: PokemonBoostableStat::Attack,
-                        amount: 1,
-                    }));
-                attacking_side.get_slot(&partner_slot_ref).attack_boost += 1;
+                let ally_slot = attacking_side.get_slot(&partner_slot_ref);
+                if ally_slot.attack_boost < 6 {
+                    instructions
+                        .instruction_list
+                        .push(Instruction::Boost(BoostInstruction {
+                            side_ref: attacking_side_ref,
+                            slot_ref: partner_slot_ref,
+                            stat: PokemonBoostableStat::Attack,
+                            amount: 1,
+                        }));
+                    attacking_side.get_slot(&partner_slot_ref).attack_boost += 1;
+                }
             }
         }
         Choices::HOWL => {
